@@ -4,7 +4,7 @@
     {
       "id": 0,
       "prompt": "カート購入機能の仕様書を作成して。入出力定義も含めて",
-      "expected_output": "assets/spec-template.md をベースに、入力（Input）定義（ユーザーID、商品ID、quantityなど）、出力（Output）定義（注文確済ステータス、注文IDなど）、処理フロー、インターフェース定義が記述された仕様書が作成される",
+      "expected_output": "assets/spec.template.md をベースに、入力（Input）定義（ユーザーID、商品ID、quantityなど）、出力（Output）定義（注文確済ステータス、注文IDなど）、処理フロー、インターフェース定義が記述された仕様書が作成される",
       "files": []
     },
     {

@@ -105,7 +105,7 @@ agent は組み込みのもの（`Explore`, `Plan`, `general-purpose`, `claude-c
 
 ### 2-2: rule の場合 — テンプレートをコピーして作成
 
-`assets/rule-template.md` をコピーして新規ルールファイルを作成する。
+`assets/rule.template.md` をコピーして新規ルールファイルを作成する。
 
 ```bash
 bash .claude/skills/ai-asset-creator/scripts/init-asset.sh rule <ルール名>
@@ -116,7 +116,7 @@ bash .claude/skills/ai-asset-creator/scripts/init-asset.sh rule <ルール名>
 
 ### 2-3: hook の場合 — テンプレートをコピーして作成
 
-`assets/hook-template.sh` をコピーして新規フックスクリプトを作成する。
+`assets/hook.template.sh` をコピーして新規フックスクリプトを作成する。
 
 ```bash
 bash .claude/skills/ai-asset-creator/scripts/init-asset.sh hook <フック名>
@@ -128,7 +128,7 @@ bash .claude/skills/ai-asset-creator/scripts/init-asset.sh hook <フック名>
 
 ### 2-4: agent の場合 — テンプレートをコピーして作成
 
-`assets/agent-template.md` をコピーして新規 subagent 定義を作成する。
+`assets/agent.template.md` をコピーして新規 subagent 定義を作成する。
 
 ```bash
 bash .claude/skills/ai-asset-creator/scripts/init-asset.sh agent <エージェント名>

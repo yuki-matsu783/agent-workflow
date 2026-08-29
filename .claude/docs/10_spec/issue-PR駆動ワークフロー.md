@@ -64,7 +64,7 @@ out_of_scope:
 
 ### 出力フォーマット（PR 本文）
 
-gh-feature の `assets/pr-template.md` を土台にし、以下を必ず含める:
+gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含める:
 
 ```markdown
 ## 変更内容の概要
@@ -103,8 +103,8 @@ gh-feature の `assets/pr-template.md` を土台にし、以下を必ず含め�
 3. **既存 issue の検索**（gh-issue の検索モード）: `keywords` で open issue を検索し、0 件なら closed も含めて検索する。候補を `references/issue-triage.md` の基準で「類似 / 関連 / 無関係」に分類し、類似・関連を表で提示する
 4. **承認①**: 類似ありなら「既存 #N で対応するか」、類似なしなら「新規 issue を作るか」を確認する
 5. **issue の確定**
-   - 既存 #N: `assets/issue-addendum-template.md` から追記案を作る → **承認②** → gh-issue の編集モードで**本文末尾に追記**する（既存の記述は変更しない）
-   - 新規: gh-issue の `assets/issue-template.md` から本文案を作る → **承認②** → gh-issue の作成モードで作成する
+   - 既存 #N: `assets/issue-addendum.template.md` から追記案を作る → **承認②** → gh-issue の編集モードで**本文末尾に追記**する（既存の記述は変更しない）
+   - 新規: gh-issue の `assets/issue.template.md` から本文案を作る → **承認②** → gh-issue の作成モードで作成する
    - 承認②では、ブランチ名と PR タイトルの案も同時に確認する（往復を減らす）
 6. **ブランチと draft PR の作成**（gh-feature の issue 連携モード）: デフォルトブランチを最新化 → `feature/<N>-<slug>` を作成 → 空コミット → push → `Closes #N` を含む draft PR を作成する
 7. **チケット駆動ワークフロー**: `ticket-driven-workflow` の手順 1 から実施する。全体計画の冒頭に issue / PR を記載し、issue の `acceptance` をチケットの DoD に反映する
@@ -139,7 +139,7 @@ gh-feature の `assets/pr-template.md` を土台にし、以下を必ず含め�
 | ブランチ | `<prefix>/<N>-<slug>`。prefix は種別から（バグ→`fix`、それ以外→`feature`）。slug は英小文字・数字・ハイフンで 2〜4 語 | `fix/12-login-empty-password` |
 | 空コミット | `chore: start #<N> <slug>` | `chore: start #12 login-empty-password` |
 | PR タイトル | `<prefix>: <issue タイトル> (#<N>)`。prefix は `feat` / `fix` / `chore` / `docs` / `refactor` | `fix: 空パスワードで送信できる (#12)` |
-| PR 本文 | gh-feature の `assets/pr-template.md` + `Closes #<N>` | |
+| PR 本文 | gh-feature の `assets/pr.template.md` + `Closes #<N>` | |
 | issue 追記見出し | `## 今回の依頼（YYYY-MM-DD）` | `## 今回の依頼（2026-08-30）` |
 | 全体計画の冒頭 | `- 対象 issue: #<N> <url>` / `- PR: #<M> <url>` | |
 

@@ -50,7 +50,7 @@ find . -name "*.md" | xargs grep -l -i "技術調査\|調査レポート\|invest
 
 ## 手順 1: テンプレートの準備
 
-`assets/tech-investigation-template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
+`assets/tech-investigation.template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
 
 ファイル名は調査対象に応じて決定する（例：`investigation/Redis-キャッシュ評価.md`、`tech/GraphQL-API-調査.md`）。
 

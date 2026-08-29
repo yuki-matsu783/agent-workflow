@@ -3,6 +3,10 @@ name: <エージェント名（小文字とハイフンのみ）>
 description: >
   <このエージェントが何をするかを1〜2文で記載>
   <いつ委任すべきかを具体的に記載。自動委任させたい場合は "Use proactively when ..." を含める>
+title: <エージェント名>                     # OKF: 人間向け表示名（name と重複してよい）
+type: agent
+tags: []                                  # kebab-case, 2〜4個
+keywords: []                              # 本文の頻出語, 3〜20個
 # tools: Read, Grep, Glob, Bash            # 省略時は Agent 等を除く全ツールを継承。必要最小限に絞る
 # disallowedTools: Write, Edit             # 除外したいツール（tools より優先される）
 # model: inherit                           # sonnet | opus | haiku | fable | inherit

@@ -46,7 +46,7 @@ find . -name "*.md" | xargs grep -l -i "要件\|ユーザーストーリー\|要
 
 ## 手順 1: テンプレートの準備
 
-`assets/requirements-template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
+`assets/requirements.template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
 
 ファイル名はユーザーの要件に応じて決定する（例：`requirement/ログイン機能.md`、`spec/カート購入US.md`）。
 

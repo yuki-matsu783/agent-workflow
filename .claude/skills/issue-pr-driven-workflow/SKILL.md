@@ -123,13 +123,13 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 ### 3A: 既存 issue で対応する場合
 
 1. `gh issue view N --json body -q .body` で現在の本文を取得する
-2. `assets/issue-addendum-template.md` を Read し、手順 1 の内容で埋めた**追記セクション**を作る
+2. `assets/issue-addendum.template.md` を Read し、手順 1 の内容で埋めた**追記セクション**を作る
 3. 追記案・ブランチ名・PR タイトル（命名規約は下記）をユーザーに提示し、**承認②**を得る
 4. `gh-issue` スキルの**編集モード**に従い、既存本文の**末尾に追記**する。既存の記述は消さない・書き換えない
 
 ### 3B: 新規 issue を作る場合
 
-1. `gh-issue` スキルの `assets/issue-template.md` を Read し、手順 1 の内容で本文案を作る（種別・概要・詳細・受け入れ条件・優先度）
+1. `gh-issue` スキルの `assets/issue.template.md` を Read し、手順 1 の内容で本文案を作る（種別・概要・詳細・受け入れ条件・優先度）
 2. タイトル・本文案・ブランチ名・PR タイトルをユーザーに提示し、**承認②**を得る。修正があれば反映してから進む
 3. `gh-issue` スキルの**作成モード**に従い issue を作成する。作成後に修正を頼まれたら編集モードで反映する
 
@@ -148,7 +148,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 2. `git checkout -b <branch> <default>` でブランチを作成する
 3. PR に差分が必要なため、空コミットを作る: `git commit --allow-empty -m "chore: start #N <slug>"`
 4. `git push -u origin <branch>`
-5. `gh-feature` の `assets/pr-template.md` を土台に、`## 関連 Issue` に `- Closes #N` を書いた本文で **draft PR** を作成する
+5. `gh-feature` の `assets/pr.template.md` を土台に、`## 関連 Issue` に `- Closes #N` を書いた本文で **draft PR** を作成する
 
 作成した PR の番号と URL を控え、ユーザーに報告する。
 
@@ -167,7 +167,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 doing が空なので GitHub 操作ができる。
 
 1. `git push` で作業ブランチを push する
-2. PR 本文を更新する: `gh-feature` の `assets/pr-template.md` に沿って「変更内容の概要」「変更点」「動作確認」を埋め、`wip/retrospective/` の要約と `- Closes #N` を含める。Write で一時ファイルに書き、`gh pr edit M --body-file <path>` で反映する
+2. PR 本文を更新する: `gh-feature` の `assets/pr.template.md` に沿って「変更内容の概要」「変更点」「動作確認」を埋め、`wip/retrospective/` の要約と `- Closes #N` を含める。Write で一時ファイルに書き、`gh pr edit M --body-file <path>` で反映する
 3. **承認③**: 「ready for review にする」「draft のまま」「追加作業がある」を確認する。承認されたときだけ `gh pr ready M`
 4. issue 側の残課題があれば `gh issue comment N` で記録する（issue のクローズは PR のマージで `Closes #N` が行うため、手動で閉じない）
 

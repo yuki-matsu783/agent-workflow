@@ -17,7 +17,7 @@ if [ -f "$OUTPUT_FILE" ]; then
 fi
 
 # テンプレートをコピー
-TEMPLATE_PATH="$(dirname "$0")/../assets/tech-investigation-template.md"
+TEMPLATE_PATH="$(dirname "$0")/../assets/tech-investigation.template.md"
 cp "$TEMPLATE_PATH" "$OUTPUT_FILE"
 
 echo "Created: $OUTPUT_FILE"

@@ -187,7 +187,7 @@ git push -u origin BRANCH_NAME
 **PR の本文**は以下のいずれかの方法で収集する：
 
 1. **ユーザーが直接指定した場合**：そのまま使う
-2. **テンプレートがある場合**：`assets/pr-template.md` を読み込んでテンプレートとして提示する
+2. **テンプレートがある場合**：`assets/pr.template.md` を読み込んでテンプレートとして提示する
 3. **変更内容を自動収集する場合**：
    ```bash
    git log --oneline BASE_BRANCH..BRANCH_NAME
@@ -254,7 +254,7 @@ issue 番号・ブランチ名・PR タイトル・ベースブランチは呼�
    git push -u origin BRANCH_NAME
    ```
 
-5. `assets/pr-template.md` を Read し、「関連 Issue」に `- Closes #N` を書いた本文を Write で一時ファイル（リポジトリ外。例: `/tmp/gh-pr-body.md`）に作り、**draft** で PR を作成する:
+5. `assets/pr.template.md` を Read し、「関連 Issue」に `- Closes #N` を書いた本文を Write で一時ファイル（リポジトリ外。例: `/tmp/gh-pr-body.md`）に作り、**draft** で PR を作成する:
 
    ```bash
    gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "PRタイトル" --body-file /tmp/gh-pr-body.md --draft

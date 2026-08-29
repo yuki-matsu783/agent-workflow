@@ -1,3 +1,11 @@
+---
+type: tech-investigation
+title: <技術調査のタイトル>
+description: <1行要約>
+tags: [investigating-technologies, tech-investigation]
+keywords: []                    # 本文の頻出語, 3〜20個
+---
+
 # <!-- 技術調査のタイトルをここに記載 -->
 
 ## 概要

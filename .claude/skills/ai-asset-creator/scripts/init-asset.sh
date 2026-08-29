@@ -26,12 +26,12 @@ NEEDS_EXEC=false
 case "${ASSET_TYPE}" in
     rule)
         TARGET_DIR="${PROJECT_DIR}/.claude/rules"
-        TEMPLATE="${TEMPLATE_DIR}/rule-template.md"
+        TEMPLATE="${TEMPLATE_DIR}/rule.template.md"
         EXT="md"
         ;;
     hook)
         TARGET_DIR="${PROJECT_DIR}/.claude/hooks"
-        TEMPLATE="${TEMPLATE_DIR}/hook-template.sh"
+        TEMPLATE="${TEMPLATE_DIR}/hook.template.sh"
         EXT="sh"
         NEEDS_EXEC=true
         ;;
@@ -42,7 +42,7 @@ case "${ASSET_TYPE}" in
         else
             TARGET_DIR="${PROJECT_DIR}/.claude/agents"
         fi
-        TEMPLATE="${TEMPLATE_DIR}/agent-template.md"
+        TEMPLATE="${TEMPLATE_DIR}/agent.template.md"
         EXT="md"
         ;;
     skill)

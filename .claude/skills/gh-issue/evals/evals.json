@@ -9,9 +9,9 @@
     },
     {
       "id": 1,
-      "prompt": "assets/issue-template.md をテンプレートとして使って issue を作成して。タイトルは「テストissue」で",
-      "expected_output": "issue-template.md の内容を読み込み、タイトル「テストissue」、テンプレートの内容を本文として gh issue create が実行される",
-      "files": ["assets/issue-template.md"]
+      "prompt": "assets/issue.template.md をテンプレートとして使って issue を作成して。タイトルは「テストissue」で",
+      "expected_output": "issue.template.md の内容を読み込み、タイトル「テストissue」、テンプレートの内容を本文として gh issue create が実行される",
+      "files": ["assets/issue.template.md"]
     },
     {
       "id": 2,

@@ -1,3 +1,11 @@
+---
+type: requirements
+title: <要件のタイトル>
+description: <1行要約>
+tags: [requirements]
+keywords: []                    # 本文の頻出語, 3〜20個
+---
+
 # <!-- 要件のタイトルをここに記載 -->
 
 ## 概要

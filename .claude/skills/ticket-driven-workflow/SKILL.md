@@ -25,9 +25,9 @@ description: >
 
 | テンプレート | 用途 | 作成先 |
 |-------------|------|--------|
-| `assets/ticket-template.md` | チケット | `wip/ticket/todo/` |
-| `assets/plan-template.md` | 計画書（調査チケットの成果物） | `wip/plan/` |
-| `assets/report-template.md` | 結果報告（振り返りチケットの成果物） | `wip/retrospective/` |
+| `assets/ticket.template.md` | チケット | `wip/ticket/todo/` |
+| `assets/plan.template.md` | 計画書（調査チケットの成果物） | `wip/plan/` |
+| `assets/report.template.md` | 結果報告（振り返りチケットの成果物） | `wip/retrospective/` |
 
 ## 手順 0: 状態確認（冪等性・再開判定）
 
@@ -62,7 +62,7 @@ mkdir -p wip/ticket/todo wip/ticket/doing wip/ticket/done wip/plan wip/retrospec
 
 ## 手順 2: チケット作成
 
-合意した全体計画に基づき、`assets/ticket-template.md` を Read→Write でコピーして各チケットを `wip/ticket/todo/` に作成する。
+合意した全体計画に基づき、`assets/ticket.template.md` を Read→Write でコピーして各チケットを `wip/ticket/todo/` に作成する。
 
 - ファイル名: `NNN-<type>-<slug>.md`（NNN は実施順の連番。例: `001-investigation-現状調査.md`）
 - type は **`.claude/hooks/workflow-types.json` に定義された作業タイプ**から選ぶ。標準は `investigation` / `implementation` / `retrospective`（原則この順）。AI アセット（フック・スキル等）を扱う作業では `ai-asset-design`（設計: `.claude/docs/` のみ）→ `ai-asset-implementation`（実装: フック・ルール・スキル・settings.json）を使う
@@ -95,9 +95,9 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 チケットに書かれた内容を実施する。フェーズごとの制約は `references/permission-matrix.md` を参照。
 
-- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan-template.md` をコピーして計画書を `wip/plan/` に作成する
+- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして計画書を `wip/plan/` に作成する
 - **implementation**: `wip/plan/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する
-- **retrospective**: 全チケットの作業ログを読み、`assets/report-template.md` をコピーして結果報告を `wip/retrospective/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
+- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/retrospective/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
 
 作業中は、うまくいったこと・うまくいかなかったことを**その都度**チケットの作業ログ欄に Edit で追記する。
 

@@ -1,3 +1,11 @@
+---
+type: report
+title: <結果報告のタイトル>          # 例: 結果報告 ○○機能の追加
+description: <1行要約>
+tags: [ticket-driven-workflow, report]
+keywords: []                        # 本文の頻出語, 3〜20個
+---
+
 # 結果報告: <!-- ワークフロー名（例: ○○機能の追加） -->
 
 <!-- 振り返りチケット（retrospective）の成果物として wip/retrospective/ に作成する。

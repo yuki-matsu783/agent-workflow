@@ -1,3 +1,11 @@
+---
+type: plan
+title: <計画のタイトル>              # 例: ○○機能の実装計画
+description: <1行要約>
+tags: [ticket-driven-workflow, plan]
+keywords: []                        # 本文の頻出語, 3〜20個
+---
+
 # <!-- 計画のタイトル（例: ○○機能の実装計画） -->
 
 <!-- 調査チケット（investigation）の成果物として wip/plan/ に作成する。

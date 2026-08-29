@@ -1,3 +1,11 @@
+---
+type: spec
+title: <仕様のタイトル>
+description: <1行要約>
+tags: [spec]
+keywords: []                    # 本文の頻出語, 3〜20個
+---
+
 # <!-- 仕様のタイトルをここに記載 -->
 
 ## 概要
