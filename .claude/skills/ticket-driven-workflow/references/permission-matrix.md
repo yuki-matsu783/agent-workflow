@@ -27,6 +27,7 @@
 - `allow` = 確認なしで触ってよい / `deny` = 触ってはならない / `ask` = 毎回ユーザーに確認
 - パスは glob。`**` はディレクトリ再帰、`.claude/settings.json` のようにファイル単位の指定も可（`*` 単体もディレクトリ区切りをまたぐ点に注意）
 - `bash_groups` に `"build"` を含むタイプだけ、ビルド/テスト系コマンド（npm 等）が使える
+- `bash_groups` に `"test"` を含むタイプだけ、フックのテストスクリプト（`bash .claude/hooks/tests/*.sh`、`bash .claude/skills/<skill>/scripts/*.sh`。先頭の `VAR=value` は可）を実行できる
 
 ### 標準タイプ
 
@@ -36,11 +37,11 @@
 | `implementation` | `src/**`, `tests/**`, `doc/**`, `wip/20_plans/**`（+ build） | 実装 |
 | `retrospective` | `wip/30_reports/**` | 振り返り。結果報告を作成 |
 | `ai-asset-design` | `.claude/docs/**`, `wip/20_plans/**` | AI アセットの設計（要件・仕様のみ） |
-| `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json` | AI アセットの実装 |
+| `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json`（+ test） | AI アセットの実装。フックのテストを実行できる |
 
 ## Edit / Write / NotebookEdit の判定順序
 
-前段: `wip/10_tickets/10_doing/` に doing チケット以外を書く → **WF001**。doing チケットの `type` が変わる編集 → **WF008**。
+前段: `wip/10_tickets/10_doing/` に doing チケット以外の `*.md` を書く → **WF001**（`.gitkeep` など Markdown 以外はチケットとみなさない）。doing チケットの `type` が変わる編集 → **WF008**。
 
 | 順 | 照合対象 | 結果 |
 |----|---------|------|
@@ -75,6 +76,7 @@
 | 読み取り系 | `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `pwd`, `git status/log/diff/show/branch` | 全タイプ |
 | チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
 | ビルド/テスト | `npm` `npx` `node` `python` `pytest` `go` `cargo` `make` | `bash_groups` に `build` を含むタイプ |
+| フックテスト | `bash .claude/hooks/tests/<name>.sh`, `bash .claude/skills/<skill>/scripts/<name>.sh`（先頭の `VAR=value` は可。それ以外の `bash <script>` は拒否） | `bash_groups` に `test` を含むタイプ |
 
 - リダイレクト（`>` / `>>`）を含むコマンドは allowlist 該当でも一律拒否
 - 複合コマンド（`&&` `;` `\|` `\|\|`）は分割して全セグメントを判定。1つでも不許可なら拒否
