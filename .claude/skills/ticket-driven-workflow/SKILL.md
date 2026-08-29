@@ -25,16 +25,16 @@ description: >
 
 | テンプレート | 用途 | 作成先 |
 |-------------|------|--------|
-| `assets/ticket.template.md` | チケット | `wip/ticket/todo/` |
-| `assets/plan.template.md` | 計画書（調査チケットの成果物） | `wip/plan/` |
-| `assets/report.template.md` | 結果報告（振り返りチケットの成果物） | `wip/retrospective/` |
+| `assets/ticket.template.md` | チケット | `wip/10_tickets/00_todo/` |
+| `assets/plan.template.md` | 計画書（調査チケットの成果物） | `wip/20_plans/` |
+| `assets/report.template.md` | 結果報告（振り返りチケットの成果物） | `wip/30_reports/` |
 
 ## 手順 0: 状態確認（冪等性・再開判定）
 
 最初に `wip/` 配下の状態を確認する。
 
 ```bash
-ls wip/ticket/doing/ wip/ticket/todo/ wip/ticket/done/ 2>/dev/null
+ls wip/10_tickets/10_doing/ wip/10_tickets/00_todo/ wip/10_tickets/20_done/ 2>/dev/null
 ```
 
 - **doing にチケットがある** → そのチケットの作業ログを読み、手順 3 の途中から再開する
@@ -48,12 +48,12 @@ doing に 2 枚以上ある場合は異常状態。ユーザーに報告し、1 
 **新しいワークフローを開始するときだけ**、プランモードで「どう進めるか」の全体計画（チケットの分割案・進め方）を立て、ユーザーの承認を得る。承認された計画は `wip/00_overall_plan/`（settings.json の `plansDirectory`）に保存される。
 
 - プランモードを使うのはこの段階のみ。**チケット作業中（doing にチケットがある間）はプランモードは使えない**（フックが WF006 でブロックする）
-- 途中で計画の見直しが必要になったら、プランモードではなく investigation チケットとして `wip/plan/` に成果物を作る
+- 途中で計画の見直しが必要になったら、プランモードではなく investigation チケットとして `wip/20_plans/` に成果物を作る
 
 承認後、作業領域を初期化する:
 
 ```bash
-mkdir -p wip/ticket/todo wip/ticket/doing wip/ticket/done wip/plan wip/retrospective
+mkdir -p wip/10_tickets/00_todo wip/10_tickets/10_doing wip/10_tickets/20_done wip/20_plans wip/30_reports
 ```
 
 作業ブランチ上であることを `git branch --show-current` で確認する（main 上では作業しない。必要ならブランチ作成をユーザーに提案する）。
@@ -62,7 +62,7 @@ mkdir -p wip/ticket/todo wip/ticket/doing wip/ticket/done wip/plan wip/retrospec
 
 ## 手順 2: チケット作成
 
-合意した全体計画に基づき、`assets/ticket.template.md` を Read→Write でコピーして各チケットを `wip/ticket/todo/` に作成する。
+合意した全体計画に基づき、`assets/ticket.template.md` を Read→Write でコピーして各チケットを `wip/10_tickets/00_todo/` に作成する。
 
 - ファイル名: `NNN-<type>-<slug>.md`（NNN は実施順の連番。例: `001-investigation-現状調査.md`）
 - type は **`.claude/hooks/workflow-types.json` に定義された作業タイプ**から選ぶ。標準は `investigation` / `implementation` / `retrospective`（原則この順）。AI アセット（フック・スキル等）を扱う作業では `ai-asset-design`（設計: `.claude/docs/` のみ）→ `ai-asset-implementation`（実装: フック・ルール・スキル・settings.json）を使う
@@ -85,7 +85,7 @@ git commit -m "chore(ticket): create tickets for <作業名>"
 **このコミットが差分チェックの基準点になる**ため、必ず着手直後に行うこと。
 
 ```bash
-git mv wip/ticket/todo/NNN-<type>-<slug>.md wip/ticket/doing/
+git mv wip/10_tickets/00_todo/NNN-<type>-<slug>.md wip/10_tickets/10_doing/
 git commit -m "chore(ticket): start NNN-<slug>"
 ```
 
@@ -95,9 +95,9 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 チケットに書かれた内容を実施する。フェーズごとの制約は `references/permission-matrix.md` を参照。
 
-- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして計画書を `wip/plan/` に作成する
-- **implementation**: `wip/plan/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する
-- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/retrospective/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
+- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして計画書を `wip/20_plans/` に作成する
+- **implementation**: `wip/20_plans/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する
+- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/30_reports/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
 
 作業中は、うまくいったこと・うまくいかなかったことを**その都度**チケットの作業ログ欄に Edit で追記する。
 
@@ -118,7 +118,7 @@ git commit -m "chore(ticket): start NNN-<slug>"
 3. チケットを done に移動してコミットする
 
 ```bash
-git mv wip/ticket/doing/NNN-<type>-<slug>.md wip/ticket/done/
+git mv wip/10_tickets/10_doing/NNN-<type>-<slug>.md wip/10_tickets/20_done/
 git add wip/ <allowed_paths内の変更ファイル>
 git commit -m "chore(ticket): done NNN-<slug>"
 ```
@@ -130,7 +130,7 @@ done コミット直後は doing が空なのでフックは働かない。issue
 todo が空になるまで手順 3〜5 を繰り返す。全チケットが done になったら、以下をユーザーに報告する:
 
 - 各チケットの結果（うまくいったこと・いかなかったことの要約）
-- 成果物の一覧（`wip/plan/`、`wip/retrospective/`、コード変更）
+- 成果物の一覧（`wip/20_plans/`、`wip/30_reports/`、コード変更）
 - 振り返りから得られた改善提案
 
 issue / PR に紐づく作業（`issue-pr-driven-workflow` 経由）なら、報告のあと同スキルの手順 6（完了処理: push・PR 本文の更新・ready for review の確認）に戻る。

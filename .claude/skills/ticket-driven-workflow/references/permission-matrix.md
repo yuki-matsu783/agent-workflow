@@ -9,7 +9,7 @@
 ```json
 {
   "global": {
-    "allow_paths": ["wip/ticket/**"],
+    "allow_paths": ["wip/10_tickets/**"],
     "deny_paths": [".claude/**", "wip/00_overall_plan/**"],
     "ask_paths": []
   },
@@ -27,20 +27,21 @@
 - `allow` = 確認なしで触ってよい / `deny` = 触ってはならない / `ask` = 毎回ユーザーに確認
 - パスは glob。`**` はディレクトリ再帰、`.claude/settings.json` のようにファイル単位の指定も可（`*` 単体もディレクトリ区切りをまたぐ点に注意）
 - `bash_groups` に `"build"` を含むタイプだけ、ビルド/テスト系コマンド（npm 等）が使える
+- `bash_groups` に `"test"` を含むタイプだけ、フックのテストスクリプト（`bash .claude/hooks/tests/*.sh`、`bash .claude/skills/<skill>/scripts/*.sh`。先頭の `VAR=value` は可）を実行できる
 
 ### 標準タイプ
 
 | type | allow_paths | 用途 |
 |------|------------|------|
-| `investigation` | `wip/plan/**` | 調査。計画書を作成 |
-| `implementation` | `src/**`, `tests/**`, `doc/**`, `wip/plan/**`（+ build） | 実装 |
-| `retrospective` | `wip/retrospective/**` | 振り返り。結果報告を作成 |
-| `ai-asset-design` | `.claude/docs/**`, `wip/plan/**` | AI アセットの設計（要件・仕様のみ） |
-| `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json` | AI アセットの実装 |
+| `investigation` | `wip/20_plans/**` | 調査。計画書を作成 |
+| `implementation` | `src/**`, `tests/**`, `doc/**`, `wip/20_plans/**`（+ build） | 実装 |
+| `retrospective` | `wip/30_reports/**` | 振り返り。結果報告を作成 |
+| `ai-asset-design` | `.claude/docs/**`, `wip/20_plans/**` | AI アセットの設計（要件・仕様のみ） |
+| `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json`（+ test） | AI アセットの実装。フックのテストを実行できる |
 
 ## Edit / Write / NotebookEdit の判定順序
 
-前段: `wip/ticket/doing/` に doing チケット以外を書く → **WF001**。doing チケットの `type` が変わる編集 → **WF008**。
+前段: `wip/10_tickets/10_doing/` に doing チケット以外の `*.md` を書く → **WF001**（`.gitkeep` など Markdown 以外はチケットとみなさない）。doing チケットの `type` が変わる編集 → **WF008**。
 
 | 順 | 照合対象 | 結果 |
 |----|---------|------|
@@ -73,8 +74,9 @@
 | 分類 | コマンド | 対象 |
 |------|---------|------|
 | 読み取り系 | `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `pwd`, `git status/log/diff/show/branch` | 全タイプ |
-| チケット運用 | `mv` / `git mv`（`wip/ticket/` 配下同士のみ）, `git add`（対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
+| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
 | ビルド/テスト | `npm` `npx` `node` `python` `pytest` `go` `cargo` `make` | `bash_groups` に `build` を含むタイプ |
+| フックテスト | `bash .claude/hooks/tests/<name>.sh`, `bash .claude/skills/<skill>/scripts/<name>.sh`（先頭の `VAR=value` は可。それ以外の `bash <script>` は拒否） | `bash_groups` に `test` を含むタイプ |
 
 - リダイレクト（`>` / `>>`）を含むコマンドは allowlist 該当でも一律拒否
 - 複合コマンド（`&&` `;` `\|` `\|\|`）は分割して全セグメントを判定。1つでも不許可なら拒否
@@ -103,7 +105,7 @@ Read / Glob / Grep / WebFetch 等はフックの matcher 対象外。全フェ�
 ## ガード条件（フック共通）
 
 1. `WORKFLOW_ENFORCE=0` → 全チェック無効（緊急脱出用。ユーザーの明示的な指示があるときのみ使用）
-2. `wip/ticket/doing/` にチケットが無い → 何もしない（通常セッションに影響なし。全体計画のプランモードもこの状態で使う）
+2. `wip/10_tickets/10_doing/` にチケットが無い → 何もしない（通常セッションに影響なし。全体計画のプランモードもこの状態で使う）
 3. doing に 2 枚以上 → WF001 でブロック
-4. 作業タイプ定義が読めない → WF007 でブロック（設定ファイルと `wip/ticket/` への Edit は復旧用に許可）
-5. フロントマターの `type` が定義に無い → WF004 でブロック（`wip/ticket/` への Edit だけは復旧用に許可）
+4. 作業タイプ定義が読めない → WF007 でブロック（設定ファイルと `wip/10_tickets/` への Edit は復旧用に許可）
+5. フロントマターの `type` が定義に無い → WF004 でブロック（`wip/10_tickets/` への Edit だけは復旧用に許可）

@@ -88,12 +88,12 @@ fi
 
 # ---------- doing チケットの type 改変検知（WF008） ----------
 # PreToolUse の WF008 が一次防御。ここはコミット済みの type と突き合わせる二次チェック
-committed=$(git -C "${WF_ROOT}" show "HEAD:wip/ticket/doing/${TICKET}" 2>/dev/null || true)
+committed=$(git -C "${WF_ROOT}" show "HEAD:wip/10_tickets/10_doing/${TICKET}" 2>/dev/null || true)
 if [ -n "${committed}" ]; then
     committed_type=$(wf_extract_type "${committed}")
     if [ -n "${committed_type}" ] && [ "${committed_type}" != "${TICKET_TYPE}" ]; then
         append_context "[WF008] チケット改変: ${TICKET} の type がコミット済みの値（${committed_type}）から ${TICKET_TYPE} に書き換えられています
-対処: git checkout HEAD -- wip/ticket/doing/${TICKET} で元に戻してください。作業タイプの変更が必要な場合は、このチケットを完了または todo に戻し、適切な type の新しいチケットを作成してユーザーの合意を得てください。"
+対処: git checkout HEAD -- wip/10_tickets/10_doing/${TICKET} で元に戻してください。作業タイプの変更が必要な場合は、このチケットを完了または todo に戻し、適切な type の新しいチケットを作成してユーザーの合意を得てください。"
     fi
 fi
 
@@ -105,12 +105,12 @@ if [ -n "${deps_raw}" ] && [ "${deps_raw}" != "[]" ]; then
     for dep in "${deps[@]}"; do
         dep=$(printf '%s' "${dep}" | sed -E 's/^[[:space:]]*"?//; s/"?[[:space:]]*$//')
         [ -z "${dep}" ] && continue
-        [ -f "${WF_ROOT}/wip/ticket/done/${dep}" ] || unmet+=("${dep}")
+        [ -f "${WF_ROOT}/wip/10_tickets/20_done/${dep}" ] || unmet+=("${dep}")
     done
     if [ ${#unmet[@]} -gt 0 ]; then
         unmet_str=$(printf '%s, ' "${unmet[@]}")
         append_context "[WF005] 依存違反: 先行チケットが未完了のまま ${TICKET} が doing にあります（未完了: ${unmet_str%, }）
-対処: ${TICKET} を wip/ticket/todo/ に戻し、先行チケットを先に完了させるか、依存が不要になった場合は depends_on を修正してください。"
+対処: ${TICKET} を wip/10_tickets/00_todo/ に戻し、先行チケットを先に完了させるか、依存が不要になった場合は depends_on を修正してください。"
     fi
 fi
 

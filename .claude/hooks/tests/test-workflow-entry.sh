@@ -11,13 +11,15 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENTRY="$(cd "${SCRIPT_DIR}/.." && pwd)/workflow-entry.sh"
+# 検証対象は WF_ENTRY_SCRIPT で差し替えられる（本番フックを書き換える前に新版を検証するため）
+ENTRY="${WF_ENTRY_SCRIPT:-$(cd "${SCRIPT_DIR}/.." && pwd)/workflow-entry.sh}"
 SESSION="testsession"
 
 TMP=$(mktemp -d)
 ERRF=$(mktemp)
 trap 'rm -rf "${TMP}" "${ERRF}"' EXIT
-mkdir -p "${TMP}/.claude/hooks"
+TICKETS="${TMP}/wip/10_tickets"
+mkdir -p "${TMP}/.claude/hooks" "${TICKETS}/00_todo" "${TICKETS}/10_doing" "${TICKETS}/20_done"
 
 if command -v cygpath >/dev/null 2>&1; then
     TMPW=$(cygpath -m "${TMP}")
@@ -174,6 +176,35 @@ check TE010b 0 "プロンプト #1"
 # ---------- TE011: 不明なモードはブロックしない（フック設定ミスで作業を止めない） ----------
 run bogus "$(tool_json Edit)"
 check TE011 0 "不明なモード"
+
+# ---------- TE012: 10_doing にチケットがあれば宣言不要（issue-pr-driven-workflow の継続） ----------
+clear_state
+echo "---" >"${TICKETS}/10_doing/001-investigation-a.md"
+run prompt "$(prompt_json "続けて")"
+check TE012 0 "継続中"
+run guard "$(tool_json Edit)"
+check TE012b 0 "" "WF101"
+run guard "$(tool_json Bash)"
+check TE012c 0 "" "WF101"
+rm -f "${TICKETS}/10_doing/"*.md
+
+# ---------- TE013: 00_todo にだけチケットがあっても継続 ----------
+echo "---" >"${TICKETS}/00_todo/002-implementation-b.md"
+run guard "$(tool_json Edit)"
+check TE013 0 "" "WF101"
+rm -f "${TICKETS}/00_todo/"*.md
+
+# ---------- TE014: 20_done だけ / .gitkeep だけでは継続しない ----------
+echo "---" >"${TICKETS}/20_done/001-investigation-a.md"
+run guard "$(tool_json Edit)"
+check TE014 2 "WF101"
+run prompt "$(prompt_json "x")"
+check TE014b 0 "宣言すること" "継続中"
+rm -f "${TICKETS}/20_done/"*.md
+echo "" >"${TICKETS}/10_doing/.gitkeep"
+run guard "$(tool_json Edit)"
+check TE014c 2 "WF101"
+rm -f "${TICKETS}/10_doing/.gitkeep"
 
 echo ""
 echo "結果: PASS=${PASS} FAIL=${FAIL}"

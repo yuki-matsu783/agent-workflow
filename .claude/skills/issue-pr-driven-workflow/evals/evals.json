@@ -28,9 +28,9 @@
     },
     {
       "id": 2,
-      "prompt": "（feature/12-login-empty-password ブランチ上で open な draft PR があり、wip/ticket/doing/ にチケットがある状態で）続きをやって",
+      "prompt": "（feature/12-login-empty-password ブランチ上で open な draft PR があり、wip/10_tickets/10_doing/ にチケットがある状態で）続きをやって",
       "expected_output": "issue の検索や承認をやり直さず、PR 本文の Closes #N から issue 番号を確認した上で ticket-driven-workflow の手順 0（doing チケットからの再開）に進む",
-      "files": ["wip/ticket/doing/002-implementation-実装.md"],
+      "files": ["wip/10_tickets/10_doing/002-implementation-実装.md"],
       "expectations": [
         "gh issue list による再検索を行っていない",
         "新しい issue / ブランチ / PR を作っていない",
@@ -40,8 +40,8 @@
     {
       "id": 3,
       "prompt": "（全チケットが done になった直後に）仕上げて",
-      "expected_output": "git push の後、wip/retrospective/ の要約と Closes #N を含む本文で gh pr edit を実行し、ready for review にするかを AskUserQuestion で確認する。承認されたときだけ gh pr ready を実行する",
-      "files": ["wip/ticket/done/003-retrospective-振り返り.md", "wip/retrospective/結果報告.md"],
+      "expected_output": "git push の後、wip/30_reports/ の要約と Closes #N を含む本文で gh pr edit を実行し、ready for review にするかを AskUserQuestion で確認する。承認されたときだけ gh pr ready を実行する",
+      "files": ["wip/10_tickets/20_done/003-retrospective-振り返り.md", "wip/30_reports/結果報告.md"],
       "expectations": [
         "git push を実行している",
         "gh pr edit で PR 本文を更新している",
