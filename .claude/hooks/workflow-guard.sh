@@ -61,18 +61,18 @@ allow() {
 if [ "${WF_WIP_VIOLATION}" -eq 1 ]; then
     ticket_files=$(printf '%s, ' "${WF_TICKETS[@]##*/}")
     block WF001 \
-        "[WF001] WIPリミット違反: wip/ticket/doing/ にチケットが ${WF_COUNT} 枚あります（上限 1 枚）" \
+        "[WF001] WIPリミット違反: wip/10_tickets/10_doing/ にチケットが ${WF_COUNT} 枚あります（上限 1 枚）" \
         "対象: ${ticket_files%, }" \
-        "対処: 現在作業中の 1 枚だけを doing に残し、他は wip/ticket/todo/（未着手に戻す）または wip/ticket/done/（完了済み）へ移動してから、元の操作をやり直してください。"
+        "対処: 現在作業中の 1 枚だけを doing に残し、他は wip/10_tickets/00_todo/（未着手に戻す）または wip/10_tickets/20_done/（完了済み）へ移動してから、元の操作をやり直してください。"
 fi
 
 # ---------- WF007: 設定不正（作業タイプ定義が読めない） ----------
 if [ "${WF_CONFIG_INVALID}" -eq 1 ]; then
-    # 復旧経路の保証: 設定ファイル自身と wip/ticket/ 配下への Edit は許可する
+    # 復旧経路の保証: 設定ファイル自身と wip/10_tickets/ 配下への Edit は許可する
     case "${TOOL}" in
         Edit|Write|NotebookEdit)
             rel=$(wf_to_rel "${FILE_PATH}")
-            case "${rel}" in "${WF_CONFIG_REL}"|wip/ticket/*) allow ;; esac
+            case "${rel}" in "${WF_CONFIG_REL}"|wip/10_tickets/*) allow ;; esac
             ;;
     esac
     block WF007 \
@@ -83,17 +83,17 @@ fi
 
 # ---------- WF004: 状態不正（フロントマターの type が定義に無い） ----------
 if [ "${TYPE_INVALID}" -eq 1 ]; then
-    # 復旧経路の保証: フロントマター修正のための wip/ticket/ 配下への Edit は許可する
+    # 復旧経路の保証: フロントマター修正のための wip/10_tickets/ 配下への Edit は許可する
     case "${TOOL}" in
         Edit|Write|NotebookEdit)
             rel=$(wf_to_rel "${FILE_PATH}")
-            case "${rel}" in wip/ticket/*) allow ;; esac
+            case "${rel}" in wip/10_tickets/*) allow ;; esac
             ;;
     esac
     block WF004 \
         "[WF004] 状態不正: doing チケットの type「${TICKET_TYPE}」は作業タイプ定義にありません" \
         "対象: ${TICKET}" \
-        "対処: ${TICKET} を開き、フロントマターの type を ${WF_TYPES_STR} のいずれかに修正してください（wip/ticket/ 配下への Edit はこの状態でも許可されています）。新しい作業タイプが必要な場合は ${WF_CONFIG_REL} への追加をユーザーに提案してください。"
+        "対処: ${TICKET} を開き、フロントマターの type を ${WF_TYPES_STR} のいずれかに修正してください（wip/10_tickets/ 配下への Edit はこの状態でも許可されています）。新しい作業タイプが必要な場合は ${WF_CONFIG_REL} への追加をユーザーに提案してください。"
 fi
 
 # ---------- パス判定の結果をツール応答に変換 ----------
@@ -136,8 +136,11 @@ READONLY_RE='^(ls|cat|head|tail|wc|grep|rg|find|pwd)([[:space:]]|$)|^git[[:space
 TICKETOP_RE='^git[[:space:]]+(mv|add|commit)([[:space:]]|$)|^mv([[:space:]]|$)'
 # ビルド/テスト系（bash_groups に "build" を含む type のみ）。プロジェクトに応じてここを拡張する
 BUILD_RE='^(npm|npx|node|python|pytest|go|cargo|make)([[:space:]]|$)'
+# フックのテストスクリプト（bash_groups に "test" を含む type のみ）。
+# 対象は .claude/hooks/tests/*.sh と .claude/skills/<skill>/scripts/*.sh に限定し、先頭の環境変数指定（VAR=value）は許容する
+TEST_RE='^([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*bash[[:space:]]+\.claude/(hooks/tests|skills/[^/[:space:]]+/scripts)/[^/[:space:]]+\.sh([[:space:]]|$)'
 
-# mv / git mv: 対象パスがすべて wip/ticket/ 配下であること
+# mv / git mv: 対象パスがすべて wip/10_tickets/ 配下であること
 wf_validate_mv() {
     local tok
     for tok in "$@"; do
@@ -146,7 +149,7 @@ wf_validate_mv() {
             QUOTED) return 1 ;;  # クォートされたパスは検証不能のため不可（パスは引用符なしで指定する）
         esac
         case "${tok//\\//}" in
-            wip/ticket/*) continue ;;
+            wip/10_tickets/*) continue ;;
             *) return 1 ;;
         esac
     done
@@ -218,10 +221,14 @@ check_bash() {
                 "[WF003] コマンド違反: チケット運用コマンドの対象パスが許可範囲外です" \
                 "コマンド: ${COMMAND:0:200}" \
                 "現在のチケット: ${TICKET}（type: ${TICKET_TYPE}）" \
-                "対処: mv / git mv は wip/ticket/ 配下同士の移動のみ、git add は書き込みが許可されたパスのみ使用できます。パスは引用符なし・リポジトリ相対で指定してください。"
+                "対処: mv / git mv は wip/10_tickets/ 配下同士の移動のみ、git add は書き込みが許可されたパスのみ使用できます。パスは引用符なし・リポジトリ相対で指定してください。"
         fi
 
         if [ "${WF_BUILD_ALLOWED}" -eq 1 ] && printf '%s' "${seg}" | grep -Eq "${BUILD_RE}"; then
+            continue
+        fi
+
+        if [ "${WF_TEST_ALLOWED}" -eq 1 ] && printf '%s' "${seg}" | grep -Eq "${TEST_RE}"; then
             continue
         fi
 
@@ -248,16 +255,17 @@ check_bash() {
 # 作業ログの追記など type 以外の編集は通常どおり許可される
 check_ticket_edit() {
     local rel="$1"
+    # チケットは *.md のみ。.gitkeep など非 Markdown は対象外
     case "${rel}" in
-        wip/ticket/doing/*) ;;
+        wip/10_tickets/10_doing/*.md) ;;
         *) return 0 ;;
     esac
 
-    if [ "${rel}" != "wip/ticket/doing/${TICKET}" ]; then
+    if [ "${rel}" != "wip/10_tickets/10_doing/${TICKET}" ]; then
         block WF001 \
             "[WF001] WIPリミット違反: doing に 2 枚目のチケット ${rel##*/} を作成・編集しようとしています（上限 1 枚）" \
             "現在のチケット: ${TICKET}（type: ${TICKET_TYPE}）" \
-            "対処: 新しいチケットは wip/ticket/todo/ に作成し、現在のチケットを完了してから着手してください。"
+            "対処: 新しいチケットは wip/10_tickets/00_todo/ に作成し、現在のチケットを完了してから着手してください。"
     fi
 
     # CRLF は判定前に LF へ正規化する（old_string の不一致による判定漏れを防ぐ）
@@ -288,7 +296,7 @@ check_ticket_edit() {
         block WF008 \
             "[WF008] チケット改変: doing チケットの type を書き換えることはできません（${TICKET_TYPE} → ${new_type:-（空）}）" \
             "現在のチケット: ${TICKET}（type: ${TICKET_TYPE}）" \
-            "対処: 作業タイプの変更が必要な場合は、このチケットを完了または wip/ticket/todo/ に戻し、適切な type の新しいチケットを作成してユーザーの合意を得てください。作業ログの追記など type 以外の編集は許可されています。"
+            "対処: 作業タイプの変更が必要な場合は、このチケットを完了または wip/10_tickets/00_todo/ に戻し、適切な type の新しいチケットを作成してユーザーの合意を得てください。作業ログの追記など type 以外の編集は許可されています。"
     fi
     return 0
 }
@@ -308,7 +316,7 @@ case "${TOOL}" in
         block WF006 \
             "[WF006] プランモード違反: チケット作業中はプランモードを使用できません" \
             "現在のチケット: ${TICKET}（type: ${TICKET_TYPE}）" \
-            "対処: プランモードは新しいワークフローを開始する際の全体計画（wip/00_overall_plan/）の作成・合意にのみ使用します。計画の検討・修正は investigation チケットの成果物として wip/plan/ に Edit/Write で行ってください。"
+            "対処: プランモードは新しいワークフローを開始する際の全体計画（wip/00_overall_plan/）の作成・合意にのみ使用します。計画の検討・修正は investigation チケットの成果物として wip/20_plans/ に Edit/Write で行ってください。"
         ;;
     *)
         allow

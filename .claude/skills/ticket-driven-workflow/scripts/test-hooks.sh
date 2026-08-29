@@ -38,7 +38,7 @@ setup_repo() {
         git init -q
         git config user.email test@example.com
         git config user.name test
-        mkdir -p wip/ticket/todo wip/ticket/doing wip/ticket/done wip/plan wip/retrospective src lib config \
+        mkdir -p wip/10_tickets/00_todo wip/10_tickets/10_doing wip/10_tickets/20_done wip/20_plans wip/30_reports src lib config \
             .claude/hooks .claude/docs .claude/skills/foo
         echo base >src/main.ts
         echo base >lib/util.ts
@@ -52,11 +52,14 @@ setup_repo() {
 }
 
 # チケットを doing に置き、基準点コミットを作る（WF008 の二次チェック用）
-commit_doing() { (cd "${TMP}" && git add -A wip/ticket && git commit -qm "chore(ticket): start $1"); }
+commit_doing() { (cd "${TMP}" && git add -A wip/10_tickets && git commit -qm "chore(ticket): start $1"); }
 
 clear_session() { rm -rf "${TMP}/.claude/hooks/.state"; }
 
-make_ticket() { # $1=dir(doing/todo/done) $2=filename $3=type $4=extra frontmatter line(optional)
+# チケットの論理状態（todo/doing/done）を実ディレクトリ名に対応付ける
+ticket_dir() { case "$1" in todo) echo 00_todo ;; doing) echo 10_doing ;; done) echo 20_done ;; esac; }
+
+make_ticket() { # $1=状態(doing/todo/done) $2=filename $3=type $4=extra frontmatter line(optional)
     {
         echo "---"
         echo "type: $3"
@@ -65,10 +68,10 @@ make_ticket() { # $1=dir(doing/todo/done) $2=filename $3=type $4=extra frontmatt
         [ -n "${4:-}" ] && echo "$4"
         echo "---"
         echo "# ticket"
-    } >"${TMP}/wip/ticket/$1/$2"
+    } >"${TMP}/wip/10_tickets/$(ticket_dir "$1")/$2"
 }
 
-clear_doing() { rm -f "${TMP}/wip/ticket/doing/"*.md; }
+clear_doing() { rm -f "${TMP}/wip/10_tickets/10_doing/"*.md; }
 
 edit_json() { jq -n --arg fp "$1" --arg s "${SESSION}" '{tool_name: "Edit", session_id: $s, tool_input: {file_path: $fp}}'; }
 bash_json() { jq -n --arg c "$1" --arg s "${SESSION}" '{tool_name: "Bash", session_id: $s, tool_input: {command: $c}}'; }
@@ -154,8 +157,8 @@ clear_doing
 # ---------- 調査チケット 1 枚を doing に置く ----------
 make_ticket doing 001-investigation-調査.md investigation
 
-# TC003: wip/plan への Write は許可（type.allow_paths）
-run_guard "$(edit_json "${TMPW}/wip/plan/調査結果.md")"
+# TC003: wip/20_plans への Write は許可（type.allow_paths）
+run_guard "$(edit_json "${TMPW}/wip/20_plans/調査結果.md")"
 check TC003 0 "" "WF"
 
 # TC004: src への Edit は未記載 → 警告付きで確認（WF009）
@@ -164,7 +167,7 @@ check TC004 0 '"permissionDecision": "ask"'
 check TC004b 0 "WF009"
 
 # TC005: チケット自身への Edit（作業ログ）は許可（global.allow_paths）
-run_guard "$(edit_json "${TMPW}/wip/ticket/doing/001-investigation-調査.md")"
+run_guard "$(edit_json "${TMPW}/wip/10_tickets/10_doing/001-investigation-調査.md")"
 check TC005 0 "" "WF"
 
 # TC006: 読み取り Bash は許可（パイプ複合も含む）
@@ -180,12 +183,16 @@ run_guard "$(bash_json "sed -i s/a/b/ src/a.ts")"
 check TC008 2 "WF003"
 
 # TC006b: チケット運用コマンド（doing→done の移動とコミット）は許可
-run_guard "$(bash_json "git mv wip/ticket/doing/001-investigation-調査.md wip/ticket/done/ && git commit -m \"chore(ticket): done 001\"")"
+run_guard "$(bash_json "git mv wip/10_tickets/10_doing/001-investigation-調査.md wip/10_tickets/20_done/ && git commit -m \"chore(ticket): done 001\"")"
 check TC006b 0 "" "WF"
 
 # TC007b: 調査中の npm 実行は WF003（bash_groups に build が無い）
 run_guard "$(bash_json "npm test")"
 check TC007b 2 "WF003"
+
+# TC007c: 調査中のテストスクリプト実行は WF003（bash_groups に test が無い）
+run_guard "$(bash_json "bash .claude/hooks/tests/test-workflow-entry.sh")"
+check TC007c 2 "WF003"
 
 # TC013: チケット作業中のプランモードは WF006
 run_guard "$(plan_json)"
@@ -246,7 +253,7 @@ clear_doing
 make_ticket doing 001-broken.md "unknown-type"
 run_guard "$(edit_json "${TMPW}/src/main.ts")"
 check TC009 2 "WF004"
-run_guard "$(edit_json "${TMPW}/wip/ticket/doing/001-broken.md")"
+run_guard "$(edit_json "${TMPW}/wip/10_tickets/10_doing/001-broken.md")"
 check TC009b 0 "" "WF"
 clear_doing
 
@@ -297,6 +304,15 @@ run_guard "$(edit_json "${TMPW}/.claude/docs/spec.md")"  # docs は design 側�
 check TC017c 2 "WF002"
 run_guard "$(bash_json "git add .claude/settings.json .claude/skills/foo/SKILL.md")"
 check TC017d 0 "" "WF"
+# TC023: bash_groups "test" を持つ type はフックのテストスクリプトを実行できる（環境変数の前置も可）。対象外のスクリプトは WF003
+run_guard "$(bash_json "bash .claude/hooks/tests/test-workflow-entry.sh")"
+check TC023 0 "" "WF"
+run_guard "$(bash_json "WF_ENTRY_SCRIPT=/tmp/x.sh bash .claude/skills/ticket-driven-workflow/scripts/test-hooks.sh")"
+check TC023b 0 "" "WF"
+run_guard "$(bash_json "bash .claude/hooks/workflow-guard.sh")"
+check TC023c 2 "WF003"
+run_guard "$(bash_json "bash scripts/deploy.sh")"
+check TC023d 2 "WF003"
 # frontmatter で global.deny 内のパスを足しても許可されない
 clear_doing
 make_ticket doing 005-ai-asset-implementation-実装.md ai-asset-implementation 'allowed_paths: [".claude/docs/**"]'
@@ -307,7 +323,7 @@ clear_doing
 # ---------- TC018: 作業タイプ定義が読めなければ WF007（設定ファイル自身の Edit は許可） ----------
 make_ticket doing 001-investigation-調査.md investigation
 mv "${TMP}/.claude/hooks/workflow-types.json" "${TMP}/.claude/hooks/workflow-types.json.bak"
-run_guard "$(edit_json "${TMPW}/wip/plan/調査結果.md")"
+run_guard "$(edit_json "${TMPW}/wip/20_plans/調査結果.md")"
 check TC018 2 "WF007"
 run_guard "$(edit_json "${TMPW}/.claude/hooks/workflow-types.json")"
 check TC018b 0 "" "WF"
@@ -316,7 +332,7 @@ clear_doing
 
 # ---------- TC019: doing チケットの type 書き換えは WF008 ----------
 make_ticket doing 001-investigation-調査.md investigation
-TICKET_W="${TMPW}/wip/ticket/doing/001-investigation-調査.md"
+TICKET_W="${TMPW}/wip/10_tickets/10_doing/001-investigation-調査.md"
 run_guard "$(edit_ticket_json "${TICKET_W}" "type: investigation" "type: ai-asset-implementation")"
 check TC019 2 "WF008"
 # type を含まない置換（作業ログ追記）は許可
@@ -339,10 +355,13 @@ run_guard "$(edit_ticket_json "${TICKET_W}" "type: investigation
 " "")"
 check TC019e 2 "WF008"
 # doing に 2 枚目を Write するのは WF001
-run_guard "$(write_json "${TMPW}/wip/ticket/doing/999-investigation-別.md" "---
+run_guard "$(write_json "${TMPW}/wip/10_tickets/10_doing/999-investigation-別.md" "---
 type: investigation
 ---")"
 check TC019f 2 "WF001"
+# doing への .gitkeep（チケットではないファイル）の Write は許可
+run_guard "$(write_json "${TMPW}/wip/10_tickets/10_doing/.gitkeep" "")"
+check TC019g 0 "" "WF"
 clear_doing
 
 # ---------- TC011: 許可されていないパスの差分は additionalContext（WF-DIFF） ----------
@@ -356,10 +375,10 @@ check_post TC011c "src/main.ts"
 git -C "${TMP}" checkout -q -- src/main.ts
 
 # TC011b: 許可パス内のみの差分なら additionalContext なし
-echo note >"${TMP}/wip/plan/調査結果.md"
+echo note >"${TMP}/wip/20_plans/調査結果.md"
 run_post '{"tool_name":"Bash","tool_input":{}}'
 check_post TC011b ""
-rm -f "${TMP}/wip/plan/調査結果.md"
+rm -f "${TMP}/wip/20_plans/調査結果.md"
 
 # TC011d: 承認済み（セッション記憶あり）の未記載パスの差分は違反にしない
 echo modified >>"${TMP}/src/main.ts"
@@ -372,17 +391,17 @@ clear_session
 clear_doing
 make_ticket doing 006-investigation-改変.md investigation
 commit_doing 006-改変
-sed -i 's/^type: investigation/type: ai-asset-implementation/' "${TMP}/wip/ticket/doing/006-investigation-改変.md"
+sed -i 's/^type: investigation/type: ai-asset-implementation/' "${TMP}/wip/10_tickets/10_doing/006-investigation-改変.md"
 run_post '{"tool_name":"Bash","tool_input":{}}'
 check_post TC-post-008 "WF008"
-git -C "${TMP}" rm -q --cached "wip/ticket/doing/006-investigation-改変.md" 2>/dev/null
-rm -f "${TMP}/wip/ticket/doing/006-investigation-改変.md"
+git -C "${TMP}" rm -q --cached "wip/10_tickets/10_doing/006-investigation-改変.md" 2>/dev/null
+rm -f "${TMP}/wip/10_tickets/10_doing/006-investigation-改変.md"
 git -C "${TMP}" commit -qm "cleanup" --allow-empty
 
 # ---------- TC-dep: depends_on 未完了は WF005 を警告 ----------
 clear_doing
 make_ticket doing 002-implementation-実装.md implementation
-sed -i 's/depends_on: \[\]/depends_on: ["001-investigation-調査.md"]/' "${TMP}/wip/ticket/doing/002-implementation-実装.md"
+sed -i 's/depends_on: \[\]/depends_on: ["001-investigation-調査.md"]/' "${TMP}/wip/10_tickets/10_doing/002-implementation-実装.md"
 run_post '{"tool_name":"Bash","tool_input":{}}'
 check_post TC-dep "WF005"
 

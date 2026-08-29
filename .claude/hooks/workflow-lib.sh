@@ -141,13 +141,13 @@ wf_split_list() { # $1=変数名 $2=US 区切り文字列
 
 # 作業タイプ定義を jq 1 回で読み込む（プロセス起動コストを抑えるため個別クエリにしない）
 # 出力: 設定不正なら空。正常なら RS 区切りで
-#   types一覧 / g.allow / g.deny / g.ask / file_level / type存在(1|0) / t.allow / t.deny / t.ask / build(1|0)
+#   types一覧 / g.allow / g.deny / g.ask / file_level / type存在(1|0) / t.allow / t.deny / t.ask / build(1|0) / test(1|0)
 wf_load_config() {
     wf_jq -r --arg t "${TICKET_TYPE}" '
         def L(a): (a // []) | map(tostring) | join("\u001f");
         if (.types | type) != "object" then empty else
         [ (.types | keys | join(" / ")),
-          L(.global.allow_paths // ["wip/ticket/**"]),
+          L(.global.allow_paths // ["wip/10_tickets/**"]),
           L(.global.deny_paths),
           L(.global.ask_paths),
           L(.session_memory.file_level),
@@ -155,7 +155,8 @@ wf_load_config() {
           L(.types[$t].allow_paths),
           L(.types[$t].deny_paths),
           L(.types[$t].ask_paths),
-          (if ((.types[$t].bash_groups // []) | index("build")) != null then "1" else "0" end)
+          (if ((.types[$t].bash_groups // []) | index("build")) != null then "1" else "0" end),
+          (if ((.types[$t].bash_groups // []) | index("test")) != null then "1" else "0" end)
         ] | join("\u001e") end' "${WF_CONFIG_FILE}" 2>/dev/null
 }
 
@@ -165,12 +166,13 @@ wf_init() {
     WF_ROOT="${CLAUDE_PROJECT_DIR:-.}"
     WF_ROOT="${WF_ROOT//\\//}"
     WF_LOG_FILE="${WF_ROOT}/.claude/hooks/workflow.log"
-    WF_DOING_DIR="${WF_ROOT}/wip/ticket/doing"
+    WF_DOING_DIR="${WF_ROOT}/wip/10_tickets/10_doing"
     WF_CONFIG_FILE="${WF_ROOT}/${WF_CONFIG_REL}"
     WF_WIP_VIOLATION=0
     WF_CONFIG_INVALID=0
     TYPE_INVALID=0
     WF_BUILD_ALLOWED=0
+    WF_TEST_ALLOWED=0
     WF_TYPES_STR=""
     WF_G_ALLOW=(); WF_G_DENY=(); WF_G_ASK=(); WF_FILE_LEVEL=()
     WF_T_ALLOW=(); WF_T_DENY=(); WF_T_ASK=(); WF_TICKET_ALLOW=()
@@ -221,6 +223,7 @@ wf_init() {
     wf_split_list WF_T_DENY  "${fields[7]}"
     wf_split_list WF_T_ASK   "${fields[8]}"
     [ "${fields[9]}" = "1" ] && WF_BUILD_ALLOWED=1
+    [ "${fields[10]:-0}" = "1" ] && WF_TEST_ALLOWED=1
 
     # チケット frontmatter の allowed_paths（追加の allow。deny / ask には勝てない）
     local custom_raw
