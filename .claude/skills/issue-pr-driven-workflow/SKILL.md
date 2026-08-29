@@ -38,7 +38,7 @@ description: >
 | `gh-feature` | feature ブランチの作成・push・draft PR の作成 | 「issue 連携モード」を指定して手順に従う |
 | `ticket-driven-workflow` | `wip/` 配下での実作業（フックで統制） | 手順 1 から実施。issue / PR の文脈を渡す |
 
-**GitHub 操作（`gh`、`git push`）はチケット作業の外でのみ行う**。`wip/ticket/doing/` にチケットがある間はフックが WF003 でブロックする。迂回しない。
+**GitHub 操作（`gh`、`git push`）はチケット作業の外でのみ行う**。`wip/10_tickets/10_doing/` にチケットがある間はフックが WF003 でブロックする。迂回しない。
 
 ## 承認ポイント（人間の判断が必要な場所）
 
@@ -57,11 +57,11 @@ gh auth status
 git branch --show-current
 git status --short
 gh pr view --json number,url,isDraft,state,body 2>/dev/null
-ls wip/ticket/todo/ wip/ticket/doing/ wip/ticket/done/ 2>/dev/null
+ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/dev/null
 ```
 
 - `gh` が未導入・未認証 → `gh-install` スキルまたは `gh auth login` を案内して停止する
-- **現在ブランチに open な PR があり、`wip/ticket/` に todo / doing のチケットがある** → 再開。手順 1〜4 を飛ばし、PR 本文の `Closes #N` から issue 番号を控えて手順 5（`ticket-driven-workflow` の手順 0）に進む
+- **現在ブランチに open な PR があり、`wip/10_tickets/` に todo / doing のチケットがある** → 再開。手順 1〜4 を飛ばし、PR 本文の `Closes #N` から issue 番号を控えて手順 5（`ticket-driven-workflow` の手順 0）に進む
 - 未コミットの変更がある → 下記「未コミットの変更があるとき」に従い、**必ずユーザーに確認する**
 - ユーザーが `#N` を指定している → `gh issue view N --json number,title,state,url,body` で内容を取得し、手順 2 を飛ばして「既存 #N で対応」として手順 3A に進む
 
@@ -158,7 +158,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 
 - 全体計画（プランモード）の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書く
 - issue の受け入れ条件（acceptance）を、実装チケットの DoD と振り返りチケットの確認項目に落とす
-- 結果報告（`wip/retrospective/`）の「対象 issue」「PR」欄を埋める
+- 結果報告（`wip/30_reports/`）の「対象 issue」「PR」欄を埋める
 
 チケット作業中は `gh` と `git push` が使えない（WF003）。各チケットの done コミット直後（doing が空）なら `git push` してよく、PR に進捗が反映される。
 
@@ -167,7 +167,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 doing が空なので GitHub 操作ができる。
 
 1. `git push` で作業ブランチを push する
-2. PR 本文を更新する: `gh-feature` の `assets/pr.template.md` に沿って「変更内容の概要」「変更点」「動作確認」を埋め、`wip/retrospective/` の要約と `- Closes #N` を含める。Write で一時ファイルに書き、`gh pr edit M --body-file <path>` で反映する
+2. PR 本文を更新する: `gh-feature` の `assets/pr.template.md` に沿って「変更内容の概要」「変更点」「動作確認」を埋め、`wip/30_reports/` の要約と `- Closes #N` を含める。Write で一時ファイルに書き、`gh pr edit M --body-file <path>` で反映する
 3. **承認③**: 「ready for review にする」「draft のまま」「追加作業がある」を確認する。承認されたときだけ `gh pr ready M`
 4. issue 側の残課題があれば `gh issue comment N` で記録する（issue のクローズは PR のマージで `Closes #N` が行うため、手動で閉じない）
 
@@ -175,7 +175,7 @@ doing が空なので GitHub 操作ができる。
 
 - issue: `#N <url>`（新規 / 追記）
 - ブランチと PR: `<branch>` / `#M <url>`（draft or ready）
-- 成果物: `wip/plan/`、`wip/retrospective/`、コード変更の要約
+- 成果物: `wip/20_plans/`、`wip/30_reports/`、コード変更の要約
 - 振り返りから得られた改善提案
 
 ## エラーハンドリング

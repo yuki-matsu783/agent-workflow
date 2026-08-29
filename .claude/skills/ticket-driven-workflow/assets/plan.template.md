@@ -8,7 +8,7 @@ keywords: []                        # 本文の頻出語, 3〜20個
 
 # <!-- 計画のタイトル（例: ○○機能の実装計画） -->
 
-<!-- 調査チケット（investigation）の成果物として wip/plan/ に作成する。
+<!-- 調査チケット（investigation）の成果物として wip/20_plans/ に作成する。
      このテンプレートを Read で読み込み、Write で新規ファイルとしてコピーして使うこと
      （Bash の cp は allowlist 外のためブロックされる） -->
 
