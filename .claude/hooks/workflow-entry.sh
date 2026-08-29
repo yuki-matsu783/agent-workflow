@@ -13,7 +13,11 @@
 #            プロンプトが /<入口スキル名> で始まる場合はスラッシュ起動として宣言扱いにする
 #   record : PostToolUse（matcher: Skill）。入口スキルの読み込みを宣言として記録する
 #   guard  : PreToolUse（matcher: Edit|Write|NotebookEdit|Bash|EnterPlanMode|Agent|Workflow）。
-#            現在のプロンプトで未宣言なら exit 2（WF101）
+#            現在のプロンプトで未宣言かつ継続条件も満たさなければ exit 2（WF101）
+#
+# 継続条件: wip/10_tickets/00_todo/ または 10_doing/ にチケット（*.md）がある間は
+# issue-pr-driven-workflow の作業が進行中とみなし、宣言の有無にかかわらず許可する
+# （その間は workflow-guard.sh がチケットの type に基づいて統制している）。
 #
 # 状態ファイル: .claude/hooks/.state/<session_id>.entry（Git 管理外）
 #   prompt_seq=<プロンプト連番>
@@ -28,6 +32,8 @@ set -uo pipefail
 # ---------- 設定 ----------
 # 入口として認めるスキル。追加する場合はここと CLAUDE.md「作業の入口」を合わせて更新する
 WF_ENTRY_SKILLS=("issue-pr-driven-workflow" "light-task-workflow")
+# 未完了チケットの置き場。ここに *.md があれば issue-pr-driven-workflow の継続中とみなす
+WF_TICKET_ACTIVE_DIRS=("wip/10_tickets/00_todo" "wip/10_tickets/10_doing")
 WF_STATE_DIR_REL=".claude/hooks/.state"
 WF_RS=$'\x1e'
 
@@ -62,6 +68,17 @@ wf_is_entry_skill() {
     local s
     for s in "${WF_ENTRY_SKILLS[@]}"; do
         [ "$1" = "${s}" ] && return 0
+    done
+    return 1
+}
+
+# 未完了チケット（todo / doing の *.md）が 1 つでもあれば 0（継続中）。.gitkeep など非 Markdown は数えない
+wf_tickets_active() {
+    local d f
+    for d in "${WF_TICKET_ACTIVE_DIRS[@]}"; do
+        for f in "${WF_ROOT}/${d}"/*.md; do
+            [ -e "${f}" ] && return 0
+        done
     done
     return 1
 }
@@ -128,6 +145,10 @@ case "${MODE}" in
             wf_save_state
             wf_log "DECLARE(slash) #${PROMPT_SEQ} workflow=${WORKFLOW} session=${WF_SESSION_ID}"
             ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: /${WORKFLOW} によるスラッシュ起動を宣言として記録した。このスキルの手順に従って作業してよい。"
+        elif wf_tickets_active; then
+            wf_save_state
+            wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため issue-pr-driven-workflow の継続中とみなす（入口の宣言は不要）。ticket-driven-workflow の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"
@@ -154,12 +175,16 @@ case "${MODE}" in
         if wf_declared; then
             exit 0
         fi
+        if wf_tickets_active; then
+            wf_log "CONTINUE(ticket) #${PROMPT_SEQ} tool=${TOOL} session=${WF_SESSION_ID}"
+            exit 0
+        fi
         wf_log "BLOCK WF101 #${PROMPT_SEQ} tool=${TOOL} last=${WORKFLOW:-none}@${DECLARED_SEQ} session=${WF_SESSION_ID}"
         {
             echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の入口となるスキルがまだ読み込まれていません"
             echo "対象ツール: ${TOOL}"
             if [ -n "${WORKFLOW}" ]; then
-                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません"
+                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間を除く）"
             fi
             echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: issue-pr-driven-workflow（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ light-task-workflow（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の入口」と light-task-workflow の手順 0 を参照。ブロックを迂回しないでください。"
         } >&2
