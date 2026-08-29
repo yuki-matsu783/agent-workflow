@@ -25,7 +25,7 @@
 | 既存 issue 一覧 | object[] | Y | `gh issue list --json number,title,state,labels,url,body` の結果 | |
 | 現在ブランチ | string | Y | `git branch --show-current` | |
 | 現在ブランチの PR | object | N | `gh pr view --json number,url,isDraft,state,body`（無ければ再開ではない） | なし |
-| `wip/ticket/` の状態 | string[] | N | todo / doing / done のチケット一覧。再開判定に使う | 空 |
+| `wip/10_tickets/` の状態 | string[] | N | todo / doing / done のチケット一覧。再開判定に使う | 空 |
 | デフォルトブランチ | string | Y | `gh repo view --json defaultBranchRef` | |
 
 ### 入力フォーマット（依頼の整理結果）
@@ -59,7 +59,7 @@ out_of_scope:
 | feature ブランチ | string | `feature/<N>-<slug>` 等。issue 番号を含む | |
 | draft PR | number, url | 本文に `Closes #N` を含む draft PR | |
 | 全体計画 | file | `wip/00_overall_plan/` 配下。冒頭に issue / PR を記載 | |
-| 結果報告 | file | `wip/retrospective/` 配下。対象 issue / PR を記載 | |
+| 結果報告 | file | `wip/30_reports/` 配下。対象 issue / PR を記載 | |
 | PR 本文（完了時） | string | 変更内容・動作確認・振り返り要約・`Closes #N` | |
 
 ### 出力フォーマット（PR 本文）
@@ -98,7 +98,7 @@ gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含め�
 
 ### 基本フロー（ハッピーパス）
 
-1. **状態確認**: `gh auth status`、`git branch --show-current`、`git status --short`、`gh pr view`、`wip/ticket/` の一覧を取得する。再開条件（代替フロー 1）に該当しなければ次へ
+1. **状態確認**: `gh auth status`、`git branch --show-current`、`git status --short`、`gh pr view`、`wip/10_tickets/` の一覧を取得する。再開条件（代替フロー 1）に該当しなければ次へ
 2. **依頼の整理**: 依頼から `summary` / `kind` / `keywords` / `acceptance` / `out_of_scope` を抽出する。曖昧なら 1 回だけまとめて質問する
 3. **既存 issue の検索**（gh-issue の検索モード）: `keywords` で open issue を検索し、0 件なら closed も含めて検索する。候補を `references/issue-triage.md` の基準で「類似 / 関連 / 無関係」に分類し、類似・関連を表で提示する
 4. **承認①**: 類似ありなら「既存 #N で対応するか」、類似なしなら「新規 issue を作るか」を確認する
@@ -113,7 +113,7 @@ gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含め�
 
 ### 代替フロー
 
-1. **再開**: 現在ブランチに open な PR があり、`wip/ticket/` に todo または doing のチケットがある → 手順 1〜6 を省略し、手順 7（ticket-driven-workflow の手順 0）に進む。PR 本文の `Closes #N` から issue 番号を復元する
+1. **再開**: 現在ブランチに open な PR があり、`wip/10_tickets/` に todo または doing のチケットがある → 手順 1〜6 を省略し、手順 7（ticket-driven-workflow の手順 0）に進む。PR 本文の `Closes #N` から issue 番号を復元する
 2. **issue 番号の指定あり**: `gh issue view N` で内容を取得し、手順 3 を省略して「既存 #N で対応」として承認①に進む
 3. **候補が closed のみ**: 承認①の選択肢に「#N を再オープンして対応」を加える。再オープンは `gh issue reopen N`（承認後）
 4. **依頼が複数の問題を含む**: 分割案（issue 1 件ずつ）を提示し、ユーザーが選んだ 1 件で本フローを進める。残りは新規 issue として起票だけ提案する
@@ -251,7 +251,7 @@ gh pr ready N
 | IP001 | 類似 issue あり → 既存で対応 | 依頼 + open issue #12（同じ機能領域・同じ問題） | 候補提示 → 承認① → 追記案 → 承認② → `gh issue edit 12` → `fix/12-*` ブランチ + draft PR → チケット駆動開始 | |
 | IP002 | 類似 issue なし → 新規作成 | 依頼 + 無関係な issue のみ | 「類似なし」と報告 → 承認① → 本文案 → 承認② → `gh issue create` → ブランチ + draft PR → チケット駆動開始 | |
 | IP003 | 承認①で却下 | 依頼 + 類似 issue、ユーザーが「別の候補」を選択 | issue / ブランチ / PR を作らず候補を再提示する | |
-| IP004 | 再開 | feature ブランチ + open PR + `wip/ticket/doing/` にチケット | 検索・承認をやり直さず ticket-driven-workflow の手順 0 に進む | |
+| IP004 | 再開 | feature ブランチ + open PR + `wip/10_tickets/10_doing/` にチケット | 検索・承認をやり直さず ticket-driven-workflow の手順 0 に進む | |
 | IP005 | issue 番号指定 | 「#12 をやって」 | 検索を省略し `gh issue view 12` → 承認①（既存で対応）へ | |
 | IP006 | `gh` 未認証 | `gh auth status` 失敗 | gh-install / `gh auth login` を案内して停止 | |
 | IP007 | 未コミットの変更あり | `git status --short` 非空 | ブランチ作成前にユーザーへ扱いを確認 | |

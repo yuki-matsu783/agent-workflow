@@ -45,12 +45,12 @@
 
 - When issue を検索・作成・修正するとき、Shall スキルは自前で `gh issue` を組み立てず gh-issue スキルの手順に従わなければならない。
 - When ブランチと PR を作成するとき、Shall スキルは gh-feature スキルの手順に従わなければならない。
-- When チケット駆動ワークフローの実施中（`wip/ticket/doing/` にチケットがある間）であるとき、Shall not スキルは `gh` コマンドや `git push` を実行してはならない（フックの Bash allowlist で WF003 としてブロックされる。GitHub 操作は doing が空のときにのみ行う）。
+- When チケット駆動ワークフローの実施中（`wip/10_tickets/10_doing/` にチケットがある間）であるとき、Shall not スキルは `gh` コマンドや `git push` を実行してはならない（フックの Bash allowlist で WF003 としてブロックされる。GitHub 操作は doing が空のときにのみ行う）。
 - When 既存 issue の本文を修正するとき、Shall not スキルは既存の記述を削除・書き換えてはならない（末尾への追記のみ）。
 
 ### アルタナティブフロー（代替経路）
 
-- If 現在のブランチに open な PR が紐づいており、かつ `wip/ticket/` にチケットが存在する場合、Then スキルは issue の照合からやり直さず、チケット駆動ワークフローの再開に進まなければならない（冪等性）。
+- If 現在のブランチに open な PR が紐づいており、かつ `wip/10_tickets/` にチケットが存在する場合、Then スキルは issue の照合からやり直さず、チケット駆動ワークフローの再開に進まなければならない（冪等性）。
 - If 類似候補が closed な issue のみである場合、Then スキルはその issue を再オープンして対応するか、新規 issue を作るかをユーザーに確認しなければならない。
 - If 依頼が複数の独立した問題を含む場合、Then スキルは issue を分割する案を提示し、ユーザーが選んだ 1 つから着手しなければならない（1 issue = 1 PR = 1 ワークフロー）。
 - If ユーザーが issue 番号やissueやMRのURLなどを指定して依頼した場合、Then スキルは検索を省略してその issue を「既存 issue あり」として扱ってよい。
