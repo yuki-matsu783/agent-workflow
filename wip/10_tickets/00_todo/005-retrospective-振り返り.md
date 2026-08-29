@@ -1,7 +1,7 @@
 ---
 type: retrospective
 status: todo
-depends_on: ["003-ai-asset-implementation-入口継続.md", "004-ai-asset-implementation-スキル統一.md"]
+depends_on: ["003-ai-asset-implementation-入口継続.md", "004-ai-asset-implementation-スキル統一.md", "006-ai-asset-design-仕様追記.md"]
 ---
 
 # 振り返りと結果報告
