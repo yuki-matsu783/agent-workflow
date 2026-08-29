@@ -3,3 +3,7 @@
 
 # macOS
 .DS_Store
+
+# チケット駆動ワークフローのフックが出力する判定ログとセッション記憶
+.claude/hooks/workflow.log
+.claude/hooks/.state/

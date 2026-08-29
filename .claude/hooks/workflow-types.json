@@ -1,0 +1,53 @@
+{
+  "$comment": "チケット駆動ワークフローの作業タイプ定義。workflow-lib.sh が呼び出しのたびに読み込む。パスは glob（** 可、ファイル単位の指定も可）。判定順: types.<type>.deny → ask → allow → global.deny → ask → チケット frontmatter の allowed_paths → global.allow → セッション記憶 → 未記載は警告付きで ask（承認後はセッション内で記憶）。session_memory.file_level に一致するパスはファイル単位、それ以外は親ディレクトリ単位で記憶する。bash_groups に \"build\" を含む type のみビルド/テスト系コマンド（npm 等）を許可。",
+  "global": {
+    "allow_paths": ["wip/ticket/**"],
+    "deny_paths": [".claude/**", "wip/00_overall_plan/**"],
+    "ask_paths": []
+  },
+  "session_memory": {
+    "file_level": [".claude/settings.json", "package.json", "CLAUDE.md"]
+  },
+  "types": {
+    "investigation": {
+      "description": "調査。読み取り中心で、計画書を wip/plan/ に作成する",
+      "allow_paths": ["wip/plan/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "implementation": {
+      "description": "実装。wip/plan/ の計画に従いソースコードを変更する",
+      "allow_paths": ["src/**", "tests/**", "doc/**", "wip/plan/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": ["build"]
+    },
+    "retrospective": {
+      "description": "振り返り。結果報告を wip/retrospective/ に作成する",
+      "allow_paths": ["wip/retrospective/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "ai-asset-design": {
+      "description": "AI アセットの設計。要件定義書・仕様書（.claude/docs/）のみ修正できる",
+      "allow_paths": [".claude/docs/**", "wip/plan/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "ai-asset-implementation": {
+      "description": "AI アセットの実装。フック・ルール・スキル・settings.json を修正できる",
+      "allow_paths": [
+        ".claude/hooks/**",
+        ".claude/rules/**",
+        ".claude/skills/**",
+        ".claude/settings.json"
+      ],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    }
+  }
+}

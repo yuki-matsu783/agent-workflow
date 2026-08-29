@@ -1,0 +1,29 @@
+{
+  "skill_name": "ticket-driven-workflow",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "チケット駆動で README の目次生成機能を追加する作業を進めて",
+      "expected_output": "wip/ 配下が初期化され、調査・実装・振り返りのチケットが wip/ticket/todo/ に連番（NNN-<type>-<slug>.md）で作成・コミットされる。その後 001 のチケットが doing に移動され、chore(ticket): start のコミットが作成される",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "（調査チケットが doing にある状態で）調査を進めて",
+      "expected_output": "Read/Glob/Grep と読み取りコマンドのみで調査が行われ、成果物が wip/plan/ に作成される。src/ 等への Edit は行われない（試行された場合はフックの WF002 に従って wip/plan/ に作成し直す）。作業ログがチケットに追記される",
+      "files": ["wip/ticket/doing/001-investigation-調査.md"]
+    },
+    {
+      "id": 2,
+      "prompt": "（doing のチケットの DoD がすべて満たされた状態で）このチケットを完了して",
+      "expected_output": "DoD のチェックが付けられ、git status で許可パス外の差分がないことを確認した上で、チケットが wip/ticket/done/ に git mv され、chore(ticket): done のコミットが作成される",
+      "files": ["wip/ticket/doing/001-investigation-調査.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "（作業途中でセッションが中断された後）続きをやって",
+      "expected_output": "wip/ticket/doing/ の状態が確認され、doing のチケットの作業ログを読んだ上で、計画の再作成をせずに途中から作業が再開される",
+      "files": ["wip/ticket/doing/002-implementation-実装.md", "wip/plan/実装計画.md"]
+    }
+  ]
+}

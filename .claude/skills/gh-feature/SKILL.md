@@ -2,8 +2,9 @@
 name: gh-feature
 description: >
   Creates feature branches and PRs using the `gh` CLI. Use when the user mentions "feature branch", "branch", "PR", "pull request",
-  "feature branch 作って", "ブランチ切って", "pr 作成", or "feature branch create". Checks the default branch, updates the base,
-  creates the feature branch, and pushes to remote.
+  "feature branch 作って", "ブランチ切って", "pr 作成", "issue に紐づくブランチ", "draft PR", or "feature branch create".
+  Checks the default branch, updates the base, creates the feature branch, and pushes to remote. Has an issue-linked mode
+  (branch named after the issue, empty initial commit, draft PR with "Closes #N") used by issue-pr-driven-workflow.
 ---
 
 # gh-feature — feature ブランチ作成と PR 作成
@@ -36,7 +37,14 @@ gh auth status
 git status --short
 ```
 
-未コミットの変更がある場合は、`git stash` するかユーザーに確認を促す。
+未コミットの変更がある場合は、**必ずユーザーに扱いを確認する**。自分の判断で `git stash`・コミット・破棄をしない。変更のファイル一覧を示した上で、`AskUserQuestion` で以下から選んでもらう:
+
+- 今の変更をコミットしてから進む（メッセージをユーザーと合意する）
+- `git stash push -m "<用件>"` で退避して進む（完了時に stash が残っていることを伝える）
+- 変更を破棄して進む（ユーザーが明示的に選んだ場合のみ）
+- いったん中断する
+
+`issue-pr-driven-workflow` から呼ばれた場合は、呼び出し元の手順 0 でこの確認が済んでいるはず。未解消なら呼び出し元に戻して確認する。
 
 - **マージコンフリクト中**の場合は、コンフリクトを解決してから進める。
 - **rebase や cherry-pick の途中**の場合も、同様に完了させてから進める。
@@ -221,6 +229,40 @@ gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --web
 - ベースブランチ
 - PR の URL（`gh pr create` の出力から）
 - PR 番号（あれば）
+
+---
+
+## issue 連携モード（issue-pr-driven-workflow から呼ばれる場合）
+
+issue 番号・ブランチ名・PR タイトル・ベースブランチは呼び出し元で**承認済み**として渡される。手順 2・3・6 の対話的な確認は省略し、以下を機械的に実行する。
+
+| 入力 | 例 |
+|------|-----|
+| issue 番号 / タイトル | `#12` / 「空パスワードで送信できる」 |
+| ブランチ名 | `fix/12-login-empty-password`（`<prefix>/<N>-<slug>`） |
+| PR タイトル | `fix: 空パスワードで送信できる (#12)` |
+| ベースブランチ | デフォルトブランチ（`gh repo view --json defaultBranchRef` の結果） |
+
+1. 手順 0 の前準備チェックを行う（未コミットの変更があれば呼び出し元に戻して確認する）
+2. 手順 1〜2 に従いベースブランチを最新化する（`git checkout BASE_BRANCH && git pull --ff-only origin BASE_BRANCH`）
+3. 手順 3 の衝突チェック（`git ls-remote --heads origin BRANCH_NAME`）を行い、衝突していれば別名（末尾に `-2` など）を提案して呼び出し元に戻す
+4. ブランチを作成し、**空コミットを作る**（この時点では差分が無く、差分ゼロでは `gh pr create` が失敗するため）:
+
+   ```bash
+   git checkout -b BRANCH_NAME BASE_BRANCH
+   git commit --allow-empty -m "chore: start #N <slug>"
+   git push -u origin BRANCH_NAME
+   ```
+
+5. `assets/pr-template.md` を Read し、「関連 Issue」に `- Closes #N` を書いた本文を Write で一時ファイル（リポジトリ外。例: `/tmp/gh-pr-body.md`）に作り、**draft** で PR を作成する:
+
+   ```bash
+   gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "PRタイトル" --body-file /tmp/gh-pr-body.md --draft
+   ```
+
+6. 手順 7 のとおり、ブランチ名・ベース・PR の URL と番号を報告する（呼び出し元がこれを控える）
+
+作業完了後の PR 本文更新は `gh pr edit N --body-file <path>`、レビュー依頼への切り替えは `gh pr ready N`（いずれも呼び出し元が承認を得てから実行する）。
 
 ---
 

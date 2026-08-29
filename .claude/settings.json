@@ -2,5 +2,62 @@
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true,
     "plugin-dev@claude-plugins-official": true
+  },
+  "permissions": {
+    "defaultMode": "plan"
+  },
+  "plansDirectory": "./wip/00_overall_plan",
+  "autoCompactWindow": 600000,
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-entry.sh prompt"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash|EnterPlanMode|Agent|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-entry.sh guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash|EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-guard.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-entry.sh record"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-diff-check.sh"
+          }
+        ]
+      }
+    ]
   }
 }
