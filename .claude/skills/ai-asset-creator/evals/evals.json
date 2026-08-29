@@ -1,0 +1,38 @@
+{
+  "skill_name": "ai-asset-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "GitHub issue を作るためのスキルを作って",
+      "expected_output": "skill と判定し、既存の gh-issue と重複を確認した上で、skill-creator を活用して新規スキル作成のワークフローを開始する",
+      "files": [],
+      "expectations": [
+        "アセットの種類が skill と判定されている",
+        "既存の gh-issue との重複チェックが行われている",
+        "skill-creator の活用が言及されている"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "PreToolUse で Bash コマンドを実行前にチェックするフックを作って",
+      "expected_output": "hook と判定し、hook テンプレートをコピーして作成する。hook の種類と matcher の内容を確認する",
+      "files": [],
+      "expectations": [
+        "アセットの種類が hook と判定されている",
+        "hook テンプレートがコピーされる",
+        "発火タイミングと matcher の記述がある"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "コードレビュー時のチェックリストをルールとして作って",
+      "expected_output": "rule と判定し、rule テンプレートをコピーして .claude/rules/ 以下に作成する",
+      "files": [],
+      "expectations": [
+        "アセットの種類が rule と判定されている",
+        "rule テンプレートがコピーされる",
+        ".claude/rules/ 以下に保存される"
+      ]
+    }
+  ]
+}
