@@ -513,6 +513,19 @@ for cmd in "cat wip/10_tickets/review-state.json" "git diff wip/10_tickets/revie
     check "TC025c(${cmd%% *})" 0 "" "WF"
 done
 
+# TC025d: 引用符内の文字列に review-state.json が含まれるだけのコマンドは誤検知しない（#29）
+for cmd in 'gh issue create --title "review-state.json の扱い" --body x' \
+    "gh issue create --title 'review-state.json の扱い' --body x"; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC025d(quoted-title)" 0 "" "WF"
+done
+# TC025e: パスそのものを引用符で囲んでも WF012 のまま（クォート除去に紛れて素通りしない）
+for cmd in 'rm "wip/10_tickets/review-state.json"' "rm 'wip/10_tickets/review-state.json'" \
+    'echo x > "wip/10_tickets/review-state.json"'; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC025e(${cmd%% *})" 2 "WF012"
+done
+
 # ---------- TC026: 境界でレビュー未完了なら次ワークの着手は WF011 ----------
 MV_NEXT="git mv wip/10_tickets/00_todo/003-implementation-c.md wip/10_tickets/10_doing/"
 rm -f "${STATE_FILE}"

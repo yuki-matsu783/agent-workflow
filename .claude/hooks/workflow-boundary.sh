@@ -73,6 +73,23 @@ wf015() {
         "対処: bash .claude/hooks/merge-prep.sh ready を実行してください。前提（reset-wip / check-conflicts / notify-issue の記録と再検証）が満たせず [WF016] で止まる場合は、未充足の条件を解消するか、ユーザーに報告してください。迂回して ready にしないでください。"
 }
 
+# クォート内の値が状態ファイル（review-state.json / merge-prep.json）のパスそのものかどうかを判定する。
+# 該当すれば種別（review / merge）を stdout に出して 0 を返す。
+# 例: "wip/10_tickets/review-state.json" や 'merge-prep.json' は該当。
+# "review-state.json の扱い" のように他の文字列と混在する場合は非該当（パスとして使われていない）
+wf_quoted_targets_state() {
+    local seg="$1" q val
+    while IFS= read -r q; do
+        [ -z "${q}" ] && continue
+        val="${q:1:-1}"
+        case "${val}" in
+            review-state.json|*/review-state.json) printf 'review'; return 0 ;;
+            merge-prep.json|*/merge-prep.json) printf 'merge'; return 0 ;;
+        esac
+    done < <(printf '%s' "${seg}" | grep -oE "'[^']*'|\"[^\"]*\"")
+    return 1
+}
+
 case "${TOOL}" in
     Edit|Write|NotebookEdit)
         REL=$(wf_to_rel "${FILE_PATH}")
@@ -84,15 +101,20 @@ case "${TOOL}" in
             seg=$(printf '%s' "${seg}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
             [ -z "${seg}" ] && continue
             printf '%s' "${seg}" | grep -Eq "${PR_READY_RE}" && wf015 "${COMMAND:0:200}"
-            kind=""
-            case "${seg}" in
-                *review-state.json*) kind="review" ;;
-                *merge-prep.json*) kind="merge" ;;
-                *) continue ;;
+
+            # クォート内文字列は QUOTED に置換してから判定する（workflow-guard.sh の check_bash と同じ前処理。issue #29）。
+            # 引用符内の文字列に状態ファイル名が含まれるだけの誤検知を防ぐ
+            sanitized=$(printf '%s' "${seg}" | sed -E "s/'[^']*'/QUOTED/g; s/\"[^\"]*\"/QUOTED/g")
+            printf '%s' "${sanitized}" | grep -Eq "${READONLY_RE}" && continue
+            printf '%s' "${sanitized}" | grep -Eq "${SCRIPT_RE}" && continue
+
+            # クォート外に状態ファイル名がそのまま書かれているケース
+            case "${sanitized}" in
+                *review-state.json*) wf012 "${COMMAND:0:200}" review ;;
+                *merge-prep.json*) wf012 "${COMMAND:0:200}" merge ;;
             esac
-            printf '%s' "${seg}" | grep -Eq "${READONLY_RE}" && continue
-            printf '%s' "${seg}" | grep -Eq "${SCRIPT_RE}" && continue
-            wf012 "${COMMAND:0:200}" "${kind}"
+            # パスそのものをクォートしたケース（クォート除去では消えてしまうため別途検出する）
+            kind=$(wf_quoted_targets_state "${seg}") && wf012 "${COMMAND:0:200}" "${kind}"
         done <<<"$(printf '%s' "${COMMAND}" | sed -E 's/\|\||&&|;|\|/\n/g')"
         ;;
 esac
