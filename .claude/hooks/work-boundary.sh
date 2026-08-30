@@ -267,7 +267,7 @@ wb_complete() {
         "requested でない場合は、境界なら request から始めてください。--local/--external の指定は request と揃えてください。"
 
     local decision="" comment_ids="[]" inline_ids="[]" new_comments="[]" new_reviews="[]" new_inline="[]"
-    if [ "${local_mode}" = false ]; then
+    if [ "${local_mode}" = false ] && [ "${external_mode}" = false ]; then
         local reviews comments inl
         # gh api は失敗時にエラー JSON を stdout へ出すことがある。終了コードを確認せずに
         # 「非空なら成功」と判定すると、そのエラー JSON を正常なレビュー/コメント一覧として扱ってしまう
