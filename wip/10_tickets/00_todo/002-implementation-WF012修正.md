@@ -1,5 +1,5 @@
 ---
-type: implementation
+type: ai-asset-implementation
 status: todo
 depends_on: ["001-investigation-WF012原因調査.md"]
 ---
