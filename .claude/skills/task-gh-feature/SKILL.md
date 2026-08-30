@@ -239,7 +239,7 @@ issue 番号・ブランチ名・PR タイトル・ベースブランチは呼�
 | 入力 | 例 |
 |------|-----|
 | issue 番号 / タイトル | `#12` / 「空パスワードで送信できる」 |
-| ブランチ名 | `fix/12-login-empty-password`（`<prefix>/<N>-<slug>`） |
+| ブランチ名 | `fix-12-login-empty-password`（`<prefix>-<N>-<slug>`。区切りはすべてハイフン。単独モードの一般的な命名規約（手順 3）とは異なり、issue 連携モードではスラッシュを使わない） |
 | PR タイトル | `fix: 空パスワードで送信できる (#12)` |
 | ベースブランチ | デフォルトブランチ（`gh repo view --json defaultBranchRef` の結果） |
 
