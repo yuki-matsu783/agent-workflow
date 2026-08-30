@@ -82,6 +82,19 @@
         "合意後、次のプロンプトに先送りせず workflow-issue-mr-driven を Skill ツールで読み込んでいる",
         "合意だけで gh issue create を実行していない（issue 本文の承認は workflow-issue-mr-driven 側で取る）"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "空パスワードを拒否するフックを新しく作って",
+      "expected_output": "手順 0 の判定表の「対象」観点により、.claude/ 配下のアセット（フック）の新規作成は振る舞いが変わる作業なので issue-pr 側と判定し、workflow-issue-mr-driven を Skill ツールで読み込んで切り替える。このスキルの手順 1 以降には進まない",
+      "files": [
+        ".claude/hooks/reject-empty-password.sh"
+      ],
+      "expectations": [
+        "判定表の「対象」観点で workflow-issue-mr-driven 側と判定している",
+        "軽作業としてフックを新規作成していない",
+        "workflow-issue-mr-driven への切り替えを明示している"
+      ]
     }
   ]
 }

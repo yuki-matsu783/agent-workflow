@@ -12,7 +12,7 @@
         "承認②（issue 本文・追記案）を得てから gh issue create / edit を実行している",
         "ブランチ名が <prefix>-<N>-<slug>（ハイフン区切り、スラッシュなし）で issue 番号を含み、PR 本文に Closes #N がある",
         "PR は --draft で作成している",
-        "work-ticket-driven に issue / PR の文脈を渡して開始している"
+        "work-overall-plan に issue / PR の文脈を渡して開始している（チケット全件を最初に作っていない）"
       ]
     },
     {
@@ -89,14 +89,14 @@
     },
     {
       "id": 7,
-      "prompt": "（workflow-quick-request 手順 5-3 で「issue を作って workflow-issue-mr-driven で進める」と合意し、summary: 'work-boundary.sh のエラーメッセージが分かりにくい'、acceptance: ['エラーメッセージに対処方法が含まれる'], kind: '改善・最適化', チケット構成: ai-asset-design → ai-asset-implementation が引き継がれた直後に）このスキルを読み込んで進めて",
-      "expected_output": "依頼文からの抽出をやり直さず、引き継がれた summary/acceptance/kind/チケット構成をそのまま用いて手順 0（未コミットの変更確認は省略しない）を経てから、summary から組み立てた keywords で既存 issue を検索し承認①に進む。曖昧点の質問はしない",
+      "prompt": "（workflow-quick-request 手順 5-3 で「issue を作って workflow-issue-mr-driven で進める」と合意し、summary: 'work-boundary.sh のエラーメッセージが分かりにくい'、acceptance: ['エラーメッセージに対処方法が含まれる'], kind: '改善・最適化', フェーズ列: AI アセットの標準 が引き継がれた直後に）このスキルを読み込んで進めて",
+      "expected_output": "依頼文からの抽出をやり直さず、引き継がれた summary/acceptance/kind/フェーズ列をそのまま用いて手順 0（未コミットの変更確認は省略しない）を経てから、summary から組み立てた keywords で既存 issue を検索し承認①に進む。曖昧点の質問はしない",
       "files": [],
       "expectations": [
         "summary/acceptance/kind を聞き直さず、引き継がれた内容をそのまま使っている",
         "手順 0 の未コミットの変更確認は省略していない",
         "gh issue list による検索を行ってから承認①（AskUserQuestion）に進んでいる",
-        "チケット構成が ai-asset-design → ai-asset-implementation になっている"
+        "フェーズ列が AI アセットの標準（調査 → AI アセット設計 → AI アセット実装 → 振り返り）として work-overall-plan に引き継がれている"
       ]
     },
     {
@@ -132,6 +132,27 @@
         "WF015 を受けて merge-prep.sh ready に切り替えている",
         "WORKFLOW_ENFORCE=0 などでフックを無効化していない",
         "gh pr merge を実行していない"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "（draft PR 作成直後、wip/10_tickets/ が空の状態で）チケット駆動で進めて",
+      "expected_output": "work-ticket-driven の手順 1 でチケット全件を作るのではなく、work-overall-plan を Skill ツールで読み込み、issue / PR の文脈を渡してフェーズ列と全体計画を作らせ、最初の計画チケット 1 枚を起こして done にする。境界に達したら push → PR 本文更新 → work-boundary.sh request で全体計画のレビューを依頼して応答を終える",
+      "files": [],
+      "expectations": [
+        "初回に work-overall-plan を読み込んでいる",
+        "投資・設計・実装など後続フェーズのチケットを最初に一括作成していない",
+        "全体計画の完了をワーク境界として扱い、レビューを依頼している"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "（002-investigation-plan の complete が通り、todo の先頭が 003-investigation、doing が空の状態で）続けて",
+      "expected_output": "bash .claude/hooks/work-boundary.sh status の todo_head_type が investigation なので、work-investigation-exec を Skill ツールで読み込んで実施する。目視で type を比べたり、別のフェーズのスキルを読んだりしない",
+      "files": ["wip/00_overall_plan/plan.md", "wip/20_plans/調査計画-x.md", "wip/10_tickets/20_done/002-investigation-plan-調査計画.md", "wip/10_tickets/00_todo/003-investigation-現状調査.md", "wip/10_tickets/review-state.json"],
+      "expectations": [
+        "work-boundary.sh status の todo_head_type からスキルを選んでいる",
+        "work-investigation-exec を読み込んでいる（work-investigation-plan や work-design-plan ではない）"
       ]
     }
   ]

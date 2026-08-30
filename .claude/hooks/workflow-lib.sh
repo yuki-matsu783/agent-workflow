@@ -3,7 +3,7 @@
 # workflow-lib — チケット駆動ワークフロー用フックの共通ライブラリ
 # ============================================================
 # workflow-guard.sh / workflow-diff-check.sh から source される。
-# 仕様: .claude/docs/10_spec/チケット駆動ワークフロー.md
+# 仕様: .claude/docs/10_spec/skill-work-ticket-driven.md
 #
 # 作業タイプ（type）とパスの allow / deny / ask は外部設定
 # .claude/hooks/workflow-types.json で定義し、ここで動的に読み込む。

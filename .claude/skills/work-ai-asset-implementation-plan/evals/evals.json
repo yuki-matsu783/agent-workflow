@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-ai-asset-implementation-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（仕様書 .claude/docs/10_spec/コミット前lint.md（TC040〜TC043）が done、todo の先頭が 008-ai-asset-implementation-plan-実装計画.md の状態で）実装計画を立てて",
+      "expected_output": "008 を doing に移してコミットし、wip/20_plans/AIアセット実装計画-….md を Write する（変更対象: .claude/hooks/pre-commit-lint.sh 新規・settings.json の hooks 登録、テスト方針: TC040〜TC043 を .claude/hooks/tests/test-pre-commit-lint.sh に新設し既存テストも全部回す、ステップ: 設定 → フック → テスト → 参照更新、ロックアウト対策）。実装チケット（009-ai-asset-implementation-…、DoD にテストと参照更新）と 0NN-retrospective-振り返り.md を起こす。.claude/hooks/ には書かない。done 後に完了報告を返す",
+      "files": ["wip/00_overall_plan/plan.md", ".claude/docs/10_spec/コミット前lint.md", "wip/10_tickets/20_done/007-ai-asset-design-仕様書と用語辞書.md", "wip/10_tickets/00_todo/008-ai-asset-implementation-plan-実装計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（実装計画チケットが doing の状態で）既存のフックテストを一回流して現状を確認して",
+      "expected_output": "計画 type には test グループが無く WF003 で拒否されるため実行しない。テストスクリプトを Read して現状のケース一覧を把握し、実行は実装チケットの DoD に含める旨を伝える",
+      "files": ["wip/10_tickets/10_doing/008-ai-asset-implementation-plan-実装計画.md"]
+    }
+  ]
+}
