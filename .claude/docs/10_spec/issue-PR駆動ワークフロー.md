@@ -121,7 +121,7 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
    1. `work-ticket-driven` を実施する。1つのワーク（作業タイプ）が完了すると、完了報告とともに制御が戻る。境界かどうかは `bash .claude/hooks/work-boundary.sh status` の `at_boundary` で確認する（目視の type 比較はしない）
    2. `git push`（doing が空なのでフックは働かない）
    3. `gh pr edit M --body-file` で PR 本文の「変更点」に完了したワークの要約を追記する
-   4. `bash .claude/hooks/work-boundary.sh request --body-file <レビュー観点を書いた一時ファイル>` でレビューを依頼する（スクリプトが `gh pr comment` を実行し、レビュー状態を `requested` にしてコミット・push する。`gh pr comment` を直接叩かない）。チャットでレビュー依頼した旨を報告して**応答を終える**（承認④の待機）
+   4. `bash .claude/hooks/work-boundary.sh request --body-file <レビュー観点を書いた一時ファイル>` でレビューを依頼する（スクリプトが `gh api .../issues/<PR>/comments`（REST）でコメントを投稿し、レビュー状態を `requested` にしてコミット・push する。`gh pr comment` / `gh api` を直接叩かない）。チャットでレビュー依頼した旨を報告して**応答を終える**（承認④の待機）
    5. レビュー完了の連絡を受けたら、`bash .claude/hooks/work-boundary.sh complete` を実行する（スクリプトがコメント・レビューを取得し、`CHANGES_REQUESTED` や未返信のインラインスレッドがあれば WF014 で拒否する。通れば `completed` にしてコミットし、取得した指摘を JSON で返す）。指摘が 0 件ならそのまま次のワークへ。1 件以上なら対応要否を `AskUserQuestion` で確認する。インラインスレッドへの返信は `work-boundary.sh reply <id> "<対応内容>"`
    6. 対応が必要な指摘があれば、`work-ticket-driven` に同じ作業タイプの追加チケット（指摘内容を DoD に落とす）を作らせ、7-1 に戻る（同じ type の追加チケットは境界でも着手できる。完了後は done 末尾が変わるため、再度 7-2〜7-5 を回して `request` → `complete` する）
 
@@ -232,17 +232,17 @@ gh pr create --base <default> --head <branch> --title "<title>" --body-file <pat
 gh pr view --json number,url,isDraft,state,body
 gh pr edit N --body-file <path>
 bash .claude/hooks/work-boundary.sh status                       # ワーク境界とレビュー状態の判定（JSON）
-bash .claude/hooks/work-boundary.sh request --body-file <path>   # レビュー依頼（内部で gh pr comment）
-bash .claude/hooks/work-boundary.sh complete                     # レビュー完了の確認（内部で gh pr view / gh api .../pulls/N/comments）
+bash .claude/hooks/work-boundary.sh request --body-file <path>   # レビュー依頼（内部で gh api .../issues/N/comments。REST）
+bash .claude/hooks/work-boundary.sh complete                     # レビュー完了の確認（内部で gh api .../pulls/N/reviews /  .../issues/N/comments / .../pulls/N/comments）
 bash .claude/hooks/work-boundary.sh reply <id> "<対応内容>"      # インラインスレッドへの返信
 bash .claude/hooks/merge-prep.sh status                          # マージ前作業の状態（JSON）
 bash .claude/hooks/merge-prep.sh reset-wip [--dry-run]           # wip の成果物の削除（証跡を wip/merge-prep.json へ）
 bash .claude/hooks/merge-prep.sh check-conflicts                 # default ブランチとの衝突判定（git merge-tree。作業ツリー不変）
-bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N]  # Closes #N の issue へコメント（内部で gh issue comment）
+bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N]  # Closes #N の issue へコメント（内部で gh api .../issues/N/comments。REST）
 bash .claude/hooks/merge-prep.sh ready                           # 記録と再検証を通れば draft 解除（内部で gh pr ready）
 ```
 
-- レビュー依頼・コメント取得はスキルが `gh pr comment` / `gh pr view` / `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」が正）。`complete` は `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
+- レビュー依頼・コメント取得はスキルが `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」が正）。`work-boundary.sh` の GitHub 操作はすべて REST（`gh api`）で行い、`gh` の GraphQL 自動解決には依存しない。`complete` は reviewDecision 相当（`pulls/N/reviews` から自前計算する `""` / `APPROVED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
 - draft 解除・issue コメント・wip の削除も同様に `merge-prep.sh` に委ねる（同「マージ前作業の判定と状態」が正）。`gh pr ready` の直接実行はフックが WF015 で拒否する。`ready` は `reset-wip` / `check-conflicts`（衝突なし）/ `notify-issue` の記録に加え、その時点で wip が空・未コミット無し・push 済み・衝突なしを再検証してから `gh pr ready` を実行する
 
 ---
@@ -322,8 +322,8 @@ bash .claude/hooks/merge-prep.sh ready                           # 記録と再�
 | IP008 | チケット作業中の `gh` | doing 1 枚で `gh pr edit` | WF003 でブロック。迂回せず完了後に実行 | |
 | IP009 | 完了処理（衝突なし） | 最後のワーク done、レビュー完了（指摘なし） | PR 本文の最終整形 → 承認③ → `merge-prep.sh reset-wip --dry-run` → `reset-wip` → `check-conflicts`（衝突なし）→ 本文案の承認⑥ → `notify-issue` → `ready`（`gh pr ready` はスクリプト内でのみ実行）→ 報告して停止（マージしない） | |
 | IP010 | 既存 issue の本文保全 | 既存 #12 に追記 | 追記前の本文が変更されず、末尾に `## 今回の依頼（日付）` が追加される | |
-| IP011 | ワーク完了時のレビュー依頼 | investigation の最後のチケットが done、todo の先頭が ai-asset-design | `git push` → PR 本文に investigation の要約を追記 → `gh pr comment` でレビュー依頼 → 応答を終える（次のチケットに着手しない・`AskUserQuestion` で待たない） | |
-| IP012 | レビュー完了後のコメント取得（指摘なし） | 「レビュー完了」の発言、PR のコメントは自分の依頼のみ | `gh pr view` / `gh api .../comments` を実行 → 指摘 0 件と報告 → 次のワーク（todo 先頭のチケット）に着手 | |
+| IP011 | ワーク完了時のレビュー依頼 | investigation の最後のチケットが done、todo の先頭が ai-asset-design | `git push` → PR 本文に investigation の要約を追記 → `gh api .../issues/N/comments`（REST）でレビュー依頼 → 応答を終える（次のチケットに着手しない・`AskUserQuestion` で待たない） | |
+| IP012 | レビュー完了後のコメント取得（指摘なし） | 「レビュー完了」の発言、PR のコメントは自分の依頼のみ | `gh api .../pulls/N/reviews` / `gh api .../issues/N/comments` / `gh api .../pulls/N/comments` を実行 → 指摘 0 件と報告 → 次のワーク（todo 先頭のチケット）に着手 | |
 | IP013 | レビュー完了後のコメント取得（指摘あり） | 「レビュー完了」の発言、インラインコメント 1 件 | コメントを提示 → `AskUserQuestion` で対応要否を確認 → 対応する場合、同じ作業タイプの追加チケットを todo に作成して着手（done チケットを doing に戻さない） | |
 | IP014 | レビュー完了の合図なしで続行 | ワーク完了・レビュー依頼済みの状態で「続けて」 | コメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む | |
 | IP015 | quick-request の振り返りから切り替え | `workflow-quick-request` 手順 5-3 で合意した summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）を引き継いで開始 | 依頼の要約に関する曖昧点を質問せず、引き継がれた summary / keywords で既存 issue を検索して承認①に進む。未コミットの変更があれば省略せず確認する | |
