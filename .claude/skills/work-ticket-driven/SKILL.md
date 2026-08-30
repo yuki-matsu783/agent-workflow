@@ -213,6 +213,7 @@ bash .claude/hooks/work-boundary.sh status
 - `[WF001]`〜`[WF008]` でブロックされた場合: メッセージの「対処:」に従って復旧する。原因が分からない場合はユーザーに報告する
 - `[WF009]` / `[WF010]` はブロックではなくユーザー確認。承認・拒否はユーザーの判断に委ねる
 - `[WF011]`〜`[WF014]` はワーク境界・レビュー状態（手順 5.5・6）、`[WF015]`（`gh pr ready` の直接実行）・`[WF016]`（`merge-prep.sh` の前提未充足）は完了処理のマージ前作業に関するもの。いずれも状態ファイル（`review-state.json` / `merge-prep.json`）を直接編集して通そうとせず、メッセージの「対処:」に従う
+- **`gh` CLI が使えない環境**（`command -v gh` が失敗する）: `work-boundary.sh`/`merge-prep.sh` の各サブコマンドが `--pr <N>`（PR 番号を明示指定）と `--external`（呼び出し元が MCP ツールで実際の GitHub 操作を代行し、結果をフラグで渡す）を受け付ける。`request` は `--external --pr <N> --comment-url <url>`、`complete` は `--external --report-file <path>`（仕様書のスキーマに整形した JSON。`mcp__github__pull_request_read` の `get_reviews`/`get_comments`/`get_review_comments` から組み立てる）、`merge-prep.sh notify-issue` は `--external --pr <N> --pr-body-file <path> --posted "N:url"`、`ready` は `--external --pr <N>`（`mcp__github__update_pull_request(draft:false)` を先に呼んでおく）を渡す。詳細は `.claude/docs/10_spec/チケット駆動ワークフロー.md`「gh CLI 不在時のフォールバック」「`--external`（gh CLI 不在時のフォールバック）」を参照。`reply` は gh 不在時に使わず、呼び出し元が `mcp__github__add_reply_to_pull_request_comment` で直接返信する
 - フック自体の不具合で作業が完全に止まった場合: **ユーザーの明示的な指示があるときに限り** `WORKFLOW_ENFORCE=0` で無効化できる。自分の判断で無効化しない
 - フックの判定ログは `.claude/hooks/workflow.log` に残る。想定外のブロックはこれで調査する
 
