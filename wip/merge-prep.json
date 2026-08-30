@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 31,
   "branch": "feature-30-merge-prep",
-  "state": "checked",
+  "state": "notified",
   "review": {
     "ticket": "018-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -94,6 +94,14 @@
     "files": [],
     "has_conflict": false
   },
-  "notify": null,
+  "notify": {
+    "at": "2026-08-30T09:53:39Z",
+    "issues": [
+      {
+        "number": 30,
+        "comment_url": "https://github.com/yuki-matsu783/agent-workflow/issues/30#issuecomment-5467992339"
+      }
+    ]
+  },
   "ready": null
 }
