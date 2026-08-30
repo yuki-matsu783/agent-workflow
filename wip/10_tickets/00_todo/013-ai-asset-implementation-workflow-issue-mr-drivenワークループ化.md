@@ -1,7 +1,7 @@
 ---
 type: ai-asset-implementation
 status: todo
-depends_on: ["010-ai-asset-implementation-work-ticket-driven分割.md"]
+depends_on: ["012-ai-asset-implementation-ワーク境界スクリプトとフック.md"]
 ---
 
 # workflow-issue-mr-driven のワークループ化とブランチ命名規約変更
@@ -14,6 +14,7 @@ depends_on: ["010-ai-asset-implementation-work-ticket-driven分割.md"]
 
 - [ ] `workflow-issue-mr-driven/SKILL.md`の手順5が、「初回のみ全体計画+チケット作成→以降はworkループ」に改稿されている
 - [ ] workループの各ステップ（push→PR本文更新→レビュー依頼投稿→チャット報告してターン終了→次発言でコメント取得→指摘があれば同typeの追加チケットを作らせて再実行）が明記されている
+- [ ] ループ内の境界判定・レビュー依頼・コメント取得は、012 で実装した `work-boundary.sh`（`status` / `request` / `complete`）を使う手順になっている（`gh pr comment` や状態ファイルを LLM が直接扱う記述が無い）
 - [ ] 手順6が「PR ready化の確認（承認③）専用」に縮小されている
 - [ ] 命名規約表が `<prefix>-<N>-<slug>` に更新されている
 - [ ] ヘッドレス実行時の扱い（type完了時点で応答が終わり、続きは次回セッションになることを許容する）がエラーハンドリングまたは専用節に明記されている

@@ -37,17 +37,28 @@
 
 `.claude/hooks/*.sh`（workflow-guard.sh, workflow-entry.sh, workflow-lib.sh）はブランチ名・work境界のいずれにも依存しないため**変更しない**（doingが空になった時点で自動的にフックが不活性化し push が通るため、既存フックのままで今回のフローを実現できる）。
 
-## チケット分割（008〜012、依存関係: 008→009→010→011→012）
+## 設計変更（010 完了時点、ユーザー指示）
+
+当初「フックは変更しない」としていたが、ユーザーから次の追加指示を受けた:
+
+1. **ワーク境界の判定はスクリプトで決定論的に行う**。フックも使い、想定外の操作（レビュー未完了で次 type に着手する等）は exit 2 で理由を LLM に伝える
+2. **レビュー状態を生成 AI が直接書き換えられないようにする**。書き換えは必ずスクリプト経由で機械的に行う
+
+これを受け、`.claude/hooks/work-boundary.sh`（`status` / `request` / `complete`）とレビュー状態ファイル `wip/10_tickets/review-state.json`（git 管理）を新設し、フックに境界判定とブロック（WF011〜）を追加する。`request` / `complete` は `gh` の実操作（コメント投稿・コメント取得）を自身で行い証跡を記録するため、LLM の主張だけでは状態が進まない。状態ファイルへの Edit / Write / リダイレクトはフックが拒否する。設計は 011、実装は 012 で行い、当初の 011（workflow SKILL）は 013 に、012（retrospective）は 014 に改番した。
+
+## チケット分割（008〜014、依存関係: 008→009→010→011→012→013→014）
 
 | # | type | 目的 | DoD概要 |
 |---|---|---|---|
-| 008 | `investigation` | レビュー往復ロジックの詳細確認（`gh pr view --json comments,reviews` / `gh api .../pulls/N/comments` の実コマンド検証、ヘッドレス時挙動の再確認）。実装方針を `wip/20_plans/` に確定 | 実装方針書ができている。曖昧点が残っていないこと |
-| 009 | `ai-asset-design` | 3層仕様書・要件定義書・issue-PR駆動ワークフロー仕様/要件・チケット駆動ワークフロー仕様の改訂 | 上表の該当 `.claude/docs/**` ファイルが更新され、レビュー記録に追記済み |
-| 010 | `ai-asset-implementation` | `work-ticket-driven` 本体の分割実装（手順5.5新設・手順6改稿・手順0更新・report.template.md更新・evals.json更新） | SKILL.md/テンプレート/evals.jsonが更新され、`work-ticket-driven/scripts/test-hooks.sh` が通る |
-| 011 | `ai-asset-implementation` | `workflow-issue-mr-driven` のワークループ化 + ブランチ命名規約変更（SKILL.md/テンプレート/evals.json/task-gh-featureのissue連携モード表） | SKILL.md/テンプレート/evals.jsonが更新され、`.claude/hooks/tests/test-workflow-entry.sh` が通る |
-| 012 | `retrospective` | 振り返り・結果報告作成 | `wip/30_reports/` に結果報告作成。ワーク完了チェックポイント（人間レビュー）の運用が実際に機能したかを報告に含める |
+| 008 | `investigation` | レビュー往復ロジックの詳細確認、実装方針の確定 | 実装方針書ができている（done） |
+| 009 | `ai-asset-design` | 3層仕様書・要件定義書・issue-PR駆動ワークフロー仕様/要件・チケット駆動ワークフロー仕様の改訂 | `.claude/docs/**` が更新され、レビュー記録に追記済み（done） |
+| 010 | `ai-asset-implementation` | `work-ticket-driven` 本体の分割実装（手順5.5新設・手順6改稿・手順0更新・report.template.md更新・evals.json更新） | test-hooks.sh 62件パス（done） |
+| 011 | `ai-asset-design` | ワーク境界スクリプト・レビュー状態ファイル・フックのブロック条件（WF011〜）・状態ファイル保護の仕様策定 | `チケット駆動ワークフロー.md` に仕様追記、`スキル体系.md` の「フックは関与しない」を更新 |
+| 012 | `ai-asset-implementation` | `work-boundary.sh` とフックの実装、`test-hooks.sh` への TC 追加、`work-ticket-driven/SKILL.md` 手順 5.5/6 のスクリプト利用への更新 | 新旧 TC 全件パス、`test-workflow-entry.sh` 回帰なし |
+| 013 | `ai-asset-implementation` | `workflow-issue-mr-driven` のワークループ化（`work-boundary.sh` を使う手順）+ ブランチ命名規約変更 | SKILL.md/テンプレート/evals.json 更新、`test-workflow-entry.sh` が通る |
+| 014 | `retrospective` | 振り返り・結果報告作成 | `wip/30_reports/` に結果報告作成。ワーク完了チェックポイント（人間レビュー）の運用が実際に機能したかを報告に含める |
 
-010と011は責務（work層／workflow層）が異なるスキルへの変更のため分離する。テスト更新は変更対象スキルと同じチケットに含める。
+ワークの区切りは 008 / 009 / 010 / 011 / 012+013（同 type で1ワーク） / 014 の6つ。テスト更新は変更対象スキルと同じチケットに含める。
 
 ## 受け入れ条件との対応
 
