@@ -140,6 +140,15 @@ BUILD_RE='^(npm|npx|node|python|pytest|go|cargo|make)([[:space:]]|$)'
 # 対象は .claude/hooks/tests/*.sh と .claude/skills/<skill>/scripts/*.sh に限定し、先頭の環境変数指定（VAR=value）は許容する
 TEST_RE='^([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*bash[[:space:]]+\.claude/(hooks/tests|skills/[^/[:space:]]+/scripts)/[^/[:space:]]+\.sh([[:space:]]|$)'
 
+# 対象パスが wip/10_tickets/ 配下かどうかを判定する。
+# mv / git mv / git add に共通の無条件許可条件（workflow-types.json を参照しない）
+wf_is_ticket_path() {
+    case "$1" in
+        wip/10_tickets/*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # mv / git mv: 対象パスがすべて wip/10_tickets/ 配下、または
 # ai-asset-implementation type の doing チケット作業中に限り .claude/skills/ 配下であること
 # （スキルのリネーム作業用。仕様: .claude/docs/10_spec/スキル体系.md）
@@ -150,8 +159,8 @@ wf_validate_mv() {
             -*) continue ;;
             QUOTED) return 1 ;;  # クォートされたパスは検証不能のため不可（パスは引用符なしで指定する）
         esac
+        wf_is_ticket_path "${tok//\\//}" && continue
         case "${tok//\\//}" in
-            wip/10_tickets/*) continue ;;
             .claude/skills/*)
                 [ "${TICKET_TYPE}" = "ai-asset-implementation" ] && continue
                 return 1
@@ -162,7 +171,8 @@ wf_validate_mv() {
     return 0
 }
 
-# git add: 対象パスをパス判定にかける。deny は 1、確認が必要なら ASK_PATHS に積んで 2、全許可なら 0
+# git add: wip/10_tickets/ 配下は git mv と同様に workflow-types.json を経由せず無条件許可する。
+# それ以外の対象パスは wf_resolve のパス判定にかける。deny は 1、確認が必要なら ASK_PATHS に積んで 2、全許可なら 0
 wf_validate_add() {
     local tok rel rc=0
     for tok in "$@"; do
@@ -170,6 +180,7 @@ wf_validate_add() {
             -*|QUOTED) return 1 ;;
         esac
         rel="${tok//\\//}"
+        wf_is_ticket_path "${rel}" && continue
         wf_resolve "${rel}"
         case "${WF_DECISION}" in
             allow) ;;
