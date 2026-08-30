@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "009-retrospective-振り返り.md",
   "work_type": "retrospective",
-  "state": "requested",
+  "state": "completed",
   "local": false,
   "pr": 40,
   "head_sha": "f68af97004d82dfb31935fde6a4ec5ef17976bee",
@@ -11,5 +11,14 @@
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468560858",
     "at": "2026-08-30T12:02:29Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T12:03:42Z",
+    "review_decision": "",
+    "comment_ids": [
+      "IC_kwDOUHO_g88AAAABRe9bwg",
+      "IC_kwDOUHO_g88AAAABRfM4yw",
+      "IC_kwDOUHO_g88AAAABRfOd2g"
+    ],
+    "inline_ids": []
+  }
 }
