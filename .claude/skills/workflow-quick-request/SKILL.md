@@ -121,7 +121,7 @@ gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
 - **「issue を作って workflow-issue-mr-driven で進める」が選ばれたら、その場で `workflow-issue-mr-driven` を Skill ツールで読み込み、手順 1 から始める**（次のプロンプトに先送りしない）。引き継ぐ内容:
   - summary / acceptance: 振り返りで挙げた対象アセット・変更点・理由・期待する挙動
   - kind: 改善・最適化（新規作成ならタスク）
-  - チケットは `ai-asset-design`（`.claude/docs/` の要件・仕様）→ `ai-asset-implementation`（フック・スキル・settings.json）の順で切る。実装は `task-ai-asset-creator` の規約に従う
+  - フェーズ列は AI アセットの標準（調査 → AI アセット設計（`.claude/docs/` の要件・仕様）→ AI アセット実装（フック・スキル・settings.json）→ 振り返り）。`work-overall-plan` が全体計画に書き、各計画ワークがチケットを起こす。実装は `task-ai-asset-creator` の規約に従う
   - どの issue で対応するか（既存 / 新規）と issue 本文の承認は、workflow-issue-mr-driven 側の承認①②で改めて取る。ここでの合意は「そのルートに進むこと」の合意であり、issue の内容の承認ではない
 - 今回の軽作業に未コミットの変更が残っている場合、workflow-issue-mr-driven の手順 0（ブランチを切る前の扱いの確認）で扱う。勝手に stash・破棄しない
 - ヘッドレス実行（`claude -p`、CI）では確認に応答できないため、振り返りと候補を報告に含めるだけにして完了扱いとする（承認待ちで止まらない・issue も作らない）

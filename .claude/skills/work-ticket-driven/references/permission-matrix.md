@@ -39,6 +39,19 @@
 | `ai-asset-design` | `.claude/docs/**`, `wip/20_plans/**` | AI アセットの設計（要件・仕様のみ） |
 | `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json`（+ test） | AI アセットの実装。フックのテストを実行できる |
 
+### フェーズ別ワークスキル用タイプ
+
+仕様: `.claude/docs/10_spec/フェーズ別ワークスキル.md`。計画 type（`<phase>-plan`）は同じ許可範囲だがフェーズごとに分ける（`work-boundary.sh status` の `todo_head_type` からスキルを一意に選ぶため）。
+
+| type | allow_paths | 用途 |
+|------|------------|------|
+| `overall-plan` | `wip/00_overall_plan/**`（global deny を type allow で貫通） | 全体計画。フェーズ列を決め、最初の計画チケットを起こす（`work-overall-plan`） |
+| `investigation-plan` / `design-plan` / `implementation-plan` / `design-sync-plan` / `ai-asset-design-plan` / `ai-asset-implementation-plan` | `wip/20_plans/**` | 各フェーズの計画。計画書を書き、実施チケット群と次の計画チケットを起こす（`work-<phase>-plan`） |
+| `design` | `docs/**`, `wip/20_plans/**` | 設計。`docs/` に要件定義書・仕様書を作成（`work-design-exec`） |
+| `design-sync` | `docs/**`, `wip/20_plans/**` | 設計反映。実装差分を `docs/` の設計書に書き戻す（`work-design-sync-exec`） |
+
+実施 type の `investigation` / `implementation` / `ai-asset-design` / `ai-asset-implementation` は上の標準タイプをそのまま使う（`work-<phase>-exec`）。
+
 ## Edit / Write / NotebookEdit の判定順序
 
 前段: `wip/10_tickets/10_doing/` に doing チケット以外の `*.md` を書く → **WF001**（`.gitkeep` など Markdown 以外はチケットとみなさない）。doing チケットの `type` が変わる編集 → **WF008**。

@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-design-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（設計計画が done、todo に 006-design-要件定義書.md と 007-design-仕様書.md、その後に 008-implementation-plan-実装計画.md がある状態で）設計を進めて",
+      "expected_output": "006 を doing に移し、task-requirements のテンプレートで docs/00_requirements/….md を Write（受け入れ条件を When/Shall に落とす）。done 後 at_boundary: false なので 007 に着手し、task-spec のテンプレートで docs/10_spec/….md を Write（テストシナリオにテスト ID）。007 完了後 at_boundary: true / todo_head_type: implementation-plan となり、完了報告を返す。src/ や .claude/ には書かない",
+      "files": ["wip/20_plans/設計計画-x.md", "wip/20_plans/調査結果-x.md", "wip/10_tickets/20_done/005-design-plan-設計計画.md", "wip/10_tickets/00_todo/006-design-要件定義書.md", "wip/10_tickets/00_todo/007-design-仕様書.md", "wip/10_tickets/00_todo/008-implementation-plan-実装計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（設計チケットが doing の状態で）仕様書に載せる型定義を src/types.ts にも先に作っておいて",
+      "expected_output": "設計ワークではコードを書かない。型定義は仕様書のインターフェース定義に書き、src/types.ts の作成は実装フェーズに回す旨を伝える",
+      "files": ["wip/10_tickets/10_doing/007-design-仕様書.md"]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "skill_name": "work-overall-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（workflow-issue-mr-driven 経由。issue #12「ログイン画面で空パスワードを送信できる」、PR #13、wip/10_tickets/ が空の状態で）全体計画を立てて",
+      "expected_output": "001-overall-plan-全体計画.md を todo に起こしてコミットし、doing に移して着手する。フェーズ列としてソフトウェア変更の標準（調査 → 設計 → 実装・テスト → 設計反映 → 振り返り）を選び、必要なら省略理由を添える。wip/00_overall_plan/ に全体計画（冒頭に issue #12 / PR #13、フェーズ列の表、受け入れ条件との対応、判断点）を Write し、002-investigation-plan-調査計画.md だけを todo に起こす。他のフェーズのチケットは起こさない。done にしてコミットし、work-boundary.sh status で境界を確認してワーク完了報告を返す。push やレビュー依頼は行わない",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "（issue #20「フックにコミット前 lint を追加する」で全体計画を立てる）",
+      "expected_output": "AI アセットの依頼なので、フェーズ列は調査 → AI アセット設計 → AI アセット実装 → 振り返りを選ぶ。設計 / 設計反映（docs/）のフェーズは使わない。最初の計画チケットは 002-investigation-plan-…（調査を省略する妥当な理由があれば 002-ai-asset-design-plan-…）になる",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "（プランモードで作った wip/00_overall_plan/plan.md が既にあり、チケットが 1 枚も無い状態で）続けて",
+      "expected_output": "新しい全体計画を作らず既存の plan.md を読む。フェーズ列の表と受け入れ条件との対応が無ければ Edit で追記する。001-overall-plan-全体計画.md を起こして着手し、最初の計画チケットを 1 枚起こして done にする（冪等）",
+      "files": ["wip/00_overall_plan/plan.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "（001-overall-plan-全体計画.md が doing にある状態で）プランモードで全体計画を練り直したい",
+      "expected_output": "EnterPlanMode は WF006 でブロックされるため使わない。全体計画は wip/00_overall_plan/ のファイルを Write / Edit で直す旨を伝えて続ける",
+      "files": ["wip/10_tickets/10_doing/001-overall-plan-全体計画.md"]
+    }
+  ]
+}

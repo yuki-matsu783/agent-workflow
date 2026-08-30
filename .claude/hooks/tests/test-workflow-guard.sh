@@ -54,6 +54,16 @@ cmd_json() { # $1=command
         '{hook_event_name: "PreToolUse", tool_name: "Bash", session_id: $s, tool_input: {command: $c}}'
 }
 
+edit_json() { # $1=tool(Edit|Write) $2=リポジトリ相対パス
+    jq -n --arg t "$1" --arg p "${TMPW}/$2" --arg s "${SESSION}" \
+        '{hook_event_name: "PreToolUse", tool_name: $t, session_id: $s, tool_input: {file_path: $p, content: "x"}}'
+}
+
+# 実物の作業タイプ定義を読み込む（フェーズ別ワークスキル用 type の検証に使う）
+use_real_types() {
+    cp "${SCRIPT_DIR}/../workflow-types.json" "${TMP}/.claude/hooks/workflow-types.json"
+}
+
 run() { # $1=stdin JSON。結果は R_EXIT / R_OUT / R_ERR
     R_OUT=$(CLAUDE_PROJECT_DIR="${TMPW}" WORKFLOW_ENFORCE=1 bash "${GUARD}" 2>"${ERRF}" <<<"$1")
     R_EXIT=$?
@@ -95,6 +105,47 @@ check TG003 0
 write_types '{"global": {"allow_paths": [], "deny_paths": [], "ask_paths": []}, "types": {"implementation": {"allow_paths": [], "deny_paths": [], "ask_paths": []}}}'
 run "$(cmd_json "git add src/main.ts")"
 check TG004 0 'WF009'
+
+# ============================================================
+# フェーズ別ワークスキル用 type（.claude/docs/10_spec/フェーズ別ワークスキル.md TC032〜TC035・TC039）
+# 実物の workflow-types.json を使い、type 定義の追加だけで許可範囲が成立することを検証する
+# ============================================================
+use_real_types
+
+# ---------- TC032: design は docs/** を allow、.claude/** は global deny（WF002） ----------
+write_ticket design
+run "$(edit_json Edit docs/spec.md)"
+check TC032a 0
+run "$(edit_json Edit .claude/hooks/x.sh)"
+check TC032b 2 'WF002'
+
+# ---------- TC033: design-sync も同様 ----------
+write_ticket design-sync
+run "$(edit_json Edit docs/spec.md)"
+check TC033a 0
+run "$(edit_json Edit .claude/docs/x.md)"
+check TC033b 2 'WF002'
+
+# ---------- TC034: overall-plan は global deny の wip/00_overall_plan/** を type allow で貫通、src/** は未記載（WF009） ----------
+write_ticket overall-plan
+run "$(edit_json Write wip/00_overall_plan/plan.md)"
+check TC034a 0
+run "$(edit_json Write src/foo.ts)"
+check TC034b 0 'WF009'
+
+# ---------- TC035: 計画 type は wip/20_plans/** と wip/10_tickets/00_todo/**（global allow）に書ける。src/** は未記載（WF009） ----------
+write_ticket investigation-plan
+run "$(edit_json Write wip/20_plans/計画.md)"
+check TC035a 0
+run "$(edit_json Write wip/10_tickets/00_todo/003-investigation-x.md)"
+check TC035b 0
+run "$(edit_json Write src/foo.ts)"
+check TC035c 0 'WF009'
+
+# ---------- TC039: implementation に docs/** は無い（設計書の更新は設計反映ワークへ。WF009） ----------
+write_ticket implementation
+run "$(edit_json Edit docs/spec.md)"
+check TC039 0 'WF009'
 
 echo
 echo "結果: PASS=${PASS} FAIL=${FAIL}"

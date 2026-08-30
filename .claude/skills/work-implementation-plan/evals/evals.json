@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-implementation-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（設計書 docs/10_spec/ログイン.md（テストシナリオ TC001〜TC005）が done、todo の先頭が 008-implementation-plan-実装計画.md の状態で）実装計画を立てて",
+      "expected_output": "008 を doing に移してコミットし、仕様書のインターフェースごとに変更対象ファイルを対応づけた wip/20_plans/実装計画-….md を Write する（allowed_paths 案、TC001〜TC005 を単体 / 結合のどれで実装するか、失敗ケース、テスト先行のステップ、実行コマンド）。実装チケット（009-implementation-…、DoD にテスト ID とコマンド）と次の計画チケット 0NN-design-sync-plan-設計反映計画.md を起こす。src/ には書かない。done 後に完了報告を返す",
+      "files": ["wip/00_overall_plan/plan.md", "docs/10_spec/ログイン.md", "wip/10_tickets/20_done/007-design-仕様書.md", "wip/10_tickets/00_todo/008-implementation-plan-実装計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（全体計画で設計反映を省略している状態で）実装計画を立てて",
+      "expected_output": "実装チケット群のあとに design-sync-plan ではなく 0NN-retrospective-振り返り.md を起こす",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/00_todo/008-implementation-plan-実装計画.md"]
+    }
+  ]
+}

@@ -27,10 +27,10 @@ description: >
 依頼 ─→ 既存 issue を検索 ─┬─ 類似あり ─→ 承認①「#N で対応する？」─→ 追記案 ─→ 承認② ─→ task-gh-issue（編集）─┐
                            └─ 類似なし ─→ 承認①「新規で作る？」  ─→ 本文案 ─→ 承認② ─→ task-gh-issue（作成）─┤
                                                                                                           ▼
-                                                                 task-gh-feature（ブランチ + draft PR）─→ work-ticket-driven（全体計画・チケット作成）
+                                                                 task-gh-feature（ブランチ + draft PR）─→ work-overall-plan（全体計画・最初の計画チケット）
                                                                                                           │
    ┌──────────────────────────────── ワークループ（チケット type ごとに繰り返す）────────────────────────────┘
-   │  work-ticket-driven（1 ワーク実施）─→ push ─→ PR 本文更新 ─→ work-boundary.sh request ─→ 応答を終える
+   │  work-<phase>-plan / work-<phase>-exec（1 ワーク実施）─→ push ─→ PR 本文更新 ─→ work-boundary.sh request ─→ 応答を終える
    │        ▲                                                                                    │
    │        └── 指摘あり: 同 type の追加チケット ◄── work-boundary.sh complete ◄── 承認④「レビュー完了」の連絡
    │                                                指摘なし: 次のワークへ ──────────────────────────┐
@@ -48,7 +48,9 @@ description: >
 | このスキル | 依頼の整理、候補の提示、承認の取得、各スキルへの引き継ぎ、完了処理 | — |
 | `task-gh-issue` | issue の検索・作成・編集 | 「検索モード」「作成モード」「編集モード」を指定して手順に従う |
 | `task-gh-feature` | feature ブランチの作成・push・draft PR の作成 | 「issue 連携モード」を指定して手順に従う |
-| `work-ticket-driven` | `wip/` 配下での実作業（フックで統制）。1 つのワーク（チケット type）が完了するたびに制御を返す | 初回は手順 1 から実施し issue / PR の文脈を渡す。2 回目以降は手順 0 の再開判定から |
+| `work-overall-plan` | ワークループの初回。フェーズ列を決めて全体計画を書き、最初の計画チケットを起こす | issue / PR の文脈（番号・URL・受け入れ条件）を渡して実施する |
+| `work-<phase>-plan` / `work-<phase>-exec` | 各フェーズ（調査 / 設計 / 実装・テスト / 設計反映 / AI アセット設計 / AI アセット実装）の計画と実施。1 つのワーク（チケット type）が完了するたびに制御を返す | `work-boundary.sh status` の `todo_head_type` から選ぶ（`<phase>-plan` → `work-<phase>-plan`、`<phase>` → `work-<phase>-exec`。対応表は `.claude/docs/10_spec/フェーズ別ワークスキル.md`） |
+| `work-ticket-driven` | チケット運用の仕組み（着手・完了・境界判定・フックのブロック時の対処）、振り返り（`retrospective`）、レビュー指摘の追加チケット作成 | フェーズ別ワークスキルから手順番号で参照される。`todo_head_type` が `retrospective` のときと追加チケット作成時に直接使う |
 | `work-boundary.sh` | ワーク境界の判定（`status`）、レビュー依頼（`request`）、レビュー完了の確認（`complete`）、インライン返信（`reply`）。レビュー状態ファイルを書き換える唯一の経路 | `bash .claude/hooks/work-boundary.sh <subcommand>` |
 | `merge-prep.sh` | 完了処理のマージ前作業: wip のリセット（`reset-wip`）、default ブランチとの衝突判定（`check-conflicts`）、関連 issue へのコメント（`notify-issue`）、draft 解除（`ready`）。状態 `wip/merge-prep.json` を書き換える唯一の経路で、`ready` は先行ステップの記録と再検証を通ったときだけ `gh pr ready` を実行する | `bash .claude/hooks/merge-prep.sh <subcommand>` |
 
@@ -118,7 +120,7 @@ ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/d
 - `workflow-quick-request` 手順 5-3
 - `work-ticket-driven` の retrospective チケットの振り返り合意（完了処理が終わった後。仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「retrospective の棚卸しと合意」）
 
-- 引き継ぐ項目（切り替え元と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ チケット構成（`ai-asset-design` → `ai-asset-implementation`）
+- 引き継ぐ項目（切り替え元と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ フェーズ列（AI アセットの標準: 調査 → AI アセット設計 → AI アセット実装 → 振り返り。`work-overall-plan` が全体計画に書く）
 - 省略できる: 依頼の要約に関する曖昧点の質問（上記が既に確定しているため、まとめて 1 回質問するステップは不要）
 - 省略できない: 手順 0 の未コミットの変更の確認、承認①②③④はすべてこの手順で改めて取る（切り替え元の合意は「このルートに進むこと」の合意であり、issue の内容や PR の承認ではない）
 - `keywords` は切り替え元から渡されないため、`summary` から自分で組み立てて手順 2（既存 issue の検索）に使う
@@ -185,25 +187,26 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 
 ## 手順 5: チケット駆動ワークフロー（ワークループ）
 
-**初回のみ** `work-ticket-driven` スキルを**手順 1 から**実施し、全体計画の合意とチケット全件の作成まで進める。引き継ぐ文脈:
+**初回は `work-overall-plan`** を Skill ツールで読み込んで実施し、全体計画（フェーズ列）の作成と最初の計画チケットの起票まで進める。これが最初のワークであり、完了時にワーク境界（全体計画のレビュー）が発生する。引き継ぐ文脈:
 
-- 全体計画（プランモード）の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書く
-- issue の受け入れ条件（acceptance）を、実装チケットの DoD と振り返りチケットの確認項目に落とす
+- 全体計画の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書く
+- issue の受け入れ条件（acceptance）を、全体計画の「受け入れ条件との対応」に書き、各計画ワークが実施チケットの DoD に落とす。振り返りチケットの確認項目にも使う
 - 結果報告（`wip/30_reports/`）の「対象 issue」「PR」欄を埋める
-- 対象が AI アセット（フック・スキル・ルール・エージェント・設定）の場合、チケット構成は `ai-asset-design`（`.claude/docs/` の要件・仕様）→ `ai-asset-implementation`（フック・スキル・settings.json）→（必要なら）`retrospective` を標準とする。振り返りからの切り替え（上記）で引き継いだチケット構成もこれに従う
+- 対象が AI アセット（フック・スキル・ルール・エージェント・設定）の場合、フェーズ列の標準は 調査 → AI アセット設計（`.claude/docs/` の要件・仕様）→ AI アセット実装（フック・スキル・settings.json）→ 振り返り。ソフトウェア変更は 調査 → 設計 → 実装・テスト → 設計反映 → 振り返り。省略は全体計画に理由を書く（`work-overall-plan` 手順 4-2）。振り返りからの切り替え（上記）で引き継いだフェーズ列もこれに従う
+- チケットは全件を最初に作らない。各計画ワークが「同フェーズの実施チケット群 + 次の計画チケット」を連鎖的に起こす（仕様: `.claude/docs/10_spec/フェーズ別ワークスキル.md`「ワークの連鎖規則」）
 
 以降、todo と doing が両方空になるまで次を繰り返す。1 回のループが 1 ワーク（同じ type のチケット群）に対応する。
 
 | # | やること | 補足 |
 |---|---------|------|
-| 5-1 | `work-ticket-driven` を実施する（初回は続けて手順 3 へ、2 回目以降は手順 0 の再開判定から）。1 つのワークが完了すると、完了報告とともに制御が戻る | 境界かどうかは `bash .claude/hooks/work-boundary.sh status` の `at_boundary` で確認する。目視で type を比べない |
+| 5-1 | `bash .claude/hooks/work-boundary.sh status` の `todo_head_type` から次のスキルを選び、Skill ツールで読み込んで実施する: `overall-plan` → `work-overall-plan`、`<phase>-plan` → `work-<phase>-plan`、`<phase>` → `work-<phase>-exec`、`retrospective` → `work-ticket-driven`（手順 4 の retrospective）、null → ループ終了（手順 6 へ）。1 つのワークが完了すると、完了報告とともに制御が戻る | 境界かどうかは同コマンドの `at_boundary` で確認する。目視で type を比べない。`todo_head_type` に対応するスキルが無ければ type 定義とスキルの不整合として報告して停止する |
 | 5-2 | `git push` | doing が空なのでフックは働かない |
 | 5-3 | PR 本文を更新する: `task-gh-feature` の `assets/pr.template.md` の「変更点」に完了したワークの要約を追記し、Write で一時ファイルに書いて `gh pr edit M --body-file <path>` | 各ワークの要約が積み上がる形にする |
 | 5-4 | レビューを依頼する: レビュー観点を書いた一時ファイルを用意し、`bash .claude/hooks/work-boundary.sh request --body-file <path>` を実行する | スクリプトが `gh pr comment` を投稿し、レビュー状態を `requested` にしてコミット・push する。`gh pr comment` を直接叩かない。前提未充足（未コミット・未 push・PR なし・境界でない）は WF013 で止まるので、条件を解消してから再実行する |
 | 5-5 | チャットで「ワーク X を push しレビューを依頼した。完了したら知らせてほしい」と報告し、**応答を終える**（承認④の待機） | `AskUserQuestion` で待たない |
 | 5-6 | レビュー完了の連絡（次のユーザー発言）を受けたら `bash .claude/hooks/work-boundary.sh complete` を実行する | スクリプトがコメント・レビューを取得し、`CHANGES_REQUESTED` または返信の無いインラインスレッドがあれば WF014 で止まる。通れば `completed` にしてコミットし、`request` 以降の指摘（自分の投稿を除く）を JSON で返す |
 | 5-7 | 返された指摘が 0 件なら、そのまま次のワークへ（5-1）。1 件以上なら内容を提示し、対応要否を `AskUserQuestion` で確認する。インラインスレッドへの返信は `bash .claude/hooks/work-boundary.sh reply <id> "<対応内容>"` | 対応要否の判断は人間に残す。スクリプトは「取得した」ことを保証するだけ |
-| 5-8 | 対応が必要なら、`work-ticket-driven` に**同じ type の追加チケット**（指摘内容を DoD に落とす）を作らせて 5-1 に戻る。追加チケットが done になると境界の状態は失効するので、再度 5-2〜5-6 を回す | done 済みチケットを doing に戻さない。同じ type の追加チケットは `completed` でなくても着手できる（フックが例外として許可する） |
+| 5-8 | 対応が必要なら、`work-ticket-driven` 手順 2 の要領で**同じ type の追加チケット**（指摘内容を DoD に落とす）を todo に作り、5-1 に戻る（計画ワークの差し戻しなら計画 type、実施ワークなら実施 type の追加チケット）。追加チケットが done になると境界の状態は失効するので、再度 5-2〜5-6 を回す | done 済みチケットを doing に戻さない。同じ type の追加チケットは `completed` でなくても着手できる（フックが例外として許可する）。計画ワークが次の計画チケットを起こし忘れていた場合は、追加チケットではなく次の計画チケットを直接 todo に起こす |
 
 WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未返信スレッドあり）は、理由を報告して指摘対応（5-7・5-8）に進む。レビュアーが approve / dismiss しない限り状態は進まないので、状態ファイルを直して通そうとしない。
 
@@ -266,7 +269,8 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 - issue の受け入れ条件を先に固め、チケットの DoD と結果報告に一貫して使う
 - `--body-file` 用の一時ファイルはリポジトリ外（例: `/tmp/`）に置き、残さない
 - レビュー依頼（`request --body-file`）には「対象の差分範囲」「見てほしい観点」「次のワーク」を書く。後段のワークで確定したい判断があれば、そこで指摘してもらえるよう明示する
-- ワークの粒度が細かすぎてレビュー往復が多いと感じたら、type をまとめるのではなく、レビュー依頼に「軽微なので approve のみで可」と添える
+- ワークの粒度が細かすぎてレビュー往復が多いと感じたら、type をまとめるのではなく、レビュー依頼に「軽微なので approve のみで可」と添える。計画 → 実施で必ず 2 回の境界が発生するため、小さな依頼では全体計画でフェーズを省略する（`work-overall-plan` 手順 4-2 の目安）
+- レビュー依頼の観点は、各フェーズ別ワークスキルの「5. レビュー観点」を元にする
 - `reset-wip` で消える情報（結果報告の「うまくいかなかったこと」「改善提案」「残課題」）は、6-1 の PR 本文と 6-5 の issue コメントに要約して残す。`wip/` は PR の作業領域であり、main に残す記録ではない
 - issue コメントの本文は「受け入れ条件との対応」を表にし、根拠（ファイル・テスト ID）を添える。後から issue だけを読んでも何が満たされたか分かるようにする
 - 完了処理はできるだけ 1 つの応答内で 6-1〜6-7 を通す。リセット後は `wip/10_tickets/` が空になり入口ガードの継続判定が効かないため、別プロンプトで再開すると振り分けの再宣言が必要になる（issue #28 と同種の既知の制約）

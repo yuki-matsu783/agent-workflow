@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-ai-asset-design-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（issue「コミット前に lint を走らせるフックを追加する」で調査結果が done、todo の先頭が 005-ai-asset-design-plan-設計計画.md の状態で）設計計画を立てて",
+      "expected_output": "005 を doing に移してコミットし、wip/20_plans/AIアセット設計計画-….md を Write する（新規: .claude/docs/00_requirements/コミット前lint.md と 10_spec/コミット前lint.md、更新: 用語辞書、ヘッドレス実行時の挙動、受け入れ条件 → テスト ID の対応）。設計チケット（006-ai-asset-design-…、type ai-asset-design）と次の計画チケット 00N-ai-asset-implementation-plan-実装計画.md を起こす。.claude/docs/ には書かない。done 後に完了報告を返す",
+      "files": ["wip/00_overall_plan/plan.md", "wip/20_plans/調査結果-x.md", "wip/10_tickets/20_done/004-investigation-制約調査.md", "wip/10_tickets/00_todo/005-ai-asset-design-plan-設計計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（設計計画チケットが doing の状態で）先にフックのスクリプトを書き始めて",
+      "expected_output": "設計 → 実装の順を崩さない。フック本体は ai-asset-implementation フェーズで書く旨を伝え、設計計画書と設計チケットの起票に集中する。.claude/hooks/ には書かない",
+      "files": ["wip/10_tickets/10_doing/005-ai-asset-design-plan-設計計画.md"]
+    }
+  ]
+}
