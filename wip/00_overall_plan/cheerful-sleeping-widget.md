@@ -43,13 +43,15 @@ keywords: [WF012, review-state.json, クォート, QUOTED, workflow-boundary.sh,
 
 ## チケット分割
 
+既存の `wip/10_tickets/20_done/` は issue #12 対応（001〜014）で埋まっているため、番号はその続き（015〜）を使う。
+
 | # | type | 内容 | DoD |
 |---|------|------|-----|
-| 001 | investigation | 既存実装（workflow-boundary.sh 58-73行目、workflow-guard.sh の sanitized 処理、test-hooks.sh の TC025 系）を確認し、上記修正方針を `wip/20_plans/` に実装計画として記録する | 修正対象箇所・追加するテストケース一覧（TC025 系の追番）を明記した計画書ができている |
-| 002 | implementation | `workflow-boundary.sh` に `wf_quoted_targets_state()` を追加し、WF012 判定ロジックを修正方針どおりに書き換える。`test-hooks.sh` に issue #29 のケース（引用符内タイトルは通過／`rm "..."` は引き続き WF012 等）を TC025 系として追加する | `bash .claude/skills/work-ticket-driven/scripts/test-hooks.sh` が全件 PASS する。issue #29 の受け入れ条件3点をすべて満たす |
-| 003 | retrospective | 実施内容の振り返りをまとめ、`wip/30_reports/` に結果報告を作成する | うまくいったこと・いかなかったことの整理、改善提案（あれば）の記載 |
+| 015 | investigation | 既存実装（workflow-boundary.sh 58-73行目、workflow-guard.sh の sanitized 処理、test-hooks.sh の TC025 系）を確認し、上記修正方針を `wip/20_plans/` に実装計画として記録する | 修正対象箇所・追加するテストケース一覧（TC025 系の追番）を明記した計画書ができている |
+| 016 | ai-asset-implementation | `workflow-boundary.sh` に `wf_quoted_targets_state()` を追加し、WF012 判定ロジックを修正方針どおりに書き換える。`test-hooks.sh` に issue #29 のケース（引用符内タイトルは通過／`rm "..."` は引き続き WF012 等）を TC025 系として追加する。`.claude/hooks/**` を触るため type は `ai-asset-implementation` | `bash .claude/skills/work-ticket-driven/scripts/test-hooks.sh` が全件 PASS する。issue #29 の受け入れ条件3点をすべて満たす |
+| 017 | retrospective | 実施内容の振り返りをまとめ、`wip/30_reports/` に結果報告を作成する | うまくいったこと・いかなかったことの整理、改善提案（あれば）の記載 |
 
-依存関係: 002 は 001 に依存、003 は 002 に依存。
+依存関係: 016 は 015 に依存、017 は 016 に依存。
 
 ## 検証方法
 

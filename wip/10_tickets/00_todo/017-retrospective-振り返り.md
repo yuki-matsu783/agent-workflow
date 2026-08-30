@@ -1,7 +1,7 @@
 ---
 type: retrospective
 status: todo
-depends_on: ["002-implementation-WF012修正.md"]
+depends_on: ["016-ai-asset-implementation-WF012修正.md"]
 ---
 
 # WF012 修正の振り返り
@@ -17,7 +17,7 @@ issue #29 対応（WF012 の引用符誤反応修正）の実施内容を振り�
 
 ## 作業内容
 
-1. 001・002 の作業ログを読む
+1. 015・016 の作業ログを読む
 2. `assets/report.template.md` を Read→Write でコピーし、`wip/30_reports/` に結果報告を作成する
 3. 恒久的な教訓（例: workflow-boundary.sh と workflow-guard.sh のクォート処理を共通化すべきか等）があれば改善提案として記載する
 
