@@ -12,11 +12,11 @@ depends_on: ["023-ai-asset-design-アセット作成技術調査スキル要件�
 
 ## 完了条件（DoD）
 
-- [ ] `task-ai-asset-creator/SKILL.md` に `AIアセット作成.md` への参照リンク2行が追加されている
-- [ ] `task-investigating-technologies/SKILL.md` に `技術調査.md` への参照リンク2行が追加されている
-- [ ] リンク先パスが実在する
-- [ ] 各SKILL.mdの本文（手順・振る舞い）は変更していない
-- [ ] `.claude/docs/**` は変更していない
+- [x] `task-ai-asset-creator/SKILL.md` に `AIアセット作成.md` への参照リンク2行が追加されている
+- [x] `task-investigating-technologies/SKILL.md` に `技術調査.md` への参照リンク2行が追加されている
+- [x] リンク先パスが実在する
+- [x] 各SKILL.mdの本文（手順・振る舞い）は変更していない
+- [x] `.claude/docs/**` は変更していない
 
 ## 作業内容
 
@@ -27,8 +27,8 @@ depends_on: ["023-ai-asset-design-アセット作成技術調査スキル要件�
 
 ### うまくいったこと
 
--
+- 025/026と同じ書式をそのまま適用できた
 
 ### うまくいかなかったこと
 
--
+- なし
