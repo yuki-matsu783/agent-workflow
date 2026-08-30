@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "016-ai-asset-design-仕様書追記.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "449f6caa9e85b75af6998b97a27aef5ea22b480d",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T08:28:55Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T08:29:01Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
