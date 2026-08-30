@@ -1,23 +1,16 @@
 {
   "version": 1,
-  "ticket": "001-overall-plan-全体計画.md",
-  "work_type": "overall-plan",
-  "state": "completed",
+  "ticket": "002-investigation-plan-調査計画.md",
+  "work_type": "investigation-plan",
+  "state": "requested",
   "local": false,
   "via": "external",
   "pr": 52,
-  "head_sha": "acdcfa71887120671945694f141e5cb23f7581f1",
+  "head_sha": "37b3961b5a42e594647eb0ca437007d91349cc4f",
   "request": {
-    "comment_id": "5471597480",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471597480",
-    "at": "2026-08-30T22:51:00Z"
+    "comment_id": "5471822993",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471822993",
+    "at": "2026-08-30T23:06:25Z"
   },
-  "complete": {
-    "at": "2026-08-30T23:01:16Z",
-    "review_decision": "",
-    "comment_ids": [
-      5471597480
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
