@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-ai-asset-design-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（設計計画が done、todo に 006-ai-asset-design-要件定義書.md と 007-ai-asset-design-仕様書と用語辞書.md、その後に 008-ai-asset-implementation-plan-実装計画.md がある状態で）設計を進めて",
+      "expected_output": "006 を doing に移し、task-requirements のテンプレートで .claude/docs/00_requirements/….md を Write（受け入れ条件を When/Shall に）。done 後 at_boundary: false なので 007 に着手し、task-spec のテンプレートで .claude/docs/10_spec/….md を Write（フックの入出力・TC 番号・ヘッドレス時の挙動）、用語辞書と横断文書を Edit してレビュー記録に版を追記。007 完了後 at_boundary: true / todo_head_type: ai-asset-implementation-plan となり、完了報告を返す。.claude/hooks/ や .claude/skills/ には書かない",
+      "files": ["wip/20_plans/AIアセット設計計画-x.md", "wip/10_tickets/20_done/005-ai-asset-design-plan-設計計画.md", "wip/10_tickets/00_todo/006-ai-asset-design-要件定義書.md", "wip/10_tickets/00_todo/007-ai-asset-design-仕様書と用語辞書.md", "wip/10_tickets/00_todo/008-ai-asset-implementation-plan-実装計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（設計チケットが doing の状態で）仕様が固まったので workflow-types.json も先に直して",
+      "expected_output": "ai-asset-design では .claude/hooks/ に書けない（WF002）。type 定義の変更内容は仕様書に書き、ai-asset-implementation フェーズで反映する旨を伝える",
+      "files": ["wip/10_tickets/10_doing/007-ai-asset-design-仕様書と用語辞書.md"]
+    }
+  ]
+}

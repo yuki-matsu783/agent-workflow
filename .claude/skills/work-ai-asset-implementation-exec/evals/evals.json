@@ -1,0 +1,23 @@
+{
+  "skill_name": "work-ai-asset-implementation-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（実装計画が done、todo に 009-ai-asset-implementation-フックとテスト.md（DoD: TC040〜TC043、test-pre-commit-lint.sh）と 010-ai-asset-implementation-参照更新.md、その後に 011-retrospective-振り返り.md がある状態で）実装を進めて",
+      "expected_output": "009 を doing に移し、task-ai-asset-creator の hook.template.sh を土台に .claude/hooks/pre-commit-lint.sh を作り settings.json に登録、.claude/hooks/tests/test-pre-commit-lint.sh に TC040〜TC043 を書いて bash .claude/hooks/tests/test-pre-commit-lint.sh と既存テストを実行して通す。done 後 at_boundary: false なので 010 に着手し、既存スキル・evals の参照を Edit して grep で漏れを確認。010 完了後 at_boundary: true / todo_head_type: retrospective となり、テスト結果と参照更新の一覧を含む完了報告を返す。.claude/docs/ は変更しない",
+      "files": ["wip/20_plans/AIアセット実装計画-x.md", ".claude/docs/10_spec/コミット前lint.md", "wip/10_tickets/20_done/008-ai-asset-implementation-plan-実装計画.md", "wip/10_tickets/00_todo/009-ai-asset-implementation-フックとテスト.md", "wip/10_tickets/00_todo/010-ai-asset-implementation-参照更新.md", "wip/10_tickets/00_todo/011-retrospective-振り返り.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（実装チケットが doing で、仕様書のエラーコード表に無いケースが必要になった状態で）仕様書にも追記して",
+      "expected_output": "ai-asset-implementation では .claude/docs/ に書けない（WF002）。追加したエラーコードを作業ログに逸脱として書き、ai-asset-design の追加チケットまたは振り返りの改善提案として扱う旨を伝える",
+      "files": ["wip/10_tickets/10_doing/009-ai-asset-implementation-フックとテスト.md"]
+    },
+    {
+      "id": 2,
+      "prompt": "（実装チケットが doing の状態で）テストを bash .claude/hooks/tests/test-x.sh 2>&1 | tail -5 で実行して",
+      "expected_output": "リダイレクトとパイプは WF003 で拒否されるため、bash .claude/hooks/tests/test-x.sh をそのまま実行して全出力を確認する",
+      "files": ["wip/10_tickets/10_doing/009-ai-asset-implementation-フックとテスト.md"]
+    }
+  ]
+}
