@@ -1,7 +1,7 @@
 ---
 type: retrospective
 status: todo
-depends_on: ["002-ai-asset-implementation-振り返り切り替え受け口実装.md"]
+depends_on: ["016-ai-asset-implementation-振り返り切り替え受け口実装.md"]
 ---
 
 # issue #5 対応の振り返り

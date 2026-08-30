@@ -1,7 +1,7 @@
 ---
 type: ai-asset-implementation
 status: todo
-depends_on: ["001-ai-asset-design-振り返り切り替え受け口仕様追加.md"]
+depends_on: ["015-ai-asset-design-振り返り切り替え受け口仕様追加.md"]
 ---
 
 # workflow-issue-mr-driven SKILL.md と evals に振り返りからの切り替え受け口を実装する
