@@ -77,7 +77,7 @@ check TE001b 2 "WF101"
 run prompt "$(prompt_json "README の誤字を直して")"
 check TE002 0 '"additionalContext"'
 check TE002b 0 "WF-ENTRY"
-check TE002c 0 "workflow-light-task"
+check TE002c 0 "workflow-quick-request"
 grep -q '^prompt_seq=1$' "$(state_file)" && echo "PASS TE002d" && PASS=$((PASS + 1)) || { echo "FAIL TE002d: prompt_seq が 1 でない"; FAIL=$((FAIL + 1)); }
 
 # TE003: プロンプト直後（未宣言）の書き込み系は WF101
@@ -89,13 +89,13 @@ run guard "$(tool_json Agent)"
 check TE003c 2 "WF101"
 
 # ---------- TE004: 入口スキルの読み込みを記録 → 許可 ----------
-run record "$(skill_json workflow-light-task)"
+run record "$(skill_json workflow-quick-request)"
 check TE004 0 "" "WF"
 run guard "$(tool_json Edit)"
 check TE004b 0 "" "WF"
 run guard "$(tool_json Bash)"
 check TE004c 0 "" "WF"
-grep -q '^workflow=workflow-light-task$' "$(state_file)" && echo "PASS TE004d" && PASS=$((PASS + 1)) || { echo "FAIL TE004d: workflow が記録されていない"; FAIL=$((FAIL + 1)); }
+grep -q '^workflow=workflow-quick-request$' "$(state_file)" && echo "PASS TE004d" && PASS=$((PASS + 1)) || { echo "FAIL TE004d: workflow が記録されていない"; FAIL=$((FAIL + 1)); }
 
 # ---------- TE005: 入口以外のスキル読み込みは宣言にならない ----------
 clear_state
@@ -107,7 +107,7 @@ run record "$(skill_json work-ticket-driven)"
 run guard "$(tool_json Edit)"
 check TE005b 2 "WF101"
 # Skill 以外のツールの PostToolUse は無視する
-run record "$(jq -n --arg s "${SESSION}" '{tool_name: "Edit", session_id: $s, tool_input: {skill: "workflow-light-task"}}')"
+run record "$(jq -n --arg s "${SESSION}" '{tool_name: "Edit", session_id: $s, tool_input: {skill: "workflow-quick-request"}}')"
 run guard "$(tool_json Edit)"
 check TE005c 2 "WF101"
 
@@ -128,7 +128,7 @@ check TE006e 0 "" "WF"
 
 # ---------- TE007: /<入口スキル> によるスラッシュ起動は宣言扱い ----------
 clear_state
-run prompt "$(prompt_json "/workflow-light-task README の誤字を直して")"
+run prompt "$(prompt_json "/workflow-quick-request README の誤字を直して")"
 check TE007 0 "スラッシュ起動"
 run guard "$(tool_json Edit)"
 check TE007b 0 "" "WF"
@@ -141,15 +141,15 @@ check TE007c 0 "" "WF"
 run prompt "$(prompt_json "/task-gh-issue バグ報告")"
 run guard "$(tool_json Edit)"
 check TE007d 2 "WF101"
-# 名前の前方一致（/workflow-light-task-foo）は宣言にならない
-run prompt "$(prompt_json "/workflow-light-task-foo x")"
+# 名前の前方一致（/workflow-quick-request-foo）は宣言にならない
+run prompt "$(prompt_json "/workflow-quick-request-foo x")"
 run guard "$(tool_json Edit)"
 check TE007e 2 "WF101"
 
 # ---------- TE008: セッション単位で独立 ----------
 clear_state
 run prompt "$(prompt_json "a")"
-run record "$(skill_json workflow-light-task)"
+run record "$(skill_json workflow-quick-request)"
 SESSION=othersession
 run guard "$(tool_json Edit)"
 check TE008 2 "WF101"

@@ -32,7 +32,7 @@ depends_on: ["003-ai-asset-implementation-フラットスキルリネーム.md"]
 
 ### うまくいったこと
 
-- 003で保留していた `ticket-driven-workflow` 言及（workflow-entry.sh、test-workflow-entry.sh、markdown-frontmatter.md、workflow-issue-mr-driven/workflow-light-taskのSKILL.mdとevals.json）を、`.claude/hooks/**`・`.claude/rules/**`・`.claude/skills/**` の範囲内で一括して拾えた
+- 003で保留していた `ticket-driven-workflow` 言及（workflow-entry.sh、test-workflow-entry.sh、markdown-frontmatter.md、workflow-issue-mr-driven/workflow-quick-requestのSKILL.mdとevals.json）を、`.claude/hooks/**`・`.claude/rules/**`・`.claude/skills/**` の範囲内で一括して拾えた
 - `references/permission-matrix.md` はそもそもスキル名への言及が無く、変更不要と確認できた
 
 ### うまくいかなかったこと

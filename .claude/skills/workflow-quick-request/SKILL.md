@@ -1,5 +1,5 @@
 ---
-name: workflow-light-task
+name: workflow-quick-request
 description: >
   issue と PR を作るまでもない軽作業（質問への回答・説明・調査、typo やドキュメントの修正、
   設定値の微調整、1〜3 ファイルに閉じた振る舞いを変えない変更）を、範囲を宣言してから進め、
@@ -12,7 +12,7 @@ description: >
   no new feature or bug fix, no multi-module change).
 ---
 
-# workflow-light-task — 軽作業を範囲を宣言してから進める
+# workflow-quick-request — 軽作業を範囲を宣言してから進める
 
 issue / PR / チケットを作らずに進めてよい**軽作業**のための入口。
 「本当に軽作業か」を最初に判定し、範囲を宣言してから作業し、範囲を超えたら止まる。

@@ -13,7 +13,7 @@ depends_on: ["002-ai-asset-design-スキル体系仕様.md"]
 ## 完了条件（DoD）
 
 - [x] `workflow-guard.sh` の `wf_validate_mv` が `ai-asset-implementation` type に限り `.claude/skills/**` 内の `git mv` を許可するよう拡張されている
-- [x] `issue-pr-driven-workflow`→`workflow-issue-mr-driven`、`light-task-workflow`→`workflow-light-task`、`gh-issue`→`task-gh-issue`、`gh-feature`→`task-gh-feature`、`gh-install`→`task-gh-install`、`ai-asset-creator`→`task-ai-asset-creator`、`investigating-technologies`→`task-investigating-technologies`、`requirements`→`task-requirements`、`spec`→`task-spec` が `git mv` でリネームされている
+- [x] `issue-pr-driven-workflow`→`workflow-issue-mr-driven`、`light-task-workflow`→`workflow-quick-request`、`gh-issue`→`task-gh-issue`、`gh-feature`→`task-gh-feature`、`gh-install`→`task-gh-install`、`ai-asset-creator`→`task-ai-asset-creator`、`investigating-technologies`→`task-investigating-technologies`、`requirements`→`task-requirements`、`spec`→`task-spec` が `git mv` でリネームされている
 - [x] 各 `SKILL.md` の frontmatter `name:` が新名称に一致している
 - [x] 各スキルの相互参照（SKILL.md本文中の他スキル名）が新名称に更新されている
 - [x] `evals/evals.json` の `skill_name` と本文中の他スキル名言及が更新されている

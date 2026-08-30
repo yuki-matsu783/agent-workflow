@@ -18,7 +18,7 @@
 ## 確定した設計判断
 
 - `issue-pr-driven-workflow` → `workflow-issue-mr-driven`
-- `light-task-workflow` → `workflow-light-task`
+- `light-task-workflow` → `workflow-quick-request`
 - `gh-issue` / `gh-feature` / `gh-install` / `ai-asset-creator` / `investigating-technologies` / `requirements` / `spec` → すべて `task-*`（例: `task-gh-issue`）
 - `ticket-driven-workflow` → `work-ticket-driven` に改名。**チケットタイプ（investigation/implementation/retrospective/ai-asset-design/ai-asset-implementation）別の実施手順は分割せず、1ファイル内にインラインのまま残す**（Skillツールの意味マッチングと `workflow-types.json` の frontmatter 判定という別系統の仕組みが同じ名前空間に混在するのを避けるため）。SKILL.md 冒頭に「ここでの『チケット』は3層構造の『タスク』に相当する」という対応関係を一文で明記する
 - `workflow-types.json` の `types` キー名・チケットの呼称は変更しない（変更コストに対して実益が薄い）

@@ -22,11 +22,11 @@
 | スキル | 使う場面 |
 |--------|---------|
 | `workflow-issue-mr-driven` | 開発作業。機能追加・バグ修正・リファクタリングなど振る舞いが変わる変更、複数モジュールにまたがる変更、テストやレビューが必要な変更。issue と draft PR に紐づけてチケット駆動で進める |
-| `workflow-light-task` | 上記に当たらない軽作業。質問・説明・調査、typo やドキュメントの修正、設定値の微調整など、issue と PR を作るまでもない作業。範囲を宣言してから進める |
+| `workflow-quick-request` | 上記に当たらない軽作業。質問・説明・調査、typo やドキュメントの修正、設定値の微調整など、issue と PR を作るまでもない作業。範囲を宣言してから進める |
 
 - 宣言は**ユーザーのプロンプトごと**に必要。フォローアップ（「はい」「続けて」）でも前のプロンプトの宣言は引き継がれない
 - ただし `wip/10_tickets/00_todo/` または `10_doing/` にチケットがある間（`workflow-issue-mr-driven` の作業中）は継続とみなし、再宣言は不要。別の依頼を始めるならチケットを完了するか todo に戻してから宣言し直す
-- 判断基準は `workflow-light-task` の手順 0 の表に従う。迷ったら `workflow-issue-mr-driven`（重い側）に倒すか、AskUserQuestion で確認する
+- 判断基準は `workflow-quick-request` の手順 0 の表に従う。迷ったら `workflow-issue-mr-driven`（重い側）に倒すか、AskUserQuestion で確認する
 - 軽作業として始めた後に基準を超えると分かったら、止めて `workflow-issue-mr-driven` への切り替えを提案する
 - WF101 でブロックされたら迂回せず、該当スキルを Skill ツールで読み込んでから元の操作をやり直す
 - `WORKFLOW_ENTRY_ENFORCE=0` での無効化はユーザーの明示的な指示があるときだけ
