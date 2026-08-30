@@ -94,8 +94,8 @@ global の標準: `deny_paths = [".claude/**", "wip/00_overall_plan/**"]`、`ses
 | `head_sha` | string | Y | `request` 時点の HEAD |
 | `request.comment_id` / `request.url` / `request.at` | string | N | レビュー依頼コメントの id / URL / 時刻（`local: false` のとき必須。`via == "external"` のときは `--comment-url` から得た値） |
 | `complete.at` | string | N | `complete` の時刻 |
-| `complete.review_decision` | string | N | 取得した `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）。`via == "external"` のときは `--report-file` の `review_decision` |
-| `complete.comment_ids` / `complete.inline_ids` | string[] | N | 取得した会話コメント id / インラインコメント id の一覧（証跡）。`via == "external"` のときは `--report-file` の値をそのまま使う |
+| `complete.review_decision` | string | N | `complete` が算出した reviewDecision 相当（`""` / `APPROVED` / `CHANGES_REQUESTED`。reviewer ごとの最新レビュー状態から自前で計算する簡略版で、ブランチ保護ルールは考慮しない。詳細は後述） |
+| `complete.comment_ids` / `complete.inline_ids` | number[] | N | `complete` が取得した会話コメント id / インラインコメント id の一覧（証跡。REST の数値 id） |
 
 信頼境界: このファイルも「Claude 自身が書く」側に見えるが、**書き込み経路をスクリプトに限定し、`request` / `complete` が GitHub の実操作（コメント投稿・取得）を自ら行って証跡を記録する**ことで、LLM の主張だけでは状態が進まないようにする。`via == "external"`（gh CLI 不在時のフォールバック。後述「`--external`」）はこの保証を維持できず、渡された値の正しさは呼び出し元に依存する。既存の `via == "gh"` 経路の挙動・信頼性は変わらない。
 
@@ -106,7 +106,7 @@ global の標準: `deny_paths = [".claude/**", "wip/00_overall_plan/**"]`、`ses
 | 項目名 | 型 | 必須 | 説明 |
 |--------|----|------|------|
 | `version` | int | Y | スキーマ版。現在 `1` |
-| `pr` | int | Y | 対象 PR 番号。現在ブランチの open な PR（`--pr <N>` の指定があればそれを使う。無ければ `gh pr view --json number`）と一致しないとき失効 |
+| `pr` | int | Y | 対象 PR 番号。現在ブランチの open な PR（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`）と一致しないとき失効 |
 | `branch` | string | Y | `reset-wip` 実行時のブランチ名（参考情報） |
 | `state` | string | Y | `reset` / `checked` / `notified` / `ready`。この順にしか進まない |
 | `review` | object | Y | `reset-wip` 時点の最後のワークのレビュー完了の証跡（`ticket` / `work_type` / `review_decision` / `completed_at`）。`review-state.json` はリセットで削除されるため、ここへ写す |
@@ -115,7 +115,7 @@ global の標準: `deny_paths = [".claude/**", "wip/00_overall_plan/**"]`、`ses
 | `notify` | object | N | `notify-issue` の結果: `at` / `issues`（`number` / `comment_url` の配列）/ `via`（`"gh"` または `"external"`）。未実行なら null |
 | `ready` | object | N | `ready` の結果: `at` / `head_sha` / `via`（`"gh"` または `"external"`）。未実行なら null |
 
-信頼境界は `review-state.json` と同じ。`merge-prep.sh` が削除・`git merge-tree` を自ら実行して証跡を残す点は `gh` の有無に関わらず変わらない。`notify`/`ready` の `via == "gh"` は `gh issue comment`/`gh pr ready` を自ら実行して証跡を残すため、LLM が「通知した」「ready にした」と主張するだけでは状態は進まない。`via == "external"`（gh CLI 不在時のフォールバック。後述「gh CLI 不在時のフォールバック」）はこの保証を維持できず、渡された値の正しさは呼び出し元に依存する。
+信頼境界は `review-state.json` と同じ。`merge-prep.sh` が削除・`git merge-tree`・`gh api .../issues/<N>/comments`（issue コメント投稿）・`gh pr ready` を自ら実行して証跡を残すため、LLM が「リセットした」「衝突は無い」「通知した」と主張するだけでは `ready` に到達しない。
 
 ### 入力フォーマット（チケットファイル）
 
@@ -355,17 +355,18 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 none ──request──> requested ──complete──> completed ──(次の done で ticket が変わる)──> none
 ```
 
-**`request [--body-file <path>] [--local] [--pr <N>] [--external --comment-url <url>]`**（ワーク完了のレビュー依頼）
+**GitHub 操作は REST（`gh api`）で行い、`gh` の GraphQL 自動解決（`gh pr view` / `gh pr comment` / `gh issue comment`）には依存しない。** GraphQL クエリを個別に許可制にしているプロキシ環境（agent proxy が「pinned set の PR-review operations のみ許可」を返す環境）では GraphQL 経由の呼び出しが `HTTP 403` になるため（issue #44）。`gh api` の URL 中の `{owner}` / `{repo}` / `{branch}` プレースホルダはローカルの git remote・現在ブランチから解決され、ネットワークに出る前に完了する。
+
+**`request [--body-file <path>] [--local]`**（ワーク完了のレビュー依頼）
 
 | 前提条件（満たさなければ exit 2 + `[WF013]`） | 動作 |
 |------|------|
 | `at_boundary == true` | |
 | `review_state == none`（`requested` / `completed` で二重に依頼しない） | |
 | `git status --porcelain` が空（未コミットの変更が無い） | |
-| `--local` でないとき: HEAD が `@{u}`（push 済み）、現在ブランチに open な PR がある（`--pr <N>` の指定があればそれを使う。無ければ `gh pr view --json number`） | |
-| `--external` のとき: `--pr <N>` と `--comment-url <url>` が必須 | |
-| | 1. `--local` でも `--external` でもなければ `gh pr comment <PR> --body-file` でレビュー依頼を投稿する。本文は `--body-file` の内容（無ければ標準の定型文）の先頭に `Claude Code より:` と機械判定用の目印 `<!-- work-boundary: request ticket=<last_done> -->` を付ける。`--external` のときは `gh pr comment` を呼ばず、`--comment-url` の値をそのまま証跡として使う（コメント本文は呼び出し元が既に投稿済みという前提。id は URL 末尾の `issuecomment-<id>` から抽出できればそれを使う） |
-| | 2. 状態ファイルに `state: requested` と証跡（PR 番号、コメント id / URL、HEAD、`via`）を書き、`chore(review): request <last_done>` でコミットする。`--local` でなければ push する |
+| `--local` でないとき: HEAD が `@{u}`（push 済み）、現在ブランチに open な PR がある（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`） | |
+| | 1. `--local` でなければ `gh api "repos/<owner>/<repo>/issues/<PR>/comments" -f body="@<tmp>"` でレビュー依頼を投稿する。本文は `--body-file` の内容（無ければ標準の定型文）の先頭に `Claude Code より:` と機械判定用の目印 `<!-- work-boundary: request ticket=<last_done> -->` を付ける |
+| | 2. 状態ファイルに `state: requested` と証跡（PR 番号、コメント id / URL、HEAD）を書き、`chore(review): request <last_done>` でコミットする。`--local` でなければ push する |
 | | 3. 結果（`review_state`、コメント URL）を JSON で stdout に出力する |
 
 `via` の値: `--local` なら `"local"`、`--external` なら `"external"`、どちらでもなければ `"gh"`。
@@ -375,15 +376,16 @@ none ──request──> requested ──complete──> completed ──(次�
 | 前提条件（満たさなければ exit 2 + `[WF014]`） | 動作 |
 |------|------|
 | `review_state == requested`（`ticket` が現在の `last_done` と一致すること） | |
-| `--local`/`--external` の指定は `request` 時の `via` と一致すること（`local` は `local` のみ、`external` は `external` のみ、指定無しは `gh` のみ） | |
-| `via == "gh"` のとき: `gh pr view <PR> --json reviewDecision,reviews,comments` と `gh api repos/<owner>/<repo>/pulls/<PR>/comments` を**スクリプト自身が実行**し、次を機械的に検査する | |
-| `via == "external"` のとき: `--report-file <path>` の JSON（下記スキーマ）を読み、同じ項目を検査する | |
-| ・`review_decision` が `CHANGES_REQUESTED` ではない（差し戻し中は完了にできない。対応後にレビュアーが approve / dismiss するか、追加チケットで対応して再度 `request` する） | |
-| ・未解決のスレッドが 0 件（`via == "gh"` は返信の無いインラインスレッド〔`in_reply_to_id == null` で、その id を `in_reply_to_id` に持つコメントが無いもの〕、`via == "external"` は `--report-file` の `unresolved_threads` 配列が空であること。`reply` で返信する、または MCP ツールで直接返信してから再実行する） | |
-| | 1. 状態ファイルに `state: completed` と証跡（`review_decision`、取得した会話コメント id / インラインコメント id の一覧、`via`）を書き、`chore(review): complete <last_done>` でコミットする |
-| | 2. `via == "gh"` なら `request.at` 以降に投稿された会話コメント・インラインコメント（`Claude Code より:` で始まる自分の投稿を除く）を JSON で stdout に出力する。`via == "external"` なら `--report-file` の `new_comments`/`new_reviews`/`new_inline` をそのまま出力する（呼び出し元が MCP ツールで取得済みの値を渡す）。**指摘への対応要否の判断は人間（`AskUserQuestion`）に残す**。スクリプトは「指摘が無い」ことを保証せず、「取得した」ことを保証する |
+| `--local` は `local: true` で `request` した場合のみ可。逆も同じ | |
+| `--local` でないとき: `gh api repos/<owner>/<repo>/pulls/<PR>/reviews`、`gh api repos/<owner>/<repo>/issues/<PR>/comments`、`gh api repos/<owner>/<repo>/pulls/<PR>/comments` を**スクリプト自身が実行**し、次を機械的に検査する | |
+| ・`reviewDecision` 相当（後述の自前計算） `!= CHANGES_REQUESTED`（差し戻し中は完了にできない。対応後にレビュアーが approve / dismiss するか、追加チケットで対応して再度 `request` する） | |
+| ・返信の無いインラインスレッド（`in_reply_to_id == null` で、その id を `in_reply_to_id` に持つコメントが無いもの）が 0 件（`reply` で返信してから再実行する） | |
+| | 1. 状態ファイルに `state: completed` と証跡（reviewDecision 相当、取得した会話コメント id / インラインコメント id の一覧）を書き、`chore(review): complete <last_done>` でコミットする |
+| | 2. `request.at` 以降に投稿された会話コメント・インラインコメント（`Claude Code より:` で始まる自分の投稿を除く）を JSON で stdout に出力する。**指摘への対応要否の判断は人間（`AskUserQuestion`）に残す**。スクリプトは「指摘が無い」ことを保証せず、「取得した」ことを保証する |
 
-`--report-file` のスキーマ（`via == "external"` のとき必須）:
+REST には GraphQL の `reviewDecision`（ブランチ保護ルール込みの集約判定）に相当するフィールドが無いため、`complete` は `pulls/<PR>/reviews` の一覧から reviewer ごとの最新レビュー（`COMMENTED` / `PENDING` を除く）を取り、`CHANGES_REQUESTED` が1件でもあれば `CHANGES_REQUESTED`、無く `APPROVED` が1件でもあれば `APPROVED`、どちらも無ければ `""` とする簡略版を自前で計算する。ブランチ保護（必須レビュー人数・CODEOWNERS 等）は考慮しない。`complete` が実際に使うのは `CHANGES_REQUESTED` の検知のみのため、この簡略化で判定結果は変わらない。
+
+**`reply <inline_comment_id> <text>`**: `gh api repos/<owner>/<repo>/pulls/<PR>/comments/<id>/replies -f body=...` で返信する。本文の先頭に `Claude Code より:` を付ける。状態ファイルは変更しない。
 
 ```json
 {
@@ -538,7 +540,7 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 |------|
 | `work-boundary.sh status` で `doing_count == 0`、`todo_head == null`、`last_done != null`、`review_state == completed`（最後のワークのレビューが完了している） |
 | `git status --porcelain` が空 |
-| 現在ブランチに open な PR がある（`--pr <N>` の指定があればそれを使う。無ければ `gh pr view --json number`） |
+| 現在ブランチに open な PR がある（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`） |
 
 動作:
 
@@ -573,13 +575,13 @@ gh が使える場合（前者の形）:
 |------|
 | `merge_state == checked`（衝突なしの記録がある。`notified` なら二重投稿になるため拒否） |
 | `--body-file` が存在し空でない |
-| 通知先が 1 件以上ある: PR 本文（`gh pr view --json body`）の `Closes #N` / `Fixes #N` / `Resolves #N`（大文字小文字不問）と `--issue` の和集合（重複除去） |
+| 通知先が 1 件以上ある: PR 本文（`gh api "repos/{owner}/{repo}/pulls/<PR>" --jq '.body'`）の `Closes #N` / `Fixes #N` / `Resolves #N`（大文字小文字不問）と `--issue` の和集合（重複除去） |
 
 動作:
 
 1. 本文の先頭に `Claude Code より: PR #<M> のマージ前の完了報告です。` と機械判定用の目印 `<!-- merge-prep: notify pr=<M> -->` を付けた一時ファイルを作る
-2. 通知先ごとに `gh issue comment <N> --body-file <tmp>` を実行し URL を控える（1 件でも失敗したら exit 2。それまでに投稿した分は stderr に列挙し、状態ファイルは書き換えない）
-3. `notify` に `via: "gh"` として記録し `state: notified`、`chore(merge-prep): notify issues` でコミット・push
+2. 通知先ごとに `gh api "repos/{owner}/{repo}/issues/<N>/comments" -f body="@<tmp>"` を実行し URL を控える（1 件でも失敗したら exit 2。それまでに投稿した分は stderr に列挙し、状態ファイルは書き換えない）
+3. `notify` に記録し `state: notified`、`chore(merge-prep): notify issues` でコミット・push
 4. `{merge_state: "notified", issues: [{number, comment_url}]}` を出力する
 
 `--external`（gh 不在時。後者の形）:

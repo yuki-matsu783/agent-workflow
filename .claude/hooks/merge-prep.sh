@@ -60,9 +60,11 @@ mp_gh_available() { command -v gh >/dev/null 2>&1; }
 MP_PR_OPT=""
 
 mp_pr_number() {
-    if [ -n "${MP_PR_OPT}" ]; then printf '%s' "${MP_PR_OPT}"; return 0; fi
-    mp_gh_available || return 0
-    gh pr view --json number -q .number 2>/dev/null | tr -d '\r'
+    # gh api は失敗時にエラー JSON を stdout へ出すことがある（gh pr view の GraphQL 版は stderr のみ）。
+    # 終了コードを確認せずに使うと、そのエラー JSON を PR 番号として扱ってしまう
+    local out
+    out=$(gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null) || return 0
+    printf '%s' "${out}" | tr -d '\r'
 }
 
 # default ブランチ名: --base の指定 > refs/remotes/origin/HEAD > main
@@ -341,17 +343,12 @@ mp_notify() {
     mp_dirty && fails+="未コミットの変更があります"$'\n'
     # 通知先: 本文の Closes/Fixes/Resolves #N と --issue の和集合
     local targets=""
-    if [ "${external_mode}" = true ]; then
-        if [ -s "${pr_body_file}" ]; then
-            targets=$(mp_extract_targets "$(tr -d '\r' <"${pr_body_file}")")
-        else
-            fails+="--pr-body-file が指定されていないか空です"$'\n'
-        fi
-    else
-        [ -n "${body_file}" ] && [ -s "${body_file}" ] || fails+="--body-file が指定されていないか空です"$'\n'
-        if [ -n "${PR}" ]; then
-            targets=$(mp_extract_targets "$(gh pr view "${PR}" --json body -q .body 2>/dev/null | tr -d '\r')")
-        fi
+    if [ -n "${PR}" ]; then
+        local pr_body
+        # gh api 失敗時に stdout へ出るエラー JSON を本文として扱わないよう終了コードを確認する
+        pr_body=$(gh api "repos/{owner}/{repo}/pulls/${PR}" --jq '.body // empty' 2>/dev/null) || pr_body=""
+        targets=$(printf '%s' "${pr_body}" | tr -d '\r' \
+            | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+$' || true)
     fi
     local n
     for n in ${extra[@]+"${extra[@]}"}; do
@@ -362,6 +359,27 @@ mp_notify() {
     [ -n "${targets}" ] || fails+="通知先の issue がありません（本文に Closes #N が無い）"$'\n'
     [ -n "${fails}" ] && mp_die "notify-issue を実行できません" "${fails%$'\n'}" \
         "check-conflicts を通してから、本文ファイルと通知先（--issue N）を指定して再実行してください。既に notified なら ready へ進んでください。"
+
+    local tmp posted="" url
+    tmp=$(mktemp)
+    {
+        printf '%s PR #%s のマージ前の完了報告です。\n' "${MP_PREFIX}" "${PR}"
+        printf '<!-- merge-prep: notify pr=%s -->\n\n' "${PR}"
+        cat "${body_file}"
+    } >"${tmp}"
+    while IFS= read -r n; do
+        [ -n "${n}" ] || continue
+        url=$(gh api "repos/{owner}/{repo}/issues/${n}/comments" -f body="@${tmp}" --jq '.html_url' 2>&1 | tr -d '\r' | tail -1)
+        case "${url}" in
+            http*issuecomment-*) posted+="${n}"$'\t'"${url}"$'\n' ;;
+            *)
+                rm -f "${tmp}"
+                mp_die "issue ${n} へのコメント投稿に失敗しました" "${url}"$'\n'"投稿済み: $(printf '%s' "${posted}" | cut -f1 | paste -sd ',' -)" \
+                    "gh の認証と issue 番号を確認してから再実行してください（投稿済みの issue を除くには --issue で未投稿分だけを指定します）。状態ファイルは変更していません。"
+                ;;
+        esac
+    done <<<"${targets}"
+    rm -f "${tmp}"
 
     local issues_json
     if [ "${external_mode}" = true ]; then
