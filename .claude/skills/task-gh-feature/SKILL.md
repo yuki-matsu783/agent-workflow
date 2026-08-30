@@ -14,6 +14,9 @@ description: >
 
 現在のワークスペースが紐づくリポジトリに対し、デフォルトブランチを確認してベースを決定し、feature ブランチを切って PR（GitHub）/MR（GitLab）を作成する。
 
+- 要件: `.claude/docs/00_requirements/featureブランチとPR作成.md`
+- 仕様: `.claude/docs/10_spec/featureブランチとPR作成.md`
+
 ## 手順 0: 前準備チェック
 
 以下を事前に確認し、問題があればユーザーに伝えて対処する。
