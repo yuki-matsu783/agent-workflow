@@ -140,7 +140,9 @@ BUILD_RE='^(npm|npx|node|python|pytest|go|cargo|make)([[:space:]]|$)'
 # 対象は .claude/hooks/tests/*.sh と .claude/skills/<skill>/scripts/*.sh に限定し、先頭の環境変数指定（VAR=value）は許容する
 TEST_RE='^([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*bash[[:space:]]+\.claude/(hooks/tests|skills/[^/[:space:]]+/scripts)/[^/[:space:]]+\.sh([[:space:]]|$)'
 
-# mv / git mv: 対象パスがすべて wip/10_tickets/ 配下であること
+# mv / git mv: 対象パスがすべて wip/10_tickets/ 配下、または
+# ai-asset-implementation type の doing チケット作業中に限り .claude/skills/ 配下であること
+# （スキルのリネーム作業用。仕様: .claude/docs/10_spec/スキル体系.md）
 wf_validate_mv() {
     local tok
     for tok in "$@"; do
@@ -150,6 +152,10 @@ wf_validate_mv() {
         esac
         case "${tok//\\//}" in
             wip/10_tickets/*) continue ;;
+            .claude/skills/*)
+                [ "${TICKET_TYPE}" = "ai-asset-implementation" ] && continue
+                return 1
+                ;;
             *) return 1 ;;
         esac
     done
@@ -221,7 +227,7 @@ check_bash() {
                 "[WF003] コマンド違反: チケット運用コマンドの対象パスが許可範囲外です" \
                 "コマンド: ${COMMAND:0:200}" \
                 "現在のチケット: ${TICKET}（type: ${TICKET_TYPE}）" \
-                "対処: mv / git mv は wip/10_tickets/ 配下同士の移動のみ、git add は書き込みが許可されたパスのみ使用できます。パスは引用符なし・リポジトリ相対で指定してください。"
+                "対処: mv / git mv は wip/10_tickets/ 配下同士の移動、または ai-asset-implementation type での .claude/skills/ 配下の移動のみ、git add は書き込みが許可されたパスのみ使用できます。パスは引用符なし・リポジトリ相対で指定してください。"
         fi
 
         if [ "${WF_BUILD_ALLOWED}" -eq 1 ] && printf '%s' "${seg}" | grep -Eq "${BUILD_RE}"; then

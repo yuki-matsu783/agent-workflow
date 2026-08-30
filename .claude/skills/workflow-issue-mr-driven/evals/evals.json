@@ -1,0 +1,52 @@
+{
+  "skill_name": "workflow-issue-mr-driven",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "issue 駆動で進めて。ログイン画面でパスワードが空でも送信できてしまうバグを直したい",
+      "expected_output": "コードに触る前に依頼を要約し、gh issue list --search で既存 issue を検索して候補を提示する。類似があれば「既存 #N で対応するか」を AskUserQuestion で確認し、承認後に追記案を提示して承認を得てから gh issue edit で末尾に追記する。その後 fix/<N>-<slug> ブランチと Closes #N を含む draft PR を作成し、work-ticket-driven を開始する",
+      "files": [],
+      "expectations": [
+        "実作業（Edit/Write）の前に gh issue list で既存 issue を検索している",
+        "承認①（どの issue で対応するか）を AskUserQuestion で取っている",
+        "承認②（issue 本文・追記案）を得てから gh issue create / edit を実行している",
+        "ブランチ名に issue 番号が含まれ、PR 本文に Closes #N がある",
+        "PR は --draft で作成している",
+        "work-ticket-driven に issue / PR の文脈を渡して開始している"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "（既存 issue に類似が無い状態で）MR 駆動で、README に目次生成のスクリプトを追加する作業を進めて",
+      "expected_output": "検索結果が 0 件（closed を含む再検索後）であることを報告し、新規 issue の案（タイトル・種別・概要・受け入れ条件）とブランチ名・PR タイトルを提示して承認を得る。承認後に gh issue create → feature/<N>-<slug> ブランチ + draft PR → work-ticket-driven",
+      "files": [],
+      "expectations": [
+        "open で 0 件のあと closed を含めて再検索している",
+        "新規 issue の本文案を提示し、承認を得てから gh issue create している",
+        "承認なしに issue / ブランチ / PR を作っていない"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "（feature/12-login-empty-password ブランチ上で open な draft PR があり、wip/10_tickets/10_doing/ にチケットがある状態で）続きをやって",
+      "expected_output": "issue の検索や承認をやり直さず、PR 本文の Closes #N から issue 番号を確認した上で work-ticket-driven の手順 0（doing チケットからの再開）に進む",
+      "files": ["wip/10_tickets/10_doing/002-implementation-実装.md"],
+      "expectations": [
+        "gh issue list による再検索を行っていない",
+        "新しい issue / ブランチ / PR を作っていない",
+        "doing チケットの作業ログを読んで再開している"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "（全チケットが done になった直後に）仕上げて",
+      "expected_output": "git push の後、wip/30_reports/ の要約と Closes #N を含む本文で gh pr edit を実行し、ready for review にするかを AskUserQuestion で確認する。承認されたときだけ gh pr ready を実行する",
+      "files": ["wip/10_tickets/20_done/003-retrospective-振り返り.md", "wip/30_reports/結果報告.md"],
+      "expectations": [
+        "git push を実行している",
+        "gh pr edit で PR 本文を更新している",
+        "gh pr ready の前に承認③を取っている"
+      ]
+    }
+  ]
+}

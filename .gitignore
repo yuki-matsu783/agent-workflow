@@ -7,3 +7,6 @@
 # チケット駆動ワークフローのフックが出力する判定ログとセッション記憶
 .claude/hooks/workflow.log
 .claude/hooks/.state/
+
+# 参考用のディレクトリ
+参考ディレクトリ

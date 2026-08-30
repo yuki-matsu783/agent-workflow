@@ -77,7 +77,7 @@ check TE001b 2 "WF101"
 run prompt "$(prompt_json "README の誤字を直して")"
 check TE002 0 '"additionalContext"'
 check TE002b 0 "WF-ENTRY"
-check TE002c 0 "light-task-workflow"
+check TE002c 0 "workflow-quick-request"
 grep -q '^prompt_seq=1$' "$(state_file)" && echo "PASS TE002d" && PASS=$((PASS + 1)) || { echo "FAIL TE002d: prompt_seq が 1 でない"; FAIL=$((FAIL + 1)); }
 
 # TE003: プロンプト直後（未宣言）の書き込み系は WF101
@@ -89,67 +89,67 @@ run guard "$(tool_json Agent)"
 check TE003c 2 "WF101"
 
 # ---------- TE004: 入口スキルの読み込みを記録 → 許可 ----------
-run record "$(skill_json light-task-workflow)"
+run record "$(skill_json workflow-quick-request)"
 check TE004 0 "" "WF"
 run guard "$(tool_json Edit)"
 check TE004b 0 "" "WF"
 run guard "$(tool_json Bash)"
 check TE004c 0 "" "WF"
-grep -q '^workflow=light-task-workflow$' "$(state_file)" && echo "PASS TE004d" && PASS=$((PASS + 1)) || { echo "FAIL TE004d: workflow が記録されていない"; FAIL=$((FAIL + 1)); }
+grep -q '^workflow=workflow-quick-request$' "$(state_file)" && echo "PASS TE004d" && PASS=$((PASS + 1)) || { echo "FAIL TE004d: workflow が記録されていない"; FAIL=$((FAIL + 1)); }
 
 # ---------- TE005: 入口以外のスキル読み込みは宣言にならない ----------
 clear_state
 run prompt "$(prompt_json "issue 作って")"
-run record "$(skill_json gh-issue)"
+run record "$(skill_json task-gh-issue)"
 run guard "$(tool_json Edit)"
 check TE005 2 "WF101"
-run record "$(skill_json ticket-driven-workflow)"
+run record "$(skill_json work-ticket-driven)"
 run guard "$(tool_json Edit)"
 check TE005b 2 "WF101"
 # Skill 以外のツールの PostToolUse は無視する
-run record "$(jq -n --arg s "${SESSION}" '{tool_name: "Edit", session_id: $s, tool_input: {skill: "light-task-workflow"}}')"
+run record "$(jq -n --arg s "${SESSION}" '{tool_name: "Edit", session_id: $s, tool_input: {skill: "workflow-quick-request"}}')"
 run guard "$(tool_json Edit)"
 check TE005c 2 "WF101"
 
 # ---------- TE006: 新しいプロンプトで宣言はリセットされる ----------
 clear_state
 run prompt "$(prompt_json "1 回目")"
-run record "$(skill_json issue-pr-driven-workflow)"
+run record "$(skill_json workflow-issue-mr-driven)"
 run guard "$(tool_json Edit)"
 check TE006 0 "" "WF"
 run prompt "$(prompt_json "続けて")"
-check TE006b 0 "前回の宣言: issue-pr-driven-workflow"
+check TE006b 0 "前回の宣言: workflow-issue-mr-driven"
 run guard "$(tool_json Edit)"
 check TE006c 2 "WF101"
-check TE006d 2 "前回の宣言: issue-pr-driven-workflow"
-run record "$(skill_json issue-pr-driven-workflow)"
+check TE006d 2 "前回の宣言: workflow-issue-mr-driven"
+run record "$(skill_json workflow-issue-mr-driven)"
 run guard "$(tool_json Edit)"
 check TE006e 0 "" "WF"
 
 # ---------- TE007: /<入口スキル> によるスラッシュ起動は宣言扱い ----------
 clear_state
-run prompt "$(prompt_json "/light-task-workflow README の誤字を直して")"
+run prompt "$(prompt_json "/workflow-quick-request README の誤字を直して")"
 check TE007 0 "スラッシュ起動"
 run guard "$(tool_json Edit)"
 check TE007b 0 "" "WF"
 # 複数行プロンプトでも 1 行目で判定する
-run prompt "$(prompt_json "/issue-pr-driven-workflow
+run prompt "$(prompt_json "/workflow-issue-mr-driven
 ログインのバグを直したい")"
 run guard "$(tool_json Edit)"
 check TE007c 0 "" "WF"
 # 入口以外のスラッシュコマンドは宣言にならない
-run prompt "$(prompt_json "/gh-issue バグ報告")"
+run prompt "$(prompt_json "/task-gh-issue バグ報告")"
 run guard "$(tool_json Edit)"
 check TE007d 2 "WF101"
-# 名前の前方一致（/light-task-workflow-foo）は宣言にならない
-run prompt "$(prompt_json "/light-task-workflow-foo x")"
+# 名前の前方一致（/workflow-quick-request-foo）は宣言にならない
+run prompt "$(prompt_json "/workflow-quick-request-foo x")"
 run guard "$(tool_json Edit)"
 check TE007e 2 "WF101"
 
 # ---------- TE008: セッション単位で独立 ----------
 clear_state
 run prompt "$(prompt_json "a")"
-run record "$(skill_json light-task-workflow)"
+run record "$(skill_json workflow-quick-request)"
 SESSION=othersession
 run guard "$(tool_json Edit)"
 check TE008 2 "WF101"
@@ -177,7 +177,7 @@ check TE010b 0 "プロンプト #1"
 run bogus "$(tool_json Edit)"
 check TE011 0 "不明なモード"
 
-# ---------- TE012: 10_doing にチケットがあれば宣言不要（issue-pr-driven-workflow の継続） ----------
+# ---------- TE012: 10_doing にチケットがあれば宣言不要（workflow-issue-mr-driven の継続） ----------
 clear_state
 echo "---" >"${TICKETS}/10_doing/001-investigation-a.md"
 run prompt "$(prompt_json "続けて")"
