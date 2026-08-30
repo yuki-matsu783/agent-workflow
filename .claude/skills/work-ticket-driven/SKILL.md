@@ -102,9 +102,34 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 - **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして計画書を `wip/20_plans/` に作成する
 - **implementation**: `wip/20_plans/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する
-- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/30_reports/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
+- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/30_reports/` に作成する。続けて下記「retrospective の実施」の棚卸し・振り返り・合意を行う
 
 作業中は、うまくいったこと・うまくいかなかったことを**その都度**チケットの作業ログ欄に Edit で追記する。
+
+### retrospective の実施
+
+結果報告の作成に続けて、`workflow-quick-request` 手順 5 と観点・文言を揃えた棚卸し・振り返り・合意を行う（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「retrospective の棚卸しと合意」）。
+
+1. **棚卸し**: 今回のワークフローで関わった AI アセットを列挙する（該当なしの種類は省く）
+
+   | 種類 | 例 |
+   |------|-----|
+   | スキル | 読み込んだもの（`workflow-issue-mr-driven`、このスキル、委譲先の `task-gh-issue` など） |
+   | フック | 発火・ブロック・確認を出したもの（`[WF00x]`、`[WF-DIFF]` など。`.claude/hooks/workflow.log` で確認できる） |
+   | ルール | 判断の根拠にした `.claude/rules/*.md` |
+   | エージェント | Agent ツールで起動したサブエージェント |
+   | CLAUDE.md | 作業の進め方に効いた記述 |
+
+2. **振り返り**: 各アセットについて、足りなかった / 邪魔だった / 無かった / 問題なし のいずれかで気付きを1行ずつ書く（気付きが無ければ「問題なし」）。結果報告の棚卸し表に記載する
+3. **合意**: 気付きから修正・新規作成の候補が挙がったら、次の2区分に分けて `AskUserQuestion` で合意を得る。候補が無いときも「候補なし」として確認する
+
+   | 重さ | 該当するもの | 合意の形 |
+   |------|-------------|---------|
+   | 軽微 | SKILL.md・ルール・テンプレートの文言修正など、振る舞いが変わらないもの | 「このまま続けて修正する」 |
+   | 振る舞いが変わる | フックのロジック変更、スキルの手順変更、フック・スキル・ルール・エージェントの新規作成、settings.json の変更 | 「新規issueを作って `workflow-issue-mr-driven` で進める」（振る舞いが変わる候補に「続けて修正する」の選択肢は付けない。`.claude/**` はチケット作業中の保護パスであり、確認なしに直接書き換えられない） |
+
+   「issue を作って `workflow-issue-mr-driven` で進める」が選ばれた場合は、その場では issue を作らない。retrospective チケットを通常どおり done にしてワーク完了チェックポイント（手順 6）を経たあと、`workflow-issue-mr-driven` 経由なら同スキルの完了処理（PR 本文の最終整形 → マージ前作業 → draft 解除）まで完走してから、単独実行ならそのまま、`workflow-issue-mr-driven` を Skill ツールで読み込み直し**新しい issue** の作業として手順1から開始する。引き継ぐ項目: `summary`/`acceptance`（振り返りで挙げた対象アセット・変更点・理由・期待する挙動）/ `kind`（改善・最適化。新規作成ならタスク）/ チケット構成（`ai-asset-design` → `ai-asset-implementation`）。どの issue で対応するか・issue 本文の承認は同スキルの承認①②で改めて取る
+4. ヘッドレス実行（`claude -p`、CI）では `AskUserQuestion` の応答が得られないため、棚卸しと候補を結果報告に含めるだけにして完了扱いとする（承認待ちで止まらない・issue も作らない。`.claude/rules/claude-config-headless-awareness.md` 準拠）
 
 ### フックにブロックされた・確認を求められたとき
 
@@ -180,6 +205,8 @@ bash .claude/hooks/work-boundary.sh status
 - 各ワークのチェックポイント結果（承認 / 差し戻し回数）。結果報告（`wip/30_reports/`）の「レビュー結果」欄と一致させる
 
 `workflow-issue-mr-driven` 経由なら、最後のワークの完了報告のあと同スキルの手順 6（完了処理: PR 本文の最終整形 → 承認③ → `merge-prep.sh` によるマージ前作業（wip のリセット → コンフリクト確認 → issue コメント）→ draft 解除）に戻る。wip の成果物（チケット・計画・報告・`review-state.json`）はその `reset-wip` で削除されて main には残らないため、後に残したい要約は結果報告を元に PR 本文へ書く。`gh pr ready` を直接実行しない（フックが WF015 で拒否する）。
+
+**retrospective の合意が「issue を作って `workflow-issue-mr-driven` で進める」だった場合**: 完了処理（`merge-prep.sh ready` までの完走）が終わった後、`workflow-issue-mr-driven` を Skill ツールで読み込み直し、**新しい issue** の作業として同スキルの手順1から開始する。次のプロンプトに先送りしない。引き継ぐ項目は「retrospective の実施」の手順3と同じ（`summary`/`acceptance`/`kind`/チケット構成）。単独実行（issue / PR の文脈が無い）の場合も同様に、完了報告のあとそのまま `workflow-issue-mr-driven` を手順1から読み込む。
 
 ## エラーハンドリング
 

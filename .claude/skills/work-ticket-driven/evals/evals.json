@@ -36,6 +36,18 @@
       "prompt": "（単独実行で、002-implementation が done、todo の先頭が 003-retrospective の状態で）続けて",
       "expected_output": "ワーク境界と判定し、AskUserQuestion で implementation ワークの承認 / 差し戻しを確認する。差し戻しが選ばれた場合は 002 を doing に戻さず、同じ type の追加チケット（004-implementation-…）を todo に作成して着手する。承認なら 003 に着手する",
       "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/20_done/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 6,
+      "prompt": "（003-retrospective が doing にあり、結果報告を作成し終えた状態で）retrospective を進めて",
+      "expected_output": "結果報告の作成に続けて、使った AI アセット（スキル/フック/ルール/エージェント/CLAUDE.md）を棚卸しし、報告の棚卸し表に記載した上で、各アセットについて足りなかった / 邪魔だった / 無かった / 問題なし のいずれかで振り返る。候補が無くても「候補なし」として AskUserQuestion で確認する",
+      "files": ["wip/10_tickets/10_doing/003-retrospective-振り返り.md", "wip/30_reports/結果報告.md"]
+    },
+    {
+      "id": 7,
+      "prompt": "（棚卸しの振り返りで「workflow-guard.sh の allowlist にビルドツールが足りず ask で毎回止まった」と気付いた状態で）振り返りの合意を進めて",
+      "expected_output": "フックのロジック変更 = 振る舞いが変わる候補なので、「続けて修正する」の選択肢は出さず、「新規 issue を作って workflow-issue-mr-driven で進める / 今回は不要」で AskUserQuestion により確認する。選ばれたら retrospective チケットを done にしてワーク完了チェックポイントを経たあと（workflow-issue-mr-driven 経由なら完了処理まで完走したあと）、workflow-issue-mr-driven を Skill ツールで読み込み直し、summary/acceptance/kind/チケット構成を引き継いで手順1から新しい issue の作業を始める",
+      "files": [".claude/hooks/workflow-guard.sh", "wip/10_tickets/10_doing/003-retrospective-振り返り.md"]
     }
   ]
 }
