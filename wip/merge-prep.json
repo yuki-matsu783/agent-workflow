@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 48,
   "branch": "feature-47-skill-git-add-paths",
-  "state": "reset",
+  "state": "checked",
   "review": {
     "ticket": "007-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -28,14 +28,12 @@
     ]
   },
   "conflicts": {
-    "at": "2026-08-30T21:54:53Z",
+    "at": "2026-08-30T21:57:23Z",
     "base": "main",
     "base_sha": "f0dd20c10d0d95fe71330ba26677d6cb0191e003",
-    "head_sha": "c0827e246a6bfd6820ebcd29b4834ce8bdde9493",
-    "files": [
-      ".claude/hooks/tests/test-workflow-guard.sh"
-    ],
-    "has_conflict": true
+    "head_sha": "5c87b79ef9b0d0e4b41b29b187425a6ed2a0a472",
+    "files": [],
+    "has_conflict": false
   },
   "notify": null,
   "ready": null
