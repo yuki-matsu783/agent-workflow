@@ -264,6 +264,7 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 - **読み取り系 allowlist（全フェーズ共通）**: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `rg`, `find`, `git status`, `git log`, `git diff`, `git show`, `git branch`
 - **チケット運用コマンド（全フェーズ共通）**: `mv` / `git mv`（`wip/10_tickets/` 配下同士の移動に限る）, `git add`（`wip/10_tickets/` 配下同士は無条件、それ以外は許可パス内に限る）, `git commit`
   - チケットの todo→doing 移動時は doing が空のためフックはガード条件で素通しになる。doing→done 移動時はこの allowlist が適用される。
+  - **`git add` の対象パスの規約**: チケット運用のコミットでは `git add` の対象を `wip/10_tickets/` と作業タイプの許可パス内のファイル（またはディレクトリ）に限定し、`wip/` のようにそれらの親ディレクトリ全体を指定しない（例: `git add wip/10_tickets/ wip/20_plans/調査結果-foo.md`）。`git add` の対象パスは引数ごとに判定され、`wip/` は `wip/10_tickets/*` にも作業タイプの allow glob にも一致しないため未記載（WF009）の確認になる。Bash コマンドの承認はセッション記憶の対象外（PostToolUse は `file_path` を持つ Edit / Write / NotebookEdit のみ記憶する）のため、指定するたびに確認が発生する。ヘッドレス実行（確認できない環境）では `ask` が拒否として扱われるため、親ディレクトリ全体を指定した `git add` は失敗する。スキルの手順書（`work-ticket-driven` / `work-overall-plan` 等）に書くコミット例もこの規約に従う（issue #47）。
 - リダイレクト（`>`, `>>`）、`sed -i`, `tee`, `curl`, `Invoke-WebRequest` を含むコマンドは allowlist 該当でも拒否する（コマンド文字列への部分一致で判定）。
 
 ### 読み取り専用ツール（Read / Glob / Grep / WebFetch 等）
@@ -278,10 +279,10 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 
 1. スキル起動。`wip/` 配下の状態を確認する（冪等性チェック。doing があれば手順 4 から再開）
 2. 計画（plan）を行い、調査 → 実装 → 振り返りのタスクチケットを `wip/10_tickets/00_todo/` に連番で作成する
-3. チケット群を `git add` + `git commit` する
+3. チケット群を `git add wip/10_tickets/` + `git commit` する
 4. 先頭のチケットを `wip/10_tickets/10_doing/` に移動し、コミットする（**このコミットが差分チェックの基準点**）
 5. チケットの内容を実施する。作業中のうまくいったこと・いかなかったことをチケットの作業ログ欄に随時記録する
-6. 完了条件（DoD）を満たしたら、基準点からの差分が許可パス内であることを確認し、チケットを `wip/10_tickets/20_done/` に移動してコミットする
+6. 完了条件（DoD）を満たしたら、基準点からの差分が許可パス内であることを確認し、チケットを `wip/10_tickets/20_done/` に移動して `git add wip/10_tickets/ <許可パス内の変更ファイル>` でステージし、コミットする（`wip/` のように親ディレクトリ全体を指定しない。前述「Bash コマンドの許可」の `git add` の対象パスの規約）
 7. `bash .claude/hooks/work-boundary.sh status` を実行し、`at_boundary` を読む。`false` なら 4〜6 を繰り返す。`true` なら**ワーク境界**（1つの作業タイプ＝1ワークの完了。`.claude/docs/10_spec/スキル体系.md`「ワーク完了チェックポイント」）。判定は目視の type 比較ではなくスクリプトの出力に従う
 8. ワーク境界では、ワーク完了報告（完了した作業タイプ・チケット一覧・ワーク開始コミットからの差分要約・次の作業タイプ）を行い、呼び出し元（`workflow-issue-mr-driven`）があれば制御を返す。呼び出し元は `work-boundary.sh request` → 人間のレビュー → `work-boundary.sh complete` を経てから次のワークの 4 へ進む。単独実行なら `AskUserQuestion` で承認 / 差し戻しを確認し、`work-boundary.sh request --local` → `complete --local` で状態を進める。差し戻しなら同じ作業タイプの追加チケットを 2〜3 の要領で作って 4 へ（同じ type の追加チケットは境界でも着手できる）
 9. 全チケット done になったら、成果物（`wip/20_plans/`、`wip/30_reports/`、コード変更）の一覧をユーザーに報告する
@@ -912,6 +913,8 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | TC021 | ask_paths は毎回確認 | `global.ask_paths: ["config/**"]` で承認後に再度 Edit | 毎回 ask（WF010） | |
 | TC021c | file_level はファイル単位で記憶 | `package.json` 承認後に `package.json` ／ `README.md` | allow ／ ask | |
 | TC022 | 未記載パスの git add | Bash / `git add src/main.ts` | ask（WF009） | |
+| TC022b | 親ディレクトリ全体の git add は未記載扱い | Bash / `git add wip/`（`investigation`）／ `git add wip/`（`overall-plan`） | どちらも ask（WF009。`wip/` は `wip/10_tickets/*` にも type の allow にも一致しない） | `test-workflow-guard.sh`（issue #47） |
+| TC022c | 規約どおりの git add は確認なし | Bash / `git mv …10_doing/001-….md …20_done/ && git add wip/10_tickets/ wip/20_plans/調査結果.md && git commit -m x`（`investigation`）／ `git add wip/10_tickets/ wip/00_overall_plan/`（`overall-plan`） | どちらも exit 0（ask なし） | `test-workflow-guard.sh`（issue #47） |
 | TC011d | 承認済みパスの差分は違反にしない | PostToolUse / 承認済み `src/main.ts` に diff | additionalContext なし | |
 | TC013 | チケット作業中のプランモード | EnterPlanMode（doing 1 枚） | exit 2 + WF006 | |
 | TC013b | 全体計画時のプランモード | EnterPlanMode（doing 0 枚） | exit 0 | |
@@ -991,3 +994,4 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | 2026-08-30 | 2.0 | マージ前作業（wip リセット → コンフリクト確認 → 関連 issue コメント → draft 解除）を機械化: `merge-prep.sh`（`status` / `reset-wip` / `check-conflicts` / `notify-issue` / `ready`）、状態ファイル `wip/merge-prep.json`、フック条件 (e)(f)（直接の `gh pr ready` を WF015 で常時拒否、`merge-prep.json` を WF012 で保護）、WF016、TC029〜TC031 を追加。(d) を (e) に統合し TC026g の期待値を WF015 に変更（issue #30） | Hiro |
 | 2026-08-30 | 2.1 | 「retrospective の棚卸しと合意」節を追加: AI アセットの棚卸し（5種類）・4観点の振り返り・軽微/振る舞いが変わるの2区分・issue化ルートの処理フローを、`workflow-quick-request` 側と文言を揃えて定義。フック・許可マトリクスの変更なし（issue #3） | Hiro |
 | 2026-08-30 | 2.2 | フェーズ別ワークスキル用の 9 type（`overall-plan` / 計画 6 種 / `design` / `design-sync`）を標準の定義に追加。`overall-plan` の global deny 貫通と、全体計画の標準の入口が `work-overall-plan` になることを追記。フック・判定順序の変更なし（issue #39。main 側の 2.1（issue #3）との衝突を解消して繰り下げ） | Hiro |
+| 2026-08-30 | 2.3 | 「Bash コマンドの許可」に `git add` の対象パスの規約（`wip/10_tickets/` と許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。Bash の承認はセッション記憶されず、ヘッドレスでは拒否になる）を追加し、基本フロー 3・6 のコマンド表記を規約に揃えた。TC022b / TC022c を追加。フック・判定順序の変更なし（issue #47） | Hiro |
