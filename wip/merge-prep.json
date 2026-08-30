@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 31,
   "branch": "feature-30-merge-prep",
-  "state": "reset",
+  "state": "checked",
   "review": {
     "ticket": "018-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -87,14 +87,12 @@
     ]
   },
   "conflicts": {
-    "at": "2026-08-30T09:32:37Z",
+    "at": "2026-08-30T09:50:07Z",
     "base": "main",
-    "base_sha": "61c8f17454acfe3ced605ba3ef489cab13781be4",
-    "head_sha": "d9a431d9543ab587c719bb23b5ade4275fc44f54",
-    "files": [
-      ".claude/hooks/workflow-boundary.sh"
-    ],
-    "has_conflict": true
+    "base_sha": "57b237bc6a6b1f69bdd1f504b155b10ce3805c55",
+    "head_sha": "9305e26a3511bea020866d69046fe42b3edc27b6",
+    "files": [],
+    "has_conflict": false
   },
   "notify": null,
   "ready": null
