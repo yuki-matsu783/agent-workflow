@@ -117,8 +117,8 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
    - 新規: task-gh-issue の `assets/issue.template.md` から本文案を作る → **承認②** → task-gh-issue の作成モードで作成する
    - 承認②では、ブランチ名と PR タイトルの案も同時に確認する（往復を減らす）
 6. **ブランチと draft PR の作成**（task-gh-feature の issue 連携モード）: デフォルトブランチを最新化 → `feature-<N>-<slug>` を作成 → 空コミット → push → `Closes #N` を含む draft PR を作成する
-7. **チケット駆動ワークフロー（ワークループ）**: 初回のみ `work-ticket-driven` の手順 1 から実施し、全体計画の合意（冒頭に issue / PR を記載、issue の `acceptance` をチケットの DoD に反映）とチケット全件の作成まで進める。以降、todo と doing が両方空になるまで次を繰り返す:
-   1. `work-ticket-driven` を実施する。1つのワーク（作業タイプ）が完了すると、完了報告とともに制御が戻る。境界かどうかは `bash .claude/hooks/work-boundary.sh status` の `at_boundary` で確認する（目視の type 比較はしない）
+7. **チケット駆動ワークフロー（ワークループ）**: 初回は `work-overall-plan` を実施し、全体計画（冒頭に issue / PR を記載、フェーズ列、issue の `acceptance` と各フェーズの成果物の対応）と最初の計画チケットの起票まで進める。以降、todo と doing が両方空になるまで次を繰り返す:
+   1. `bash .claude/hooks/work-boundary.sh status` の `todo_head_type` から次のスキルを選ぶ（`overall-plan` → `work-overall-plan`、`<phase>-plan` → `work-<phase>-plan`、`<phase>` → `work-<phase>-exec`、`retrospective` → `work-ticket-driven`。対応表は `.claude/docs/10_spec/フェーズ別ワークスキル.md`）。選んだスキルを実施する。1つのワーク（作業タイプ）が完了すると、完了報告とともに制御が戻る。境界かどうかは同コマンドの `at_boundary` で確認する（目視の type 比較はしない）。計画ワークは実施チケット群と次の計画チケットを自分で起こすため、チケット全件を最初に作らない
    2. `git push`（doing が空なのでフックは働かない）
    3. `gh pr edit M --body-file` で PR 本文の「変更点」に完了したワークの要約を追記する
    4. `bash .claude/hooks/work-boundary.sh request --body-file <レビュー観点を書いた一時ファイル>` でレビューを依頼する（スクリプトが `gh pr comment` を実行し、レビュー状態を `requested` にしてコミット・push する。`gh pr comment` を直接叩かない）。チャットでレビュー依頼した旨を報告して**応答を終える**（承認④の待機）
@@ -181,7 +181,7 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 workflow-issue-mr-driven（オーケストレータ）
 ├── task-gh-issue                 検索 / 作成 / 編集（gh issue list|view|create|edit）
 ├── task-gh-feature               ブランチ作成 / push / draft PR（git checkout -b, gh pr create --draft）
-└── work-ticket-driven   wip/ 配下での実作業（フックによる統制下）
+└── work-overall-plan → work-<phase>-plan / work-<phase>-exec（フェーズ別ワークスキル。チケット運用は work-ticket-driven に委譲）
         └── ワーク（作業タイプ）完了ごとにオーケストレータへ戻る
               （push / PR 本文更新 / レビュー依頼 → 承認④ → コメント取得 / 追加チケット）
               全ワーク完了後: PR 本文の最終整形 / 承認③ / merge-prep.sh（reset-wip → check-conflicts（承認⑤）
@@ -218,8 +218,9 @@ workflow-issue-mr-driven（オーケストレータ）
 | task-gh-issue | 作成 | title、本文（テンプレート記入済み） | issue number / url |
 | task-gh-issue | 編集 | issue number、追記セクション | 更新結果 |
 | task-gh-feature | issue 連携 | issue number / title、ブランチ名、PR タイトル、ベースブランチ | ブランチ名、PR number / url |
-| work-ticket-driven | 通常（初回） | issue number / url、PR number / url、acceptance | 全体計画・チケット全件、続けて最初のワークの完了報告 |
-| work-ticket-driven | 再開（2回目以降のワーク） | 直前ワークのレビュー結果（指摘なし / 追加チケットの内容） | ワーク完了報告（完了した作業タイプ・チケット一覧・差分要約・todo に残る次の作業タイプ） |
+| work-overall-plan | 初回 | issue number / url、PR number / url、acceptance | 全体計画（フェーズ列）・最初の計画チケット、続けて全体計画ワークの完了報告 |
+| work-\<phase\>-plan / work-\<phase\>-exec | 各ワーク（`todo_head_type` で選ぶ） | 直前ワークのレビュー結果（指摘なし / 追加チケットの内容）、前ワークの成果物 | ワーク完了報告（完了した作業タイプ・チケット一覧・差分要約・todo に残る次の作業タイプ） |
+| work-ticket-driven | 追加チケットの作成 / retrospective / チケット運用の手順 | 指摘内容（DoD に落とす）、直前の done チケット | 追加チケット、結果報告 |
 
 ### 使用する `gh` コマンド（参考）
 
@@ -359,3 +360,4 @@ bash .claude/hooks/merge-prep.sh ready                           # 記録と再�
 | 2026-08-30 | 1.4 | ワークループのレビュー依頼・コメント取得を `work-boundary.sh`（`request` / `complete` / `reply`）に委ねる形に変更。状態ファイルの直接書き換え禁止（WF012）とレビュー未完了での着手拒否（WF011）を明記（issue #12、ユーザー指示） | Hiro |
 | 2026-08-30 | 1.5 | `workflow-quick-request` 手順 5-3 の振り返りからの切り替え時の入力・代替フロー・テストケース（IP015）を追加（issue #5） | Hiro |
 | 2026-08-30 | 1.6 | 完了処理（基本フロー 8）にマージ前作業（`merge-prep.sh reset-wip` → `check-conflicts` → `notify-issue` → `ready`）を追加。承認⑤（衝突の解消）・⑥（issue コメント本文）、代替フロー 9・10、例外フロー 7・8、IP016〜IP019 を追加。`gh pr ready` の直接実行は WF015 で拒否、AI はマージしない（issue #30。main 側の 1.5（issue #5）との衝突を解消して繰り下げ） | Hiro |
+| 2026-08-30 | 1.7 | ワークループの初回入口を `work-overall-plan` に変更し、各ワークのスキルを `todo_head_type` から選ぶ規則と委譲表の行を追加（フェーズ別ワークスキル、issue #39） | Hiro |
