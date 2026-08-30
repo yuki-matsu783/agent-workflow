@@ -10,7 +10,7 @@ keywords: [issue, 検索, 作成, 編集, gh, glab, テンプレート, 本文�
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/issue操作.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-gh-issue.md` を参照。
 - **スコープ**: `task-gh-issue` スキルの検索・作成・編集の3モードの入出力と処理フローを定義する。
 
 ---
@@ -145,15 +145,15 @@ CLI引数のみ。構造化データは扱わない。
 
 ## 前提条件
 
-`.claude/docs/00_requirements/issue操作.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-issue.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/issue操作.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-issue.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/issue操作.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-gh-issue.md` の非機能要件を参照。
 
 ---
 
@@ -173,7 +173,7 @@ CLI引数のみ。構造化データは扱わない。
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-issue/SKILL.md`
-- `.claude/docs/00_requirements/issue操作.md`
+- `.claude/docs/00_requirements/skill-task-gh-issue.md`
 - `.claude/skills/workflow-issue-mr-driven/references/issue-triage.md`
 
 ## レビュー記録

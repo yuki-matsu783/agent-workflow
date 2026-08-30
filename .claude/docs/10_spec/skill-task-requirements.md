@@ -10,7 +10,7 @@ keywords: [要件定義書, ユーザーストーリー, 受け入れ基準, EAR
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/要件定義書作成.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-requirements.md` を参照。
 - **スコープ**: `task-requirements` スキルの照合・ヒアリング・保存の入出力と処理フローを定義する。
 
 ---
@@ -128,15 +128,15 @@ keywords: [要件定義書, ユーザーストーリー, 受け入れ基準, EAR
 
 ## 前提条件
 
-`.claude/docs/00_requirements/要件定義書作成.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-requirements.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/要件定義書作成.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-requirements.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/要件定義書作成.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-requirements.md` の非機能要件を参照。
 
 ---
 
@@ -155,8 +155,8 @@ keywords: [要件定義書, ユーザーストーリー, 受け入れ基準, EAR
 ## 関連するドキュメント
 
 - `.claude/skills/task-requirements/SKILL.md`
-- `.claude/docs/00_requirements/要件定義書作成.md`
-- `.claude/docs/10_spec/仕様書作成.md`
+- `.claude/docs/00_requirements/skill-task-requirements.md`
+- `.claude/docs/10_spec/skill-task-spec.md`
 
 ## レビュー記録
 

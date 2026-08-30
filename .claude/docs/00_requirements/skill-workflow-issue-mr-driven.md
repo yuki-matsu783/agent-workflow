@@ -2,13 +2,13 @@
 
 ## 概要
 
-ユーザーの依頼を GitHub の issue と PR（MR）に紐づけてから実作業に入る、開発の振り分けとなるワークフローの要件を定義する。実作業そのものはチケット駆動ワークフロー（`.claude/docs/00_requirements/チケット駆動ワークフロー.md`）に委ねる。
+ユーザーの依頼を GitHub の issue と PR（MR）に紐づけてから実作業に入る、開発の振り分けとなるワークフローの要件を定義する。実作業そのものはチケット駆動ワークフロー（`.claude/docs/00_requirements/skill-work-ticket-driven.md`）に委ねる。
 
 - **背景**: チケット駆動ワークフローは作業ブランチ上での「調査 → 実装 → 振り返り」を統制するが、**その作業が何の issue に対するもので、どの PR に載るのか**は扱っていない。依頼のたびに Claude が独自の判断で作業を始めると、既存 issue と重複した対応や、issue に紐づかない PR が生まれる。作業の起点を issue に固定し、issue の確定には必ず人間の承認を挟みたい。
 - **目的**: 「依頼 → 既存 issue の照合 → 人間の承認 → issue の確定（作成 / 修正）→ feature ブランチと draft PR の作成 → チケット駆動ワークフロー」という順序を固定し、すべての作業が 1 つの issue と 1 つの PR に紐づいた状態を実現する。
 - **スコープ**:
   - 含む: スキル本体（SKILL.md）、issue 追記用テンプレート、issue コメント用テンプレート、類似 issue の判定基準、既存スキル（task-gh-issue / task-gh-feature / work-ticket-driven）との連携仕様、完了処理（マージ前作業と draft 解除）の順序と承認
-  - 含まない: PR のマージ（人間が行う）、レビューの自動化、GitHub 以外のホスティング（GitLab の MR など）、`Closes #N` 以外の関連 issue の自動特定（追加の通知先は人間が指定する）。ワーク境界・マージ前作業の判定スクリプトとフックの仕様は `.claude/docs/10_spec/チケット駆動ワークフロー.md` が正
+  - 含まない: PR のマージ（人間が行う）、レビューの自動化、GitHub 以外のホスティング（GitLab の MR など）、`Closes #N` 以外の関連 issue の自動特定（追加の通知先は人間が指定する）。ワーク境界・マージ前作業の判定スクリプトとフックの仕様は `.claude/docs/10_spec/skill-work-ticket-driven.md` が正
 
 ---
 
@@ -97,7 +97,7 @@
 - `.claude/skills/task-gh-feature/`（feature ブランチ・PR の作成）
 - `.claude/skills/work-ticket-driven/`（実作業）
 - `.claude/skills/task-gh-install/`（`gh` 未導入時）
-- 仕様の詳細は `.claude/docs/10_spec/issue-PR駆動ワークフロー.md` で定義する
+- 仕様の詳細は `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md` で定義する
 
 ---
 
@@ -114,9 +114,9 @@
 
 ## 関連するドキュメント
 
-- `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`（仕様書）
-- `.claude/docs/00_requirements/チケット駆動ワークフロー.md`（後続の実作業の要件）
-- `.claude/docs/10_spec/チケット駆動ワークフロー.md`（フックの Bash allowlist。GitHub 操作の制約の根拠）
+- `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`（仕様書）
+- `.claude/docs/00_requirements/skill-work-ticket-driven.md`（後続の実作業の要件）
+- `.claude/docs/10_spec/skill-work-ticket-driven.md`（フックの Bash allowlist。GitHub 操作の制約の根拠）
 
 ## レビュー記録
 

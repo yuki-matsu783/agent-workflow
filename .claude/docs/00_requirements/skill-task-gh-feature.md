@@ -99,7 +99,7 @@ keywords: [feature branch, PR, MR, gh, glab, issue連携モード, draft]
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-feature/SKILL.md`
-- `.claude/docs/10_spec/featureブランチとPR作成.md`
+- `.claude/docs/10_spec/skill-task-gh-feature.md`
 
 ## レビュー記録
 

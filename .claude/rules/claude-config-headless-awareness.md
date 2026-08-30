@@ -42,4 +42,4 @@ ask を使うアセットは、ヘッドレス実行時に該当操作がブロ�
 ## 参照情報
 
 - `.claude/hooks/workflow-guard.sh` の WF009 / WF010（`permissionDecision: "ask"` の実装例）
-- `.claude/docs/10_spec/チケット駆動ワークフロー.md`「出力フォーマット（PreToolUse の確認要求）」: 「ヘッドレス実行（確認できない環境）では `ask` は拒否として扱われる」
+- `.claude/docs/10_spec/skill-work-ticket-driven.md`「出力フォーマット（PreToolUse の確認要求）」: 「ヘッドレス実行（確認できない環境）では `ask` は拒否として扱われる」

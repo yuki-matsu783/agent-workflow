@@ -92,7 +92,7 @@ keywords: [軽作業, 範囲宣言, 振り返り, AIアセット棚卸し, workf
 ## 関連するドキュメント
 
 - `.claude/skills/workflow-quick-request/SKILL.md`
-- `.claude/docs/10_spec/軽作業ワークフロー.md`
+- `.claude/docs/10_spec/skill-workflow-quick-request.md`
 - `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`（`workflow-issue-mr-driven` と共有するメタ文書）
 
 ## レビュー記録

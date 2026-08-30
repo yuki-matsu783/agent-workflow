@@ -10,7 +10,7 @@ keywords: [仕様書, 入出力定義, 処理フロー, インターフェース
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/仕様書作成.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-spec.md` を参照。
 - **スコープ**: `task-spec` スキルの照合・ヒアリング・保存の入出力と処理フローを定義する。
 
 ---
@@ -123,15 +123,15 @@ keywords: [仕様書, 入出力定義, 処理フロー, インターフェース
 
 ## 前提条件
 
-`.claude/docs/00_requirements/仕様書作成.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-spec.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/仕様書作成.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-spec.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/仕様書作成.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-spec.md` の非機能要件を参照。
 
 ---
 
@@ -150,8 +150,8 @@ keywords: [仕様書, 入出力定義, 処理フロー, インターフェース
 ## 関連するドキュメント
 
 - `.claude/skills/task-spec/SKILL.md`
-- `.claude/docs/00_requirements/仕様書作成.md`
-- `.claude/docs/10_spec/要件定義書作成.md`
+- `.claude/docs/00_requirements/skill-task-spec.md`
+- `.claude/docs/10_spec/skill-task-requirements.md`
 
 ## レビュー記録
 

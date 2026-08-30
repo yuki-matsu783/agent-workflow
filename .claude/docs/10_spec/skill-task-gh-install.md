@@ -10,7 +10,7 @@ keywords: [gh, glab, install, OS検出, ディストリビューション検出,
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/CLIインストール.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-gh-install.md` を参照。
 - **スコープ**: `task-gh-install` スキルの判定・確認・インストール・認証案内の入出力と処理フローを定義する。
 
 ---
@@ -139,15 +139,15 @@ CLI引数・対話確認のみ。構造化データは扱わない。
 
 ## 前提条件
 
-`.claude/docs/00_requirements/CLIインストール.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-install.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/CLIインストール.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-install.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/CLIインストール.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-gh-install.md` の非機能要件を参照。
 
 ---
 
@@ -167,7 +167,7 @@ CLI引数・対話確認のみ。構造化データは扱わない。
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-install/SKILL.md`
-- `.claude/docs/00_requirements/CLIインストール.md`
+- `.claude/docs/00_requirements/skill-task-gh-install.md`
 - `.claude/rules/claude-config-headless-awareness.md`
 
 ## レビュー記録

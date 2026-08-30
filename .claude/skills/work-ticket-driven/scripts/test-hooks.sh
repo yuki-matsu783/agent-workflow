@@ -2,7 +2,7 @@
 # ============================================================
 # test-hooks.sh — workflow-guard / workflow-diff-check のユニットテスト
 # ============================================================
-# .claude/docs/10_spec/チケット駆動ワークフロー.md のテストシナリオを検証する。
+# .claude/docs/10_spec/skill-work-ticket-driven.md のテストシナリオを検証する。
 # 一時ディレクトリに Git リポジトリを作って stdin に JSON を与え、
 # exit code / stderr / stdout を検証する。
 #

@@ -8,8 +8,8 @@ description: >
 
 仕様書（入出力定義、インターフェース定義、処理フローを含む）を作成する。既存の仕様ドキュメントと重複がないか確認した上で、テンプレートに基づいて作成する。
 
-- 要件: `.claude/docs/00_requirements/仕様書作成.md`
-- 仕様: `.claude/docs/10_spec/仕様書作成.md`
+- 要件: `.claude/docs/00_requirements/skill-task-spec.md`
+- 仕様: `.claude/docs/10_spec/skill-task-spec.md`
 
 ## 手順 0: 既存仕様の照合
 
@@ -51,7 +51,7 @@ find . -name "*.md" | xargs grep -l -i "仕様\|インターフェース\|入出
 
 `assets/spec.template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
 
-ファイル名はユーザーの仕様に応じて決定する（例：`spec/カート購入仕様.md`）。
+ファイル名はユーザーの仕様に応じて決定する（例：`spec/カート購入仕様.md`）。ただし `.claude/docs/10_spec/` 配下（AI アセット向け、1スキルに1:1で紐づくもの）に作成する場合は `skill-<skill名>.md`（例：`skill-task-gh-feature.md`）とする。
 
 ---
 

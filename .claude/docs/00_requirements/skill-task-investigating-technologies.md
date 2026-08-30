@@ -86,7 +86,7 @@ keywords: [技術調査, 評価基準, 採用保留不採用, テンプレート
 ## 関連するドキュメント
 
 - `.claude/skills/task-investigating-technologies/SKILL.md`
-- `.claude/docs/10_spec/技術調査.md`
+- `.claude/docs/10_spec/skill-task-investigating-technologies.md`
 
 ## レビュー記録
 
