@@ -19,6 +19,7 @@ description: >
 
 - 要件: `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`
 - 仕様（承認ポイント・命名規約・委譲内容の正）: `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`
+- 振り分け実施済み判定の仕様（WF101 フックの正。`workflow-quick-request` と共有するメタ文書）: `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`
 - 類似 issue の判定基準と `gh` コマンド集: `references/issue-triage.md`
 - 対になる振り分け: `workflow-quick-request`（issue / PR を作るまでもない軽作業。判定表は同スキルの手順 0 が正。依頼が軽作業に該当すると分かったら、そちらを Skill ツールで読み込んで切り替える）
 
