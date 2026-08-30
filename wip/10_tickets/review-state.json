@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "016-ai-asset-implementation-WF012修正.md",
   "work_type": "ai-asset-implementation",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "9742c82635aabf017a59e3451a80fd8efc1b7556",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T09:10:32Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T09:11:28Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
