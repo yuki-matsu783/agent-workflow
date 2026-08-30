@@ -1,7 +1,7 @@
 ---
 type: retrospective
 status: todo
-depends_on: ["005-ai-asset-implementation-整合性確認.md"]
+depends_on: ["006-ai-asset-implementation-整合性確認.md"]
 ---
 
 # 振り返りと結果報告
@@ -12,13 +12,13 @@ depends_on: ["005-ai-asset-implementation-整合性確認.md"]
 
 ## 完了条件（DoD）
 
-- [ ] `wip/30_reports/006-*.md` が作成され、各チケットの結果要約・成果物一覧が記載されている
+- [ ] `wip/30_reports/007-*.md` が作成され、各チケットの結果要約・成果物一覧が記載されている
 - [ ] 使った AI アセット（スキル・フック・ルール）の棚卸しと、修正・新規作成の要否がまとめられている
 - [ ] 改善提案（敵対的レビューエージェントの自動化を含む）がユーザーに提示する形で記載されている
 
 ## 作業内容
 
-1. 001〜005 の作業ログを読む
+1. 001〜006 の作業ログを読む
 2. `wip/30_reports/` に結果報告を作成する
 3. 恒久的な教訓があれば CLAUDE.md やスキルの改訂候補として提示する
 

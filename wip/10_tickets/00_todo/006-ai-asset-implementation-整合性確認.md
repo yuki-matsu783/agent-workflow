@@ -1,14 +1,14 @@
 ---
 type: ai-asset-implementation
 status: todo
-depends_on: ["004-ai-asset-implementation-チケット駆動分解.md"]
+depends_on: ["005-ai-asset-design-doc用語更新.md"]
 ---
 
 # 旧名称の残存確認とテスト全件パスの確認
 
 ## 目的
 
-リネーム作業全体を横断的に検査し、旧スキル名の残存・リンク切れが無いこと、既存テストが全件パスすることを確認する。
+リネーム作業全体を横断的に検査し、旧スキル名の残存・リンク切れが無いこと、既存テストが全件パスすることを確認する（005 で `.claude/docs/**` 内の残存は解消済みの想定。本チケットは `.claude/hooks/**`・`.claude/rules/**`・`.claude/skills/**` の範囲を担当）。
 
 ## 完了条件（DoD）
 
