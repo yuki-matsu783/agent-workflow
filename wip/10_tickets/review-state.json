@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ticket": "029-retrospective-振り返り.md",
+  "work_type": "retrospective",
+  "state": "requested",
+  "local": true,
+  "pr": null,
+  "head_sha": "cf06b7db8d7206cc7cda22610f83327a1f7922a0",
+  "request": {
+    "comment_id": null,
+    "url": null,
+    "at": "2026-08-30T11:50:08Z"
+  },
+  "complete": null
+}
