@@ -1,20 +1,15 @@
 {
   "version": 1,
-  "ticket": "001-ai-asset-design-gh-pr-rest化設計.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "004-ai-asset-implementation-gh-api失敗時のstdout汚染対策.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
   "local": true,
   "pr": null,
-  "head_sha": "d85f21d331ee6629a663364cc198c3d6fb103029",
+  "head_sha": "86fcc99f66eea8f3e77d2db8b2266f8ec3aae2b9",
   "request": {
     "comment_id": null,
     "url": null,
-    "at": "2026-08-30T12:22:08Z"
+    "at": "2026-08-30T12:40:11Z"
   },
-  "complete": {
-    "at": "2026-08-30T12:23:41Z",
-    "review_decision": "",
-    "comment_ids": [],
-    "inline_ids": []
-  }
+  "complete": null
 }
