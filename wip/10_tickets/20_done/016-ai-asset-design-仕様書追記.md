@@ -12,12 +12,12 @@ depends_on: ["015-ai-asset-implementation-review-pending継続判定.md"]
 
 ## 完了条件（DoD）
 
-- [ ] 「入力データ」表に `wip/10_tickets/review-state.json` の行が追加されている
-- [ ] 「継続条件」セクションに、`review-state.json` が `requested` かつ `ticket` が `20_done` の
+- [x] 「入力データ」表に `wip/10_tickets/review-state.json` の行が追加されている
+- [x] 「継続条件」セクションに、`review-state.json` が `requested` かつ `ticket` が `20_done` の
       最終チケットと一致する間も継続中とみなす旨と、`work-boundary.sh` の判定規則と揃えている根拠が
       追記されている
-- [ ] 「処理フロー」の ASCII 図にレビュー待ちの分岐が反映されている
-- [ ] 「テストシナリオ」表に 015 で追加したテストケースが追記されている
+- [x] 「処理フロー」の ASCII 図にレビュー待ちの分岐が反映されている
+- [x] 「テストシナリオ」表に 015 で追加したテストケースが追記されている
 
 ## 作業内容
 
@@ -30,8 +30,8 @@ depends_on: ["015-ai-asset-implementation-review-pending継続判定.md"]
 
 ### うまくいったこと
 
--
+- 「入力データ」「継続条件」「処理フロー」「テストシナリオ」「制約・前提」の各セクションに機械的に対応する追記箇所があり、015 の実装差分をそのまま反映できた
 
 ### うまくいかなかったこと
 
--
+- 特になし
