@@ -45,10 +45,8 @@ APIを直接叩く。
 
 - GitHub: `gh --version` と `gh auth status` を確認する。未導入なら `task-gh-install` スキルを案内、
   未認証なら `gh auth login` を案内して停止する
-- GitLab: `glab --version` と `glab auth status` を確認する。未導入なら公式手順
-  （<https://gitlab.com/gitlab-org/cli#installation>、Homebrewなら `brew install glab`、Debian/Ubuntuなら
-  公式aptリポジトリ）を案内する。本リポジトリに `glab` 専用のインストールスキルは無い。未認証なら
-  `glab auth login` を案内して停止する
+- GitLab: `glab --version` と `glab auth status` を確認する。未導入なら `task-gh-install` スキル
+  （GitHub/GitLab 両対応）を案内する。未認証なら `glab auth login` を案内して停止する
 
 いずれのスクリプトも、CLI未導入・未認証を内部で検知し、コマンドを実行せずに分かりやすいメッセージで
 終了する。
@@ -88,7 +86,7 @@ bash .claude/skills/task-repo-merge-settings/scripts/gitlab-merge-settings.sh \
 
 | 状況 | 対処 |
 |------|------|
-| `gh` / `glab` が未導入 | `task-gh-install`（GitHubのみ）または公式インストール手順を案内して停止する |
+| `gh` / `glab` が未導入 | `task-gh-install`（GitHub/GitLab 両対応）を案内して停止する |
 | `gh auth status` / `glab auth status` が未認証 | `gh auth login` / `glab auth login` を案内して停止する |
 | リポジトリ/プロジェクトが見つからない・権限不足 | スクリプトの標準エラー出力をそのまま報告し、対象指定（`--repo`/`--project`）が正しいか確認する |
 | 引数が不正・必須引数が無い | スクリプトがUsageを表示して終了する。Usageに従って引数を修正する |
