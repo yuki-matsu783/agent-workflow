@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "004-investigation-内容検証方法の選択肢調査.md",
   "work_type": "investigation",
-  "state": "requested",
+  "state": "completed",
   "local": false,
   "via": "external",
   "pr": 52,
@@ -12,5 +12,14 @@
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471864290",
     "at": "2026-08-30T23:14:52Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T23:31:12Z",
+    "review_decision": "",
+    "comment_ids": [
+      5471597480,
+      5471822993,
+      5471864290
+    ],
+    "inline_ids": []
+  }
 }
