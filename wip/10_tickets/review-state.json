@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "030-ai-asset-design-振り返り棚卸しと合意の要件仕様.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "b19e6e3defe23bc254e7ca125858d379b10b3fd0",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T11:55:54Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T11:57:08Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
