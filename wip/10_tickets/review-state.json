@@ -1,20 +1,15 @@
 {
   "version": 1,
-  "ticket": "032-retrospective-振り返り.md",
-  "work_type": "retrospective",
-  "state": "completed",
+  "ticket": "001-ai-asset-design-gh-pr-rest化設計.md",
+  "work_type": "ai-asset-design",
+  "state": "requested",
   "local": true,
   "pr": null,
-  "head_sha": "8f88d5bcadda055a749dabc870fa518ccf08a14d",
+  "head_sha": "d85f21d331ee6629a663364cc198c3d6fb103029",
   "request": {
     "comment_id": null,
     "url": null,
-    "at": "2026-08-30T12:04:21Z"
+    "at": "2026-08-30T12:22:08Z"
   },
-  "complete": {
-    "at": "2026-08-30T12:05:06Z",
-    "review_decision": "",
-    "comment_ids": [],
-    "inline_ids": []
-  }
+  "complete": null
 }
