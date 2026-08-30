@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "031-ai-asset-implementation-振り返り棚卸しの実装.md",
   "work_type": "ai-asset-implementation",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "404e7119aee488ce81bf17075c8beba1fc08d140",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T11:59:35Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T12:00:41Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
