@@ -87,15 +87,12 @@
     ]
   },
   "conflicts": {
-    "at": "2026-08-30T09:26:29Z",
+    "at": "2026-08-30T09:32:37Z",
     "base": "main",
-    "base_sha": "18bfdd3a7ae19e424b9fc275e078277487ce5fc3",
-    "head_sha": "e2401e2cbed4906a6cd8d817c5a692ad1c08210d",
+    "base_sha": "61c8f17454acfe3ced605ba3ef489cab13781be4",
+    "head_sha": "d9a431d9543ab587c719bb23b5ade4275fc44f54",
     "files": [
-      ".claude/docs/00_requirements/issue-PR駆動ワークフロー.md",
-      ".claude/docs/10_spec/issue-PR駆動ワークフロー.md",
-      ".claude/skills/workflow-issue-mr-driven/evals/evals.json",
-      "wip/10_tickets/review-state.json"
+      ".claude/hooks/workflow-boundary.sh"
     ],
     "has_conflict": true
   },
