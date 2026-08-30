@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # ============================================================
-# workflow-entry — 作業の入口ガード（ワークフロースキルの宣言を強制する）
+# workflow-entry — 作業の振り分け実施済み判定（ワークフロースキルの宣言を強制する）
 # ============================================================
-# 仕様: .claude/docs/10_spec/ワークフロー入口ガード.md
+# 仕様: .claude/docs/10_spec/ワークフロー入口ガード.md（ファイル名は旧称のまま据え置き）
 #
-# ユーザーのプロンプトごとに、作業を始める前に「入口となるワークフロースキル」
+# ユーザーのプロンプトごとに、作業を始める前に「振り分けとなるワークフロースキル」
 # （WF_ENTRY_SKILLS のいずれか）が Skill ツールで読み込まれたことを機械的に確認する。
 # 読み込まれていなければ書き込み系・実行系ツールを WF101 でブロックする。
 #
 # 使い方（settings.json から 3 つのタイミングで呼ぶ。第 1 引数がモード）:
 #   prompt : UserPromptSubmit。プロンプト連番を進める（= 宣言をリセットする）。
-#            プロンプトが /<入口スキル名> で始まる場合はスラッシュ起動として宣言扱いにする
-#   record : PostToolUse（matcher: Skill）。入口スキルの読み込みを宣言として記録する
+#            プロンプトが /<振り分けスキル名> で始まる場合はスラッシュ起動として宣言扱いにする
+#   record : PostToolUse（matcher: Skill）。振り分けスキルの読み込みを宣言として記録する
 #   guard  : PreToolUse（matcher: Edit|Write|NotebookEdit|Bash|EnterPlanMode|Agent|Workflow）。
 #            現在のプロンプトで未宣言かつ継続条件も満たさなければ exit 2（WF101）
 #
@@ -21,7 +21,7 @@
 #
 # 状態ファイル: .claude/hooks/.state/<session_id>.entry（Git 管理外）
 #   prompt_seq=<プロンプト連番>
-#   workflow=<最後に宣言された入口スキル名>
+#   workflow=<最後に宣言された振り分けスキル名>
 #   declared_seq=<宣言時のプロンプト連番>
 #   → declared_seq == prompt_seq のときだけ「宣言済み」
 #
@@ -30,7 +30,7 @@
 set -uo pipefail
 
 # ---------- 設定 ----------
-# 入口として認めるスキル。追加する場合はここと CLAUDE.md「作業の入口」を合わせて更新する
+# 振り分けとして認めるスキル。追加する場合はここと CLAUDE.md「作業の振り分け」を合わせて更新する
 WF_ENTRY_SKILLS=("workflow-issue-mr-driven" "workflow-quick-request")
 # 未完了チケットの置き場。ここに *.md があれば workflow-issue-mr-driven の継続中とみなす
 WF_TICKET_ACTIVE_DIRS=("wip/10_tickets/00_todo" "wip/10_tickets/10_doing")
@@ -56,14 +56,14 @@ wf_log() {
     echo "$(date '+%Y-%m-%dT%H:%M:%S') [entry] $*" 2>/dev/null >>"${WF_LOG_FILE}" || true
 }
 
-# 入口スキル名の一覧を「a / b」形式で返す（メッセージ用）
+# 振り分けスキル名の一覧を「a / b」形式で返す（メッセージ用）
 wf_skills_str() {
     local s
     s=$(printf '%s / ' "${WF_ENTRY_SKILLS[@]}")
     printf '%s' "${s% / }"
 }
 
-# $1 が入口スキルなら 0
+# $1 が振り分けスキルなら 0
 wf_is_entry_skill() {
     local s
     for s in "${WF_ENTRY_SKILLS[@]}"; do
@@ -135,7 +135,7 @@ case "${MODE}" in
         prev=""
         [ -n "${WORKFLOW}" ] && prev="（前回の宣言: ${WORKFLOW} @#${DECLARED_SEQ}）"
 
-        # /<入口スキル名> で始まるプロンプトはスラッシュ起動。Skill ツールを経由しないためここで宣言扱いにする
+        # /<振り分けスキル名> で始まるプロンプトはスラッシュ起動。Skill ツールを経由しないためここで宣言扱いにする
         first_line=$(printf '%s' "${PROMPT}" | head -1 | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
         slash="${first_line#/}"
         slash="${slash%% *}"
@@ -148,18 +148,18 @@ case "${MODE}" in
         elif wf_tickets_active; then
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（入口の宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（振り分けの宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから振り分けを宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 作業に着手する前に、Skill ツールで $(wf_skills_str) のいずれかを読み込んで入口を宣言すること${prev}。宣言はプロンプトごとに必要で、未宣言のまま Edit / Write / NotebookEdit / Bash / EnterPlanMode / Agent / Workflow を呼ぶと WF101 でブロックされる。判断基準は CLAUDE.md「作業の入口」を参照。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 作業に着手する前に、Skill ツールで $(wf_skills_str) のいずれかを読み込んで振り分けを宣言すること${prev}。宣言はプロンプトごとに必要で、未宣言のまま Edit / Write / NotebookEdit / Bash / EnterPlanMode / Agent / Workflow を呼ぶと WF101 でブロックされる。判断基準は CLAUDE.md「作業の振り分け」を参照。"
         fi
         jq -n --arg ctx "${ctx}" \
             '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
         exit 0
         ;;
 
-    # ===== PostToolUse (Skill): 入口スキルの読み込みを宣言として記録 =====
+    # ===== PostToolUse (Skill): 振り分けスキルの読み込みを宣言として記録 =====
     record)
         [ "${TOOL}" = "Skill" ] || exit 0
         wf_is_entry_skill "${SKILL}" || exit 0
@@ -181,12 +181,12 @@ case "${MODE}" in
         fi
         wf_log "BLOCK WF101 #${PROMPT_SEQ} tool=${TOOL} last=${WORKFLOW:-none}@${DECLARED_SEQ} session=${WF_SESSION_ID}"
         {
-            echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の入口となるスキルがまだ読み込まれていません"
+            echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の振り分けとなるスキルがまだ読み込まれていません"
             echo "対象ツール: ${TOOL}"
             if [ -n "${WORKFLOW}" ]; then
                 echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間を除く）"
             fi
-            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-quick-request（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の入口」と workflow-quick-request の手順 0 を参照。ブロックを迂回しないでください。"
+            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-quick-request（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の振り分け」と workflow-quick-request の手順 0 を参照。ブロックを迂回しないでください。"
         } >&2
         exit 2
         ;;

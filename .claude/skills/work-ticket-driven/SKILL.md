@@ -2,7 +2,7 @@
 name: work-ticket-driven
 description: >
   作業ブランチでの作業を「計画 → チケット化 → 1枚ずつ実施 → 記録」のチケット駆動で進める。
-  workflow-issue-mr-driven（issue と draft PR を確定してから作業する入口）の最終段階としても呼ばれる。
+  workflow-issue-mr-driven（issue と draft PR を確定してから作業する振り分け）の最終段階としても呼ばれる。
   Use when the user mentions "チケット駆動で", "チケットで進めて", "チケット化して作業して",
   "ワークフローで作業", "ticket workflow", or wants work split into investigation /
   implementation / retrospective tickets under wip/ with hook-enforced phase restrictions.
