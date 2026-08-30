@@ -21,5 +21,5 @@
 
 ### 対応
 
-- ブランチ: `<!-- fix/12-login-empty-password -->`
+- ブランチ: `<!-- fix-12-login-empty-password（<prefix>-<N>-<slug>。区切りはハイフン） -->`
 - PR: <!-- 作成後に #M を記載（task-gh-feature の結果から）。PR 本文の Closes #N で相互リンクされる -->

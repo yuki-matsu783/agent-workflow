@@ -4,13 +4,13 @@
     {
       "id": 0,
       "prompt": "issue 駆動で進めて。ログイン画面でパスワードが空でも送信できてしまうバグを直したい",
-      "expected_output": "コードに触る前に依頼を要約し、gh issue list --search で既存 issue を検索して候補を提示する。類似があれば「既存 #N で対応するか」を AskUserQuestion で確認し、承認後に追記案を提示して承認を得てから gh issue edit で末尾に追記する。その後 fix/<N>-<slug> ブランチと Closes #N を含む draft PR を作成し、work-ticket-driven を開始する",
+      "expected_output": "コードに触る前に依頼を要約し、gh issue list --search で既存 issue を検索して候補を提示する。類似があれば「既存 #N で対応するか」を AskUserQuestion で確認し、承認後に追記案を提示して承認を得てから gh issue edit で末尾に追記する。その後 fix-<N>-<slug> ブランチと Closes #N を含む draft PR を作成し、work-ticket-driven を開始する",
       "files": [],
       "expectations": [
         "実作業（Edit/Write）の前に gh issue list で既存 issue を検索している",
         "承認①（どの issue で対応するか）を AskUserQuestion で取っている",
         "承認②（issue 本文・追記案）を得てから gh issue create / edit を実行している",
-        "ブランチ名に issue 番号が含まれ、PR 本文に Closes #N がある",
+        "ブランチ名が <prefix>-<N>-<slug>（ハイフン区切り、スラッシュなし）で issue 番号を含み、PR 本文に Closes #N がある",
         "PR は --draft で作成している",
         "work-ticket-driven に issue / PR の文脈を渡して開始している"
       ]
@@ -18,17 +18,18 @@
     {
       "id": 1,
       "prompt": "（既存 issue に類似が無い状態で）MR 駆動で、README に目次生成のスクリプトを追加する作業を進めて",
-      "expected_output": "検索結果が 0 件（closed を含む再検索後）であることを報告し、新規 issue の案（タイトル・種別・概要・受け入れ条件）とブランチ名・PR タイトルを提示して承認を得る。承認後に gh issue create → feature/<N>-<slug> ブランチ + draft PR → work-ticket-driven",
+      "expected_output": "検索結果が 0 件（closed を含む再検索後）であることを報告し、新規 issue の案（タイトル・種別・概要・受け入れ条件）とブランチ名・PR タイトルを提示して承認を得る。承認後に gh issue create → feature-<N>-<slug> ブランチ + draft PR → work-ticket-driven",
       "files": [],
       "expectations": [
         "open で 0 件のあと closed を含めて再検索している",
         "新規 issue の本文案を提示し、承認を得てから gh issue create している",
-        "承認なしに issue / ブランチ / PR を作っていない"
+        "承認なしに issue / ブランチ / PR を作っていない",
+        "ブランチ名がハイフン区切り（feature-<N>-<slug>）である"
       ]
     },
     {
       "id": 2,
-      "prompt": "（feature/12-login-empty-password ブランチ上で open な draft PR があり、wip/10_tickets/10_doing/ にチケットがある状態で）続きをやって",
+      "prompt": "（feature-12-login-empty-password ブランチ上で open な draft PR があり、wip/10_tickets/10_doing/ にチケットがある状態で）続きをやって",
       "expected_output": "issue の検索や承認をやり直さず、PR 本文の Closes #N から issue 番号を確認した上で work-ticket-driven の手順 0（doing チケットからの再開）に進む",
       "files": ["wip/10_tickets/10_doing/002-implementation-実装.md"],
       "expectations": [
@@ -39,13 +40,48 @@
     },
     {
       "id": 3,
-      "prompt": "（全チケットが done になった直後に）仕上げて",
-      "expected_output": "git push の後、wip/30_reports/ の要約と Closes #N を含む本文で gh pr edit を実行し、ready for review にするかを AskUserQuestion で確認する。承認されたときだけ gh pr ready を実行する",
-      "files": ["wip/10_tickets/20_done/003-retrospective-振り返り.md", "wip/30_reports/結果報告.md"],
+      "prompt": "（最後のワーク（retrospective）の complete が通り、todo と doing が空になった直後に）仕上げて",
+      "expected_output": "wip/30_reports/ の要約と Closes #N を含む本文で gh pr edit を実行し、ready for review にするかを AskUserQuestion で確認する。承認されたときだけ gh pr ready を実行する",
+      "files": ["wip/10_tickets/20_done/003-retrospective-振り返り.md", "wip/10_tickets/review-state.json", "wip/30_reports/結果報告.md"],
       "expectations": [
-        "git push を実行している",
         "gh pr edit で PR 本文を更新している",
-        "gh pr ready の前に承認③を取っている"
+        "gh pr ready の前に承認③を取っている",
+        "review-state.json を直接編集していない"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "（001-investigation が done、todo の先頭が 002-implementation、doing が空の状態で）続けて",
+      "expected_output": "bash .claude/hooks/work-boundary.sh status で at_boundary: true / review_state: none を確認し、002 には着手せず、git push → gh pr edit で PR 本文に investigation の要約を追記 → レビュー観点を書いた一時ファイルで bash .claude/hooks/work-boundary.sh request --body-file <path> を実行 → チャットでレビュー依頼した旨を報告して応答を終える",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/00_todo/002-implementation-実装.md", "wip/20_plans/実装計画.md"],
+      "expectations": [
+        "work-boundary.sh status で境界を判定している（目視の type 比較ではない）",
+        "002-implementation のチケットを doing に移していない",
+        "gh pr comment を直接実行せず work-boundary.sh request を使っている",
+        "AskUserQuestion でレビュー完了を待たず、報告して応答を終えている"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "（review_state が requested、PR に自分のレビュー依頼コメントだけがある状態で）レビュー完了",
+      "expected_output": "bash .claude/hooks/work-boundary.sh complete を実行し、返された指摘が 0 件であることを報告して、次のワーク（002-implementation）に着手する",
+      "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/00_todo/002-implementation-実装.md", "wip/10_tickets/review-state.json"],
+      "expectations": [
+        "gh pr view / gh api を直接組み立てず work-boundary.sh complete を使っている",
+        "指摘 0 件を明示してから次のチケットに着手している",
+        "review-state.json を直接編集していない"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "（review_state が requested、PR に返信の無いインラインコメント 1 件がある状態で）レビュー完了",
+      "expected_output": "work-boundary.sh complete が WF014（未返信スレッドあり）で止まる。指摘内容を提示して対応要否を AskUserQuestion で確認し、対応する場合は同じ type（investigation）の追加チケットを todo に作成して着手する。返信は work-boundary.sh reply <id> で行い、追加チケットの完了後に再度 request → complete する",
+      "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/00_todo/002-implementation-実装.md", "wip/10_tickets/review-state.json"],
+      "expectations": [
+        "WF014 の理由を報告し、状態ファイルを直接編集して通そうとしていない",
+        "対応要否を AskUserQuestion で確認している",
+        "done 済みチケットを doing に戻さず、同じ type の追加チケットを作っている",
+        "002-implementation（別 type）には着手していない"
       ]
     }
   ]

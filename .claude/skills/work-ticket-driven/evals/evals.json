@@ -24,6 +24,18 @@
       "prompt": "（作業途中でセッションが中断された後）続きをやって",
       "expected_output": "wip/10_tickets/10_doing/ の状態が確認され、doing のチケットの作業ログを読んだ上で、計画の再作成をせずに途中から作業が再開される",
       "files": ["wip/10_tickets/10_doing/002-implementation-実装.md", "wip/20_plans/実装計画.md"]
+    },
+    {
+      "id": 4,
+      "prompt": "（workflow-issue-mr-driven 経由で、001-investigation が done、todo の先頭が 002-implementation の状態で）続けて",
+      "expected_output": "手順 5.5 で done の type（investigation）と todo 先頭の type（implementation）が異なると判定し、ワーク完了として扱う。implementation のチケットには着手せず、完了した type・チケット一覧・ワーク開始コミットからの差分要約・次の type を報告して制御を呼び出し元に返す。push やレビュー依頼は行わない",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/00_todo/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 5,
+      "prompt": "（単独実行で、002-implementation が done、todo の先頭が 003-retrospective の状態で）続けて",
+      "expected_output": "ワーク境界と判定し、AskUserQuestion で implementation ワークの承認 / 差し戻しを確認する。差し戻しが選ばれた場合は 002 を doing に戻さず、同じ type の追加チケット（004-implementation-…）を todo に作成して着手する。承認なら 003 に着手する",
+      "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/20_done/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
     }
   ]
 }

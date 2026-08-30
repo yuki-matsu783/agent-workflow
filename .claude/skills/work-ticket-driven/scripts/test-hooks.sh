@@ -405,6 +405,243 @@ sed -i 's/depends_on: \[\]/depends_on: ["001-investigation-調査.md"]/' "${TMP}
 run_post '{"tool_name":"Bash","tool_input":{}}'
 check_post TC-dep "WF005"
 
+# ============================================================
+# ワーク境界（work-boundary.sh / workflow-boundary.sh）
+# 仕様: チケット駆動ワークフロー.md「ワーク境界の判定とレビュー状態」TC024〜TC028
+# ============================================================
+BOUNDARY="${HOOKS_DIR}/workflow-boundary.sh"
+WB="${HOOKS_DIR}/work-boundary.sh"
+STATE_FILE="${TMP}/wip/10_tickets/review-state.json"
+STATE_W="${TMPW}/wip/10_tickets/review-state.json"
+
+# gh のモック（ネットワークに出ない）。リポジトリ外に置く（未コミット扱いにしない）
+MOCK_BIN=$(mktemp -d)
+BARE=$(mktemp -d)
+trap 'rm -rf "${TMP}" "${ERRF}" "${MOCK_BIN}" "${BARE}"' EXIT
+cat >"${MOCK_BIN}/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+    *"pr view --json number"*) echo "${GH_MOCK_PR:-13}" ;;
+    *"pr view"*) printf '%s' "${GH_MOCK_PRVIEW:-{\"reviewDecision\":\"\",\"reviews\":[],\"comments\":[]}}" ;;
+    *"pr comment"*) echo "https://example.test/pull/13#issuecomment-4242" ;;
+    *"/replies"*) echo "https://example.test/reply" ;;
+    *"/comments"*) printf '%s' "${GH_MOCK_INLINE:-[]}" ;;
+    *) echo "mock gh: unsupported: $*" >&2; exit 1 ;;
+esac
+EOF
+chmod +x "${MOCK_BIN}/gh"
+
+run_boundary() { # workflow-boundary.sh を実行（結果は run_guard と同じ変数へ）
+    GUARD_OUT=$(CLAUDE_PROJECT_DIR="${TMPW}" WORKFLOW_ENFORCE="${ENFORCE:-1}" bash "${BOUNDARY}" 2>"${ERRF}" <<<"$1")
+    GUARD_EXIT=$?
+    GUARD_ERR=$(cat "${ERRF}")
+}
+run_wb() { # work-boundary.sh <subcommand...> を一時リポジトリ内で実行
+    GUARD_OUT=$(cd "${TMP}" && CLAUDE_PROJECT_DIR="${TMPW}" PATH="${MOCK_BIN}:${PATH}" bash "${WB}" "$@" 2>"${ERRF}")
+    GUARD_EXIT=$?
+    GUARD_ERR=$(cat "${ERRF}")
+}
+clear_tickets() { rm -f "${TMP}"/wip/10_tickets/*/*.md "${STATE_FILE}"; }
+commit_all() { (cd "${TMP}" && git add -A && git commit -qm "$1" --allow-empty); }
+write_state() { # $1=ticket $2=state $3=local(true/false)
+    jq -n --arg t "$1" --arg s "$2" --argjson l "$3" \
+        '{version:1, ticket:$t, work_type:"investigation", state:$s, local:$l, pr:(if $l then null else 13 end), head_sha:"x",
+          request:{comment_id:(if $l then null else "4242" end), url:null, at:"2020-01-01T00:00:00Z"}, complete:null}' >"${STATE_FILE}"
+}
+
+# ---------- TC024: status の境界判定 ----------
+clear_tickets; clear_session
+make_ticket done 001-investigation-a.md investigation
+make_ticket todo 002-investigation-b.md investigation
+run_wb status
+check TC024 0 '"at_boundary": false'
+rm -f "${TMP}/wip/10_tickets/00_todo/002-investigation-b.md"
+make_ticket done 002-investigation-b.md investigation
+make_ticket todo 003-implementation-c.md implementation
+run_wb status
+check TC024b 0 '"at_boundary": true'
+check TC024b2 0 '"review_state": "none"'
+check TC024b3 0 '"last_done": "002-investigation-b.md"'
+rm -f "${TMP}/wip/10_tickets/00_todo/003-implementation-c.md"
+run_wb status
+check TC024c 0 '"at_boundary": true'
+clear_tickets
+make_ticket todo 001-investigation-a.md investigation
+run_wb status
+check TC024d 0 '"at_boundary": false'
+make_ticket done 001-investigation-a.md investigation
+make_ticket doing 002-implementation-b.md implementation
+run_wb status
+check TC024d2 0 '"at_boundary": false'
+# 状態ファイルの ticket が done 末尾と違えば失効（none）
+clear_tickets
+make_ticket done 002-investigation-b.md investigation
+make_ticket todo 003-implementation-c.md implementation
+write_state 001-investigation-a.md completed true
+run_wb status
+check TC024e 0 '"review_state": "none"'
+# todo_same_type に同 type の追加チケットが列挙される
+make_ticket todo 004-investigation-fix.md investigation
+run_wb status
+check TC024f 0 '004-investigation-fix.md'
+rm -f "${TMP}/wip/10_tickets/00_todo/004-investigation-fix.md"
+
+# ---------- TC025: 状態ファイルの直接書き換えは常に WF012 ----------
+run_boundary "$(edit_json "${STATE_W}")"
+check TC025 2 "WF012"
+run_boundary "$(write_json "${STATE_W}" "{}")"
+check TC025-w 2 "WF012"
+make_ticket doing 009-investigation-x.md investigation   # doing があっても同じ
+run_boundary "$(edit_json "${STATE_W}")"
+check TC025-doing 2 "WF012"
+clear_doing
+for cmd in "rm wip/10_tickets/review-state.json" "sed -i s/requested/completed/ wip/10_tickets/review-state.json" \
+    "echo x > wip/10_tickets/review-state.json" "git checkout -- wip/10_tickets/review-state.json" \
+    "git rm wip/10_tickets/review-state.json" "mv wip/10_tickets/review-state.json /tmp/x"; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC025b(${cmd%% *})" 2 "WF012"
+done
+for cmd in "cat wip/10_tickets/review-state.json" "git diff wip/10_tickets/review-state.json" \
+    "git log -- wip/10_tickets/review-state.json" "bash .claude/hooks/work-boundary.sh status"; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC025c(${cmd%% *})" 0 "" "WF"
+done
+
+# ---------- TC026: 境界でレビュー未完了なら次ワークの着手は WF011 ----------
+MV_NEXT="git mv wip/10_tickets/00_todo/003-implementation-c.md wip/10_tickets/10_doing/"
+rm -f "${STATE_FILE}"
+run_boundary "$(bash_json "${MV_NEXT}")"
+check TC026 2 "WF011"
+check TC026-remedy 2 "request"
+write_state 002-investigation-b.md requested false
+run_boundary "$(bash_json "${MV_NEXT}")"
+check TC026b 2 "WF011"
+check TC026b-remedy 2 "complete"
+write_state 002-investigation-b.md completed false
+run_boundary "$(bash_json "${MV_NEXT}")"
+check TC026c 0 "" "WF"
+# 同 type の追加チケットは requested でも着手できる
+write_state 002-investigation-b.md requested false
+make_ticket todo 004-investigation-fix.md investigation
+run_boundary "$(bash_json "git mv wip/10_tickets/00_todo/004-investigation-fix.md wip/10_tickets/10_doing/")"
+check TC026d 0 "" "WF"
+rm -f "${TMP}/wip/10_tickets/00_todo/004-investigation-fix.md"
+# 境界でなければ統制しない
+clear_tickets
+make_ticket done 001-investigation-a.md investigation
+make_ticket todo 002-investigation-b.md investigation
+run_boundary "$(bash_json "git mv wip/10_tickets/00_todo/002-investigation-b.md wip/10_tickets/10_doing/")"
+check TC026e 0 "" "WF"
+# 境界で doing に直接 Write（type が変わる）は WF011、同 type なら許可
+clear_tickets
+make_ticket done 002-investigation-b.md investigation
+make_ticket todo 003-implementation-c.md implementation
+run_boundary "$(write_json "${TMPW}/wip/10_tickets/10_doing/003-implementation-c.md" "---
+type: implementation
+---")"
+check TC026f 2 "WF011"
+run_boundary "$(write_json "${TMPW}/wip/10_tickets/10_doing/004-investigation-fix.md" "---
+type: investigation
+---")"
+check TC026f2 0 "" "WF"
+# 最後のワーク（todo 空）で requested のまま gh pr ready は WF011
+rm -f "${TMP}/wip/10_tickets/00_todo/003-implementation-c.md"
+write_state 002-investigation-b.md requested false
+run_boundary "$(bash_json "gh pr ready 13")"
+check TC026g 2 "WF011"
+ENFORCE=0 run_boundary "$(bash_json "gh pr ready 13")"
+check TC026h 0 "" "WF"
+unset ENFORCE
+# 境界の統制中でも、無関係な操作は素通し
+run_boundary "$(bash_json "git push")"
+check TC026i 0 "" "WF"
+run_boundary "$(edit_json "${TMPW}/wip/10_tickets/00_todo/005-retrospective-r.md")"
+check TC026j 0 "" "WF"
+
+# ---------- TC027: request ----------
+# フックが書くログとセッション記憶は実リポジトリ同様に Git 管理外（request の「未コミット無し」判定に影響させない）
+printf '.claude/hooks/workflow.log\n.claude/hooks/.state/\n' >"${TMP}/.gitignore"
+clear_tickets
+make_ticket done 001-investigation-a.md investigation
+make_ticket todo 002-investigation-b.md investigation
+commit_all "tc027 setup"
+run_wb request --local            # 境界でない
+check TC027 2 "WF013"
+check TC027-msg 2 "境界ではありません"
+clear_tickets
+make_ticket done 002-investigation-b.md investigation
+make_ticket todo 003-implementation-c.md implementation
+run_wb request --local            # 未コミットの変更あり
+check TC027-dirty 2 "未コミット"
+[ ! -f "${STATE_FILE}" ] && echo "PASS TC027-nostate" && PASS=$((PASS + 1)) || { echo "FAIL TC027-nostate: 状態ファイルが作られた"; FAIL=$((FAIL + 1)); }
+commit_all "tc027 boundary"
+run_wb request                    # upstream 無し（push 未済）
+check TC027-nopush 2 "push"
+# --local の成功: 状態ファイルが requested になりコミットされる
+run_wb request --local
+check TC027b 0 '"review_state": "requested"'
+run_wb status
+check TC027b2 0 '"review_state": "requested"'
+check TC027b3 0 '"local": true'
+git -C "${TMP}" log -1 --pretty=%s | grep -q "chore(review): request 002-investigation-b.md" \
+    && { echo "PASS TC027b-commit"; PASS=$((PASS + 1)); } || { echo "FAIL TC027b-commit: $(git -C "${TMP}" log -1 --pretty=%s)"; FAIL=$((FAIL + 1)); }
+[ -z "$(git -C "${TMP}" status --porcelain)" ] && { echo "PASS TC027b-clean"; PASS=$((PASS + 1)); } || { echo "FAIL TC027b-clean"; FAIL=$((FAIL + 1)); }
+run_wb request --local            # 二重依頼
+check TC027c 2 "WF013"
+check TC027c-msg 2 "既に requested"
+
+# ---------- TC028: complete ----------
+run_wb complete                   # --local 不一致
+check TC028-local 2 "WF014"
+run_wb complete --local
+check TC028b 0 '"review_state": "completed"'
+git -C "${TMP}" log -1 --pretty=%s | grep -q "chore(review): complete 002-investigation-b.md" \
+    && { echo "PASS TC028b-commit"; PASS=$((PASS + 1)); } || { echo "FAIL TC028b-commit"; FAIL=$((FAIL + 1)); }
+run_wb complete --local           # completed からは不可
+check TC028-none 2 "WF014"
+run_boundary "$(bash_json "${MV_NEXT}")"   # completed なら次ワークに着手できる
+check TC028-next 0 "" "WF"
+
+# 非 --local: bare リモートと gh モックで request → complete
+git -C "${TMP}" mv wip/10_tickets/00_todo/003-implementation-c.md wip/10_tickets/20_done/ -q 2>/dev/null \
+    || mv "${TMP}/wip/10_tickets/00_todo/003-implementation-c.md" "${TMP}/wip/10_tickets/20_done/"
+make_ticket todo 004-retrospective-r.md retrospective
+commit_all "tc028 impl done"
+git -C "${BARE}" init -q --bare
+git -C "${TMP}" remote add origin "${BARE}"
+git -C "${TMP}" push -qu origin "$(git -C "${TMP}" branch --show-current)" 2>/dev/null
+run_wb request
+check TC027d 0 '"review_state": "requested"'
+check TC027d-url 0 "issuecomment-4242"
+run_wb status
+check TC027d2 0 '"comment_id": "4242"'
+check TC027d3 0 '"local": false'
+[ "$(git -C "${TMP}" rev-parse HEAD)" = "$(git -C "${TMP}" rev-parse '@{u}')" ] \
+    && { echo "PASS TC027d-pushed"; PASS=$((PASS + 1)); } || { echo "FAIL TC027d-pushed"; FAIL=$((FAIL + 1)); }
+export GH_MOCK_PRVIEW='{"reviewDecision":"CHANGES_REQUESTED","reviews":[],"comments":[]}'
+run_wb complete
+check TC028c-cr 2 "CHANGES_REQUESTED"
+export GH_MOCK_PRVIEW='{"reviewDecision":"APPROVED","reviews":[],"comments":[]}'
+export GH_MOCK_INLINE='[{"id":1,"path":"a.md","line":3,"body":"fix","in_reply_to_id":null,"user":{"login":"r"},"html_url":"u","created_at":"2099-01-01T00:00:00Z"}]'
+run_wb complete
+check TC028c-unreplied 2 "返信の無い"
+check TC028c-unreplied-id 2 "1 a.md:3"
+run_wb status
+check TC028c-still 0 '"review_state": "requested"'
+export GH_MOCK_INLINE='[{"id":1,"path":"a.md","line":3,"body":"fix","in_reply_to_id":null,"user":{"login":"r"},"html_url":"u","created_at":"2099-01-01T00:00:00Z"},{"id":2,"path":"a.md","line":3,"body":"Claude Code より: done","in_reply_to_id":1,"user":{"login":"me"},"html_url":"u2","created_at":"2099-01-02T00:00:00Z"}]'
+export GH_MOCK_PRVIEW='{"reviewDecision":"APPROVED","reviews":[{"author":{"login":"r"},"state":"APPROVED","body":"ok","submittedAt":"2099-01-01T00:00:00Z"}],"comments":[{"id":"c1","author":{"login":"r"},"createdAt":"2099-01-01T00:00:00Z","url":"u","body":"nice"},{"id":"c0","author":{"login":"me"},"createdAt":"2099-01-01T00:00:00Z","url":"u","body":"Claude Code より: 依頼"},{"id":"c9","author":{"login":"r"},"createdAt":"2000-01-01T00:00:00Z","url":"u","body":"old"}]}'
+run_wb complete
+check TC028c 0 '"review_state": "completed"'
+check TC028c-new 0 '"nice"'
+check TC028c-own 0 "" "依頼"
+check TC028c-old 0 "" '"old"'
+check TC028c-review 0 '"APPROVED"'
+run_wb status
+check TC028c-decision 0 '"review_decision": "APPROVED"'
+unset GH_MOCK_PRVIEW GH_MOCK_INLINE
+run_wb reply 1 "対応しました"
+check TC028-reply 0 "example.test/reply"
+
 echo ""
 echo "結果: PASS=${PASS} FAIL=${FAIL}"
 [ "${FAIL}" -eq 0 ]
