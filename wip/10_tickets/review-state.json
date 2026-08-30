@@ -1,23 +1,15 @@
 {
   "version": 1,
-  "ticket": "008-ai-asset-implementation-呼び出し元とevalsの更新.md",
-  "work_type": "ai-asset-implementation",
-  "state": "completed",
+  "ticket": "009-retrospective-振り返り.md",
+  "work_type": "retrospective",
+  "state": "requested",
   "local": false,
   "pr": 40,
-  "head_sha": "3ebee5e5d534aa5baa73f664297be4d94c7852c2",
+  "head_sha": "f68af97004d82dfb31935fde6a4ec5ef17976bee",
   "request": {
-    "comment_id": "5468534987",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468534987",
-    "at": "2026-08-30T11:56:41Z"
+    "comment_id": "5468560858",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468560858",
+    "at": "2026-08-30T12:02:29Z"
   },
-  "complete": {
-    "at": "2026-08-30T11:57:40Z",
-    "review_decision": "",
-    "comment_ids": [
-      "IC_kwDOUHO_g88AAAABRe9bwg",
-      "IC_kwDOUHO_g88AAAABRfM4yw"
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
