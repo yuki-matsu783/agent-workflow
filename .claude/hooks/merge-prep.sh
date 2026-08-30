@@ -6,11 +6,17 @@
 #       .claude/docs/10_spec/skill-workflow-issue-mr-driven.md「完了処理」
 #
 # 使い方:
-#   bash .claude/hooks/merge-prep.sh status
-#   bash .claude/hooks/merge-prep.sh reset-wip [--dry-run]
-#   bash .claude/hooks/merge-prep.sh check-conflicts [--base <branch>]
-#   bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N ...]
-#   bash .claude/hooks/merge-prep.sh ready [--base <branch>]
+#   bash .claude/hooks/merge-prep.sh status [--pr <N>]
+#   bash .claude/hooks/merge-prep.sh reset-wip [--dry-run] [--pr <N>]
+#   bash .claude/hooks/merge-prep.sh check-conflicts [--base <branch>] [--pr <N>]
+#   bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N ...] [--pr <N>]
+#   bash .claude/hooks/merge-prep.sh notify-issue --external --pr <N> --pr-body-file <path> --posted "N:url" [--posted "N:url" ...] [--issue N ...]
+#   bash .claude/hooks/merge-prep.sh ready [--base <branch>] [--pr <N>] [--external]
+#
+# - `--pr <N>`: PR 番号を明示指定する（gh CLI が使えない環境でも全サブコマンドで有効）
+# - `--external`: gh CLI が使えない環境向けのフォールバック。notify-issue / ready のみ対応。
+#   呼び出し元（LLM）が MCP ツール等で実際の GitHub 操作を代行し、その結果をフラグで渡す。
+#   スクリプトは前提条件の検証と状態ファイルへの記録に専念し、証跡は `via: "gh" | "external"` として区別する
 #
 # - 全ワーク done・最後のワークのレビュー完了後、draft PR を ready にする前の作業
 #   （wip のリセット → default ブランチとの衝突判定 → 関連 issue へのコメント → draft 解除）を
@@ -49,7 +55,13 @@ mp_die() { # $1=概要 $2=未充足(改行区切り) $3=対処
 mp_git() { git -C "${MP_ROOT}" "$@"; }
 mp_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
+mp_gh_available() { command -v gh >/dev/null 2>&1; }
+
+MP_PR_OPT=""
+
 mp_pr_number() {
+    if [ -n "${MP_PR_OPT}" ]; then printf '%s' "${MP_PR_OPT}"; return 0; fi
+    mp_gh_available || return 0
     gh pr view --json number -q .number 2>/dev/null | tr -d '\r'
 }
 
@@ -114,6 +126,17 @@ mp_compute() {
     fi
     WB_STATUS=$(CLAUDE_PROJECT_DIR="${MP_ROOT}" bash "${MP_WB}" status 2>/dev/null) || WB_STATUS='{}'
     REVIEW_STATE=$(printf '%s' "${WB_STATUS}" | wf_jq -r '.review_state // "none"')
+}
+
+mp_status() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --pr) MP_PR_OPT="${2:-}"; shift 2 ;;
+            *) mp_die "status の引数が不正です: $1" "" "status [--pr <N>] の形式で実行してください。" ;;
+        esac
+    done
+    mp_compute
+    mp_status_json
 }
 
 mp_status_json() {
@@ -197,7 +220,8 @@ mp_reset() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --dry-run) dry_run=true; shift ;;
-            *) mp_die "reset-wip の引数が不正です: $1" "" "reset-wip [--dry-run] の形式で実行してください。" ;;
+            --pr) MP_PR_OPT="${2:-}"; shift 2 ;;
+            *) mp_die "reset-wip の引数が不正です: $1" "" "reset-wip [--dry-run] [--pr <N>] の形式で実行してください。" ;;
         esac
     done
     mp_compute
@@ -254,7 +278,8 @@ mp_check() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --base) base_opt="${2:-}"; shift 2 ;;
-            *) mp_die "check-conflicts の引数が不正です: $1" "" "check-conflicts [--base <branch>] の形式で実行してください。" ;;
+            --pr) MP_PR_OPT="${2:-}"; shift 2 ;;
+            *) mp_die "check-conflicts の引数が不正です: $1" "" "check-conflicts [--base <branch>] [--pr <N>] の形式で実行してください。" ;;
         esac
     done
     mp_compute
@@ -282,16 +307,30 @@ mp_check() {
         '{merge_state: $ms, has_conflict: false, base: $base, base_sha: $bsha, head_sha: $hsha}'
 }
 
+# 本文（PR 本文または --pr-body-file）から Closes/Fixes/Resolves #N を抽出する
+mp_extract_targets() { # $1=本文
+    printf '%s' "$1" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+$' || true
+}
+
 # ---------- notify-issue ----------
 mp_notify() {
-    local body_file="" extra=()
+    local body_file="" extra=() external_mode=false pr_body_file="" posted_opts=()
     while [ $# -gt 0 ]; do
         case "$1" in
             --body-file) body_file="${2:-}"; shift 2 ;;
             --issue) extra+=("${2:-}"); shift 2 ;;
-            *) mp_die "notify-issue の引数が不正です: $1" "" "notify-issue --body-file <path> [--issue N ...] の形式で実行してください。" ;;
+            --pr) MP_PR_OPT="${2:-}"; shift 2 ;;
+            --external) external_mode=true; shift ;;
+            --pr-body-file) pr_body_file="${2:-}"; shift 2 ;;
+            --posted) posted_opts+=("${2:-}"); shift 2 ;;
+            *) mp_die "notify-issue の引数が不正です: $1" "" \
+                'notify-issue --body-file <path> [--issue N ...] [--pr <N>]、または gh 不在時は notify-issue --external --pr <N> --pr-body-file <path> --posted "N:url" [...] [--issue N ...] の形式で実行してください。' ;;
         esac
     done
+    if [ "${external_mode}" = true ] && { [ -z "${MP_PR_OPT}" ] || [ -z "${pr_body_file}" ] || [ "${#posted_opts[@]}" -eq 0 ]; }; then
+        mp_die "notify-issue --external には --pr <N>・--pr-body-file <path>・--posted \"N:url\"（1つ以上）が必須です" "" \
+            "gh が使えない環境では、MCP ツール等で issue コメントを実際に投稿した上で、その issue 番号と URL を --posted で渡してください。"
+    fi
     mp_compute
     local fails=""
     case "${MERGE_STATE}" in
@@ -299,13 +338,20 @@ mp_notify() {
         notified) fails+="既に notified です（二重投稿になります）"$'\n' ;;
         *) fails+="merge_state が checked ではありません（${MERGE_STATE}）"$'\n' ;;
     esac
-    [ -n "${body_file}" ] && [ -s "${body_file}" ] || fails+="--body-file が指定されていないか空です"$'\n'
     mp_dirty && fails+="未コミットの変更があります"$'\n'
-    # 通知先: PR 本文の Closes/Fixes/Resolves #N と --issue の和集合
+    # 通知先: 本文の Closes/Fixes/Resolves #N と --issue の和集合
     local targets=""
-    if [ -n "${PR}" ]; then
-        targets=$(gh pr view "${PR}" --json body -q .body 2>/dev/null | tr -d '\r' \
-            | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+$' || true)
+    if [ "${external_mode}" = true ]; then
+        if [ -s "${pr_body_file}" ]; then
+            targets=$(mp_extract_targets "$(tr -d '\r' <"${pr_body_file}")")
+        else
+            fails+="--pr-body-file が指定されていないか空です"$'\n'
+        fi
+    else
+        [ -n "${body_file}" ] && [ -s "${body_file}" ] || fails+="--body-file が指定されていないか空です"$'\n'
+        if [ -n "${PR}" ]; then
+            targets=$(mp_extract_targets "$(gh pr view "${PR}" --json body -q .body 2>/dev/null | tr -d '\r')")
+        fi
     fi
     local n
     for n in ${extra[@]+"${extra[@]}"}; do
@@ -313,34 +359,56 @@ mp_notify() {
         targets+=$'\n'"${n}"
     done
     targets=$(printf '%s\n' "${targets}" | sed '/^$/d' | sort -n -u)
-    [ -n "${targets}" ] || fails+="通知先の issue がありません（PR 本文に Closes #N が無い）"$'\n'
+    [ -n "${targets}" ] || fails+="通知先の issue がありません（本文に Closes #N が無い）"$'\n'
     [ -n "${fails}" ] && mp_die "notify-issue を実行できません" "${fails%$'\n'}" \
         "check-conflicts を通してから、本文ファイルと通知先（--issue N）を指定して再実行してください。既に notified なら ready へ進んでください。"
 
-    local tmp posted="" url
-    tmp=$(mktemp)
-    {
-        printf '%s PR #%s のマージ前の完了報告です。\n' "${MP_PREFIX}" "${PR}"
-        printf '<!-- merge-prep: notify pr=%s -->\n\n' "${PR}"
-        cat "${body_file}"
-    } >"${tmp}"
-    while IFS= read -r n; do
-        [ -n "${n}" ] || continue
-        url=$(gh issue comment "${n}" --body-file "${tmp}" 2>&1 | tr -d '\r' | tail -1)
-        case "${url}" in
-            http*issuecomment-*) posted+="${n}"$'\t'"${url}"$'\n' ;;
-            *)
-                rm -f "${tmp}"
-                mp_die "gh issue comment ${n} に失敗しました" "${url}"$'\n'"投稿済み: $(printf '%s' "${posted}" | cut -f1 | paste -sd ',' -)" \
-                    "gh の認証と issue 番号を確認してから再実行してください（投稿済みの issue を除くには --issue で未投稿分だけを指定します）。状態ファイルは変更していません。"
-                ;;
-        esac
-    done <<<"${targets}"
-    rm -f "${tmp}"
-
     local issues_json
-    issues_json=$(printf '%s' "${posted}" | sed '/^$/d' | wf_jq -R 'split("\t") | {number: (.[0] | tonumber), comment_url: .[1]}' | wf_jq -s -c .)
-    mp_save '.notify = {at: $at, issues: $issues} | .state = "notified"' --arg at "$(mp_now)" --argjson issues "${issues_json}"
+    if [ "${external_mode}" = true ]; then
+        # --posted "N:url" をパースし、抽出した通知先の集合とちょうど一致するか検証する
+        local posted="" posted_nums="" p num url missing extra_nums
+        for p in "${posted_opts[@]}"; do
+            num="${p%%:*}"
+            url="${p#*:}"
+            [[ "${num}" =~ ^[0-9]+$ ]] && [ -n "${url}" ] && [ "${url}" != "${p}" ] \
+                || mp_die "--posted の形式が不正です: ${p}" "" '--posted "N:url" の形式で指定してください。'
+            posted+="${num}"$'\t'"${url}"$'\n'
+            posted_nums+=$'\n'"${num}"
+        done
+        posted_nums=$(printf '%s\n' "${posted_nums}" | sed '/^$/d' | sort -n -u)
+        missing=$(comm -23 <(printf '%s\n' "${targets}") <(printf '%s\n' "${posted_nums}"))
+        extra_nums=$(comm -13 <(printf '%s\n' "${targets}") <(printf '%s\n' "${posted_nums}"))
+        if [ -n "${missing}" ] || [ -n "${extra_nums}" ]; then
+            mp_die "--posted の issue 番号が通知先と一致しません" \
+                "$( [ -n "${missing}" ] && printf '不足: %s' "$(printf '%s' "${missing}" | paste -sd ',' -)" )$( [ -n "${missing}" ] && [ -n "${extra_nums}" ] && printf ' / ' )$( [ -n "${extra_nums}" ] && printf '余分: %s' "$(printf '%s' "${extra_nums}" | paste -sd ',' -)" )" \
+                "--pr-body-file から抽出した通知先（Closes #N）と --posted で渡した issue 番号の集合を一致させてください。"
+        fi
+        issues_json=$(printf '%s' "${posted}" | sed '/^$/d' | wf_jq -R 'split("\t") | {number: (.[0] | tonumber), comment_url: .[1]}' | wf_jq -s -c .)
+        mp_save '.notify = {at: $at, issues: $issues, via: "external"} | .state = "notified"' --arg at "$(mp_now)" --argjson issues "${issues_json}"
+    else
+        local tmp posted="" url
+        tmp=$(mktemp)
+        {
+            printf '%s PR #%s のマージ前の完了報告です。\n' "${MP_PREFIX}" "${PR}"
+            printf '<!-- merge-prep: notify pr=%s -->\n\n' "${PR}"
+            cat "${body_file}"
+        } >"${tmp}"
+        while IFS= read -r n; do
+            [ -n "${n}" ] || continue
+            url=$(gh issue comment "${n}" --body-file "${tmp}" 2>&1 | tr -d '\r' | tail -1)
+            case "${url}" in
+                http*issuecomment-*) posted+="${n}"$'\t'"${url}"$'\n' ;;
+                *)
+                    rm -f "${tmp}"
+                    mp_die "gh issue comment ${n} に失敗しました" "${url}"$'\n'"投稿済み: $(printf '%s' "${posted}" | cut -f1 | paste -sd ',' -)" \
+                        "gh の認証と issue 番号を確認してから再実行してください（投稿済みの issue を除くには --issue で未投稿分だけを指定します）。状態ファイルは変更していません。"
+                    ;;
+            esac
+        done <<<"${targets}"
+        rm -f "${tmp}"
+        issues_json=$(printf '%s' "${posted}" | sed '/^$/d' | wf_jq -R 'split("\t") | {number: (.[0] | tonumber), comment_url: .[1]}' | wf_jq -s -c .)
+        mp_save '.notify = {at: $at, issues: $issues, via: "gh"} | .state = "notified"' --arg at "$(mp_now)" --argjson issues "${issues_json}"
+    fi
     mp_commit_state "chore(merge-prep): notify issues" \
         || mp_die "状態ファイルのコミットに失敗しました" "" "git の状態を確認してください。"
     mp_push
@@ -350,13 +418,19 @@ mp_notify() {
 
 # ---------- ready ----------
 mp_ready() {
-    local base_opt=""
+    local base_opt="" external_mode=false
     while [ $# -gt 0 ]; do
         case "$1" in
             --base) base_opt="${2:-}"; shift 2 ;;
-            *) mp_die "ready の引数が不正です: $1" "" "ready [--base <branch>] の形式で実行してください。" ;;
+            --pr) MP_PR_OPT="${2:-}"; shift 2 ;;
+            --external) external_mode=true; shift ;;
+            *) mp_die "ready の引数が不正です: $1" "" "ready [--base <branch>] [--pr <N>] [--external] の形式で実行してください。" ;;
         esac
     done
+    if [ "${external_mode}" = true ] && [ -z "${MP_PR_OPT}" ]; then
+        mp_die "ready --external には --pr <N> が必須です" "" \
+            "gh が使えない環境では、先に MCP ツール（例: mcp__github__update_pull_request）で draft を解除した上で、その PR 番号を --pr で渡してください。"
+    fi
     mp_compute
     local fails="" base
     base=$(mp_base "${base_opt}")
@@ -366,21 +440,31 @@ mp_ready() {
     mp_pushed || fails+="HEAD が push されていません（git push してください）"$'\n'
     [ -n "${PR}" ] || fails+="現在のブランチに open な PR がありません"$'\n'
     # 再検証: default ブランチが後から進んで衝突していないか（記録があるときだけ結果を更新する）
+    # HAS_CONFLICT は mp_merge_tree を実際に呼んだときだけ設定されるため、呼んでいなければ
+    # remedy_suffix は空のままにする（mp_conflict_remedy の未定義変数参照を避ける）
+    local remedy_suffix=""
     if [ "${MERGE_STATE}" != "none" ] && ! mp_dirty; then
         mp_merge_tree "${base}"
         if [ "${HAS_CONFLICT}" = true ]; then
             mp_record_conflicts "${base}"
             fails+="default ブランチ ${base} と衝突しています: $(printf '%s' "${CONFLICT_FILES}" | paste -sd ',' -)"$'\n'
+            remedy_suffix=" 衝突がある場合は $(mp_conflict_remedy "${base}")"
         fi
     fi
     [ -n "${fails}" ] && mp_die "ready を実行できません" "${fails%$'\n'}" \
-        "先行するサブコマンド（reset-wip → check-conflicts → notify-issue）を順に実行し、未コミットはコミット・push してください。衝突がある場合は $(mp_conflict_remedy "${base}")"
+        "先行するサブコマンド（reset-wip → check-conflicts → notify-issue）を順に実行し、未コミットはコミット・push してください。${remedy_suffix}"
 
-    local out
-    if ! out=$(gh pr ready "${PR}" 2>&1 | tr -d '\r'); then
-        mp_die "gh pr ready ${PR} に失敗しました" "${out}" "gh の認証と PR の状態を確認してから再実行してください。状態ファイルは変更していません。"
+    local via
+    if [ "${external_mode}" = true ]; then
+        via="external"
+    else
+        via="gh"
+        local out
+        if ! out=$(gh pr ready "${PR}" 2>&1 | tr -d '\r'); then
+            mp_die "gh pr ready ${PR} に失敗しました" "${out}" "gh の認証と PR の状態を確認してから再実行してください。状態ファイルは変更していません。"
+        fi
     fi
-    mp_save '.ready = {at: $at, head_sha: $sha} | .state = "ready"' --arg at "$(mp_now)" --arg sha "${HEAD_SHA}"
+    mp_save '.ready = {at: $at, head_sha: $sha, via: $via} | .state = "ready"' --arg at "$(mp_now)" --arg sha "${HEAD_SHA}" --arg via "${via}"
     mp_commit_state "chore(merge-prep): ready" \
         || mp_die "状態ファイルのコミットに失敗しました" "" "git の状態を確認してください。"
     mp_push
@@ -389,13 +473,13 @@ mp_ready() {
 }
 
 case "${1:-}" in
-    status) mp_compute; mp_status_json ;;
+    status) shift; mp_status "$@" ;;
     reset-wip) shift; mp_reset "$@" ;;
     check-conflicts) shift; mp_check "$@" ;;
     notify-issue) shift; mp_notify "$@" ;;
     ready) shift; mp_ready "$@" ;;
     *)
-        printf 'usage: merge-prep.sh status | reset-wip [--dry-run] | check-conflicts [--base <branch>] | notify-issue --body-file <path> [--issue N ...] | ready [--base <branch>]\n' >&2
+        printf 'usage: merge-prep.sh status [--pr <N>] | reset-wip [--dry-run] [--pr <N>] | check-conflicts [--base <branch>] [--pr <N>] | notify-issue --body-file <path> [--issue N ...] | notify-issue --external --pr <N> --pr-body-file <path> --posted "N:url" [...] | ready [--base <branch>] [--pr <N>] [--external]\n' >&2
         exit 2
         ;;
 esac
