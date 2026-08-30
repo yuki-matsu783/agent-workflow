@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 31,
   "branch": "feature-30-merge-prep",
-  "state": "notified",
+  "state": "ready",
   "review": {
     "ticket": "018-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -103,5 +103,8 @@
       }
     ]
   },
-  "ready": null
+  "ready": {
+    "at": "2026-08-30T09:54:06Z",
+    "head_sha": "60c027dd1fad4d9883b94097980bd3bae76b59f1"
+  }
 }
