@@ -115,12 +115,15 @@ ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/d
 
 ### 振り返りからの切り替え
 
-`workflow-quick-request` 手順 5-3 で「issue を作って workflow-issue-mr-driven で進める」と合意し、その場でこのスキルが読み込まれた場合は、依頼文からの抽出をやり直さない。
+次のいずれかで「issue を作って workflow-issue-mr-driven で進める」と合意し、その場でこのスキルが読み込まれた場合は、依頼文からの抽出をやり直さない。
 
-- 引き継ぐ項目（quick-request 側と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ フェーズ列（AI アセットの標準: 調査 → AI アセット設計 → AI アセット実装 → 振り返り。`work-overall-plan` が全体計画に書く）
+- `workflow-quick-request` 手順 5-3
+- `work-ticket-driven` の retrospective チケットの振り返り合意（完了処理が終わった後。仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「retrospective の棚卸しと合意」）
+
+- 引き継ぐ項目（切り替え元と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ フェーズ列（AI アセットの標準: 調査 → AI アセット設計 → AI アセット実装 → 振り返り。`work-overall-plan` が全体計画に書く）
 - 省略できる: 依頼の要約に関する曖昧点の質問（上記が既に確定しているため、まとめて 1 回質問するステップは不要）
-- 省略できない: 手順 0 の未コミットの変更の確認、承認①②③④はすべてこの手順で改めて取る（quick-request 側の合意は「このルートに進むこと」の合意であり、issue の内容や PR の承認ではない）
-- `keywords` は quick-request 側から渡されないため、`summary` から自分で組み立てて手順 2（既存 issue の検索）に使う
+- 省略できない: 手順 0 の未コミットの変更の確認、承認①②③④はすべてこの手順で改めて取る（切り替え元の合意は「このルートに進むこと」の合意であり、issue の内容や PR の承認ではない）
+- `keywords` は切り替え元から渡されないため、`summary` から自分で組み立てて手順 2（既存 issue の検索）に使う
 
 ## 手順 2: 既存 issue の検索（task-gh-issue 検索モード）
 
