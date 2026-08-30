@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 48,
   "branch": "feature-47-skill-git-add-paths",
-  "state": "checked",
+  "state": "notified",
   "review": {
     "ticket": "007-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -35,6 +35,14 @@
     "files": [],
     "has_conflict": false
   },
-  "notify": null,
+  "notify": {
+    "at": "2026-08-30T21:58:37Z",
+    "issues": [
+      {
+        "number": 47,
+        "comment_url": "https://github.com/yuki-matsu783/agent-workflow/issues/47#issuecomment-5471507788"
+      }
+    ]
+  },
   "ready": null
 }
