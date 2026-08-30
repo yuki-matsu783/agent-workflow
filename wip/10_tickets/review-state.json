@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ticket": "002-ai-asset-design-仕様書と既存仕様の更新.md",
+  "work_type": "ai-asset-design",
+  "state": "requested",
+  "local": false,
+  "pr": 40,
+  "head_sha": "5e5e022d537029a9a3b1e52f67e09ee2976440d5",
+  "request": {
+    "comment_id": "5468281794",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468281794",
+    "at": "2026-08-30T11:01:43Z"
+  },
+  "complete": null
+}
