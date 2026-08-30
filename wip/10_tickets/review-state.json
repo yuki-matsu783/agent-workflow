@@ -1,24 +1,16 @@
 {
   "version": 1,
-  "ticket": "002-investigation-plan-調査計画.md",
-  "work_type": "investigation-plan",
-  "state": "completed",
+  "ticket": "004-investigation-内容検証方法の選択肢調査.md",
+  "work_type": "investigation",
+  "state": "requested",
   "local": false,
   "via": "external",
   "pr": 52,
-  "head_sha": "37b3961b5a42e594647eb0ca437007d91349cc4f",
+  "head_sha": "edf1f29633e77432a49e31e25cbadbbfb4505d9c",
   "request": {
-    "comment_id": "5471822993",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471822993",
-    "at": "2026-08-30T23:06:25Z"
+    "comment_id": "5471864290",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471864290",
+    "at": "2026-08-30T23:14:52Z"
   },
-  "complete": {
-    "at": "2026-08-30T23:06:54Z",
-    "review_decision": "",
-    "comment_ids": [
-      5471597480,
-      5471822993
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
