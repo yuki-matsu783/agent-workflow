@@ -10,7 +10,7 @@ keywords: [軽作業判定表, 範囲宣言, 振り返り, AIアセット棚卸�
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/軽作業ワークフロー.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-workflow-quick-request.md` を参照。
 - **スコープ**: `workflow-quick-request` スキルの判定・状態確認・宣言・実施・報告・振り返りの入出力と処理フローを定義する。振り分け自体を強制するフックの仕様は `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`（`workflow-issue-mr-driven` と共有するメタ文書）を参照。
 
 ---
@@ -146,15 +146,15 @@ keywords: [軽作業判定表, 範囲宣言, 振り返り, AIアセット棚卸�
 
 ## 前提条件
 
-`.claude/docs/00_requirements/軽作業ワークフロー.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-workflow-quick-request.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/軽作業ワークフロー.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-workflow-quick-request.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/軽作業ワークフロー.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-workflow-quick-request.md` の非機能要件を参照。
 
 ---
 
@@ -174,9 +174,9 @@ keywords: [軽作業判定表, 範囲宣言, 振り返り, AIアセット棚卸�
 ## 関連するドキュメント
 
 - `.claude/skills/workflow-quick-request/SKILL.md`
-- `.claude/docs/00_requirements/軽作業ワークフロー.md`
+- `.claude/docs/00_requirements/skill-workflow-quick-request.md`
 - `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`（`workflow-issue-mr-driven` と共有するメタ文書）
-- `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`
+- `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`
 
 ## レビュー記録
 

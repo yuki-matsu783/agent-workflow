@@ -8,8 +8,8 @@ description: >
 
 要件定義書（ユーザーストーリー・受け入れ基準を含む）を作成する。既存の要件ドキュメントと重複がないか確認した上で、テンプレートに基づいて作成する。
 
-- 要件: `.claude/docs/00_requirements/要件定義書作成.md`
-- 仕様: `.claude/docs/10_spec/要件定義書作成.md`
+- 要件: `.claude/docs/00_requirements/skill-task-requirements.md`
+- 仕様: `.claude/docs/10_spec/skill-task-requirements.md`
 
 ## 手順 0: 既存要件の照合
 
@@ -51,7 +51,7 @@ find . -name "*.md" | xargs grep -l -i "要件\|ユーザーストーリー\|要
 
 `assets/requirements.template.md` を読み込み、空のテンプレートを新規ファイルにコピーする。
 
-ファイル名はユーザーの要件に応じて決定する（例：`requirement/ログイン機能.md`、`spec/カート購入US.md`）。
+ファイル名はユーザーの要件に応じて決定する（例：`requirement/ログイン機能.md`、`spec/カート購入US.md`）。ただし `.claude/docs/00_requirements/` 配下（AI アセット向け、1スキルに1:1で紐づくもの）に作成する場合は `skill-<skill名>.md`（例：`skill-task-gh-feature.md`）とする。
 
 ---
 

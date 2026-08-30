@@ -4,7 +4,7 @@
 # ============================================================
 # 発火タイミング: PostToolUse
 # Matcher: Edit|Write|NotebookEdit|Bash
-# 仕様: .claude/docs/10_spec/チケット駆動ワークフロー.md
+# 仕様: .claude/docs/10_spec/skill-work-ticket-driven.md
 #   - Edit/Write が実行された（= 未記載パスならユーザーが確認で承認した）パスを
 #     セッション記憶に記録し、同セッション中は再確認しない
 #   - 基準点（doing 移動時のコミット）以降の差分・未追跡ファイルを検出し、

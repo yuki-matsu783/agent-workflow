@@ -10,7 +10,7 @@ keywords: [feature branch, PR, MR, gh, glab, issue連携モード, draft, 空コ
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/featureブランチとPR作成.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-gh-feature.md` を参照。
 - **スコープ**: `task-gh-feature` スキルの通常モード・issue連携モードの入出力と処理フローを定義する。
 
 ---
@@ -153,15 +153,15 @@ CLIコマンドの引数として渡される。JSON等の構造化フォーマ�
 
 ## 前提条件
 
-`.claude/docs/00_requirements/featureブランチとPR作成.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-feature.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/featureブランチとPR作成.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-gh-feature.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/featureブランチとPR作成.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-gh-feature.md` の非機能要件を参照。
 
 ---
 
@@ -181,8 +181,8 @@ CLIコマンドの引数として渡される。JSON等の構造化フォーマ�
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-feature/SKILL.md`
-- `.claude/docs/00_requirements/featureブランチとPR作成.md`
-- `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`（issue連携モードの呼び出し元仕様）
+- `.claude/docs/00_requirements/skill-task-gh-feature.md`
+- `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`（issue連携モードの呼び出し元仕様）
 
 ## レビュー記録
 

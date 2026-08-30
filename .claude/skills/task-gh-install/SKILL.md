@@ -18,8 +18,8 @@ compatibility:
 現在のプロジェクトが GitHub / GitLab のどちらかを自動判定し、対応する CLI
 （GitHub なら `gh`、GitLab なら `glab`）を決定論的にインストールする。
 
-- 要件: `.claude/docs/00_requirements/CLIインストール.md`
-- 仕様: `.claude/docs/10_spec/CLIインストール.md`
+- 要件: `.claude/docs/00_requirements/skill-task-gh-install.md`
+- 仕様: `.claude/docs/10_spec/skill-task-gh-install.md`
 
 > **ヘッドレス実行での注意**（`.claude/rules/claude-config-headless-awareness.md` 準拠）:
 > 手順3の確認は `AskUserQuestion` で行うため、ユーザーに確認できないヘッドレス実行（`claude -p`、CI 等）

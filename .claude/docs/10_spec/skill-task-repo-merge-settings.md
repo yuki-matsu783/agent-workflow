@@ -10,7 +10,7 @@ keywords: [squash merge, delete branch on merge, gh repo edit, glab api, --show]
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/マージ設定変更.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-repo-merge-settings.md` を参照。
 - **スコープ**: `task-repo-merge-settings` スキルの対象設定・確認手順・スクリプト呼び出しの入出力と処理フローを定義する。
 
 ---
@@ -135,15 +135,15 @@ bash .claude/skills/task-repo-merge-settings/scripts/gitlab-merge-settings.sh \
 
 ## 前提条件
 
-`.claude/docs/00_requirements/マージ設定変更.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-repo-merge-settings.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/マージ設定変更.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-repo-merge-settings.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/マージ設定変更.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-repo-merge-settings.md` の非機能要件を参照。
 
 ---
 
@@ -163,7 +163,7 @@ bash .claude/skills/task-repo-merge-settings/scripts/gitlab-merge-settings.sh \
 ## 関連するドキュメント
 
 - `.claude/skills/task-repo-merge-settings/SKILL.md`
-- `.claude/docs/00_requirements/マージ設定変更.md`
+- `.claude/docs/00_requirements/skill-task-repo-merge-settings.md`
 
 ## レビュー記録
 

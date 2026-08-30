@@ -2,11 +2,11 @@
 
 ## 概要
 
-- **背景**: 要件定義書 `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md` に基づき、スキルの処理フロー・承認ポイント・既存スキルへの委譲方法・命名規約を確定する。
+- **背景**: 要件定義書 `.claude/docs/00_requirements/skill-workflow-issue-mr-driven.md` に基づき、スキルの処理フロー・承認ポイント・既存スキルへの委譲方法・命名規約を確定する。
 - **目的**: 「依頼 → issue 照合 → 承認 → issue 確定 → ブランチ/PR → チケット駆動 → 完了処理」の各段階で、何を入力に何を出力するか、どこで人間が判断するかを実装可能なレベルで固定する。
 - **スコープ**:
   - 含む: 処理フロー、承認ポイント、task-gh-issue / task-gh-feature / work-ticket-driven への委譲内容、issue / ブランチ / PR / コミットの命名規約、既存フックとの関係、完了処理（マージ前作業と draft 解除）の順序と承認、例外処理、テストシナリオ
-  - 含まない: スキル本文（SKILL.md）の文言、task-gh-issue / task-gh-feature の内部手順（各スキルの SKILL.md が正）、`merge-prep.sh` / `work-boundary.sh` の入出力の詳細（`.claude/docs/10_spec/チケット駆動ワークフロー.md` が正）、PR のマージ操作（人間が行う）
+  - 含まない: スキル本文（SKILL.md）の文言、task-gh-issue / task-gh-feature の内部手順（各スキルの SKILL.md が正）、`merge-prep.sh` / `work-boundary.sh` の入出力の詳細（`.claude/docs/10_spec/skill-work-ticket-driven.md` が正）、PR のマージ操作（人間が行う）
 
 ---
 
@@ -126,7 +126,7 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
    6. 対応が必要な指摘があれば、`work-ticket-driven` に同じ作業タイプの追加チケット（指摘内容を DoD に落とす）を作らせ、7-1 に戻る（同じ type の追加チケットは境界でも着手できる。完了後は done 末尾が変わるため、再度 7-2〜7-5 を回して `request` → `complete` する）
 
    レビュー状態（`wip/10_tickets/review-state.json`）を Edit / Write / Bash で直接書き換えない（フックが WF012 で拒否する）。レビューが完了していない状態で次の type のチケットに着手しようとするとフックが WF011 で拒否し、対処（`request` または `complete`）を返す
-8. **完了処理**（全ワーク done・最後のワークの `complete` 後）。マージ前作業の実施と記録は `merge-prep.sh`（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」）に委ね、スキルは順序と承認を司る:
+8. **完了処理**（全ワーク done・最後のワークの `complete` 後）。マージ前作業の実施と記録は `merge-prep.sh`（`.claude/docs/10_spec/skill-work-ticket-driven.md`「マージ前作業の判定と状態」）に委ね、スキルは順序と承認を司る:
    1. `wip/30_reports/` の要約で PR 本文を最終整形する（`gh pr edit M --body-file`）。**リセットより前に行う**（報告は 8-3 で削除される。要約は PR 本文に残す）
    2. **承認③**: マージ前作業に進むか
    3. `bash .claude/hooks/merge-prep.sh reset-wip --dry-run` で削除対象を提示してから `reset-wip` を実行する（wip の成果物を削除し、最後のワークのレビュー完了の証跡を `wip/merge-prep.json` へ写してコミット・push）
@@ -243,7 +243,7 @@ bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N]  # 
 bash .claude/hooks/merge-prep.sh ready                           # 記録と再検証を通れば draft 解除（内部で gh pr ready）
 ```
 
-- レビュー依頼・コメント取得はスキルが `gh pr comment` / `gh pr view` / `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」が正）。`complete` は `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
+- レビュー依頼・コメント取得はスキルが `gh pr comment` / `gh pr view` / `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/skill-work-ticket-driven.md`「ワーク境界の判定とレビュー状態」が正）。`complete` は `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
 - draft 解除・issue コメント・wip の削除も同様に `merge-prep.sh` に委ねる（同「マージ前作業の判定と状態」が正）。`gh pr ready` の直接実行はフックが WF015 で拒否する。`ready` は `reset-wip` / `check-conflicts`（衝突なし）/ `notify-issue` の記録に加え、その時点で wip が空・未コミット無し・push 済み・衝突なしを再検証してから `gh pr ready` を実行する
 
 ---
@@ -344,8 +344,8 @@ bash .claude/hooks/merge-prep.sh ready                           # 記録と再�
 
 ## 関連するドキュメント
 
-- `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`（要件定義書）
-- `.claude/docs/10_spec/チケット駆動ワークフロー.md`（後続の実作業の仕様。Bash allowlist の正）
+- `.claude/docs/00_requirements/skill-workflow-issue-mr-driven.md`（要件定義書）
+- `.claude/docs/10_spec/skill-work-ticket-driven.md`（後続の実作業の仕様。Bash allowlist の正）
 - `.claude/docs/10_spec/スキル体系.md`（本スキルは3層構造の `workflow-*` に分類される。命名規則・承認方式の正）
 - `.claude/skills/task-gh-issue/SKILL.md`、`.claude/skills/task-gh-feature/SKILL.md`（委譲先の手順）
 

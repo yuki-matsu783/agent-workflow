@@ -2,7 +2,7 @@
 # ============================================================
 # test-workflow-guard.sh — workflow-guard.sh の git add / git mv 判定のユニットテスト
 # ============================================================
-# .claude/docs/10_spec/チケット駆動ワークフロー.md の
+# .claude/docs/10_spec/skill-work-ticket-driven.md の
 # 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」を検証する。
 # 一時ディレクトリをプロジェクトルートに見立てて stdin に JSON を与え、
 # exit code / stdout / stderr を検証する。

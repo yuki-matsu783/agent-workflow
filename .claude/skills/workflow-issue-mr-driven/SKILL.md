@@ -17,8 +17,8 @@ description: >
 依頼を受けたら**コードに触る前に** issue を確定し、issue に紐づく feature ブランチと draft PR を作り、その上でチケット駆動ワークフローを実施する。
 このスキルは**順序と承認ポイントを司るオーケストレータ**であり、個々の操作は既存スキルに委譲する。
 
-- 要件: `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`
-- 仕様（承認ポイント・命名規約・委譲内容の正）: `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`
+- 要件: `.claude/docs/00_requirements/skill-workflow-issue-mr-driven.md`
+- 仕様（承認ポイント・命名規約・委譲内容の正）: `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`
 - 振り分け実施済み判定の仕様（WF101 フックの正。`workflow-quick-request` と共有するメタ文書）: `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`
 - 類似 issue の判定基準と `gh` コマンド集: `references/issue-triage.md`
 - 対になる振り分け: `workflow-quick-request`（issue / PR を作るまでもない軽作業。判定表は同スキルの手順 0 が正。依頼が軽作業に該当すると分かったら、そちらを Skill ツールで読み込んで切り替える）
@@ -118,7 +118,7 @@ ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/d
 次のいずれかで「issue を作って workflow-issue-mr-driven で進める」と合意し、その場でこのスキルが読み込まれた場合は、依頼文からの抽出をやり直さない。
 
 - `workflow-quick-request` 手順 5-3
-- `work-ticket-driven` の retrospective チケットの振り返り合意（完了処理が終わった後。仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「retrospective の棚卸しと合意」）
+- `work-ticket-driven` の retrospective チケットの振り返り合意（完了処理が終わった後。仕様: `.claude/docs/10_spec/skill-work-ticket-driven.md`「retrospective の棚卸しと合意」）
 
 - 引き継ぐ項目（切り替え元と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ フェーズ列（AI アセットの標準: 調査 → AI アセット設計 → AI アセット実装 → 振り返り。`work-overall-plan` が全体計画に書く）
 - 省略できる: 依頼の要約に関する曖昧点の質問（上記が既に確定しているため、まとめて 1 回質問するステップは不要）
@@ -214,7 +214,7 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 
 ## 手順 6: 完了処理（全ワーク done 後）
 
-ループを抜けた時点で push とレビュー（最後のワークの `complete`）は済んでいる。ここからマージ前作業を `merge-prep.sh` で順に実行し、記録と再検証を通ったときだけ draft を解除する（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」）。各サブコマンドは前提未充足を WF016 で返すので、状態ファイル `wip/merge-prep.json` を直接直して通そうとしない。
+ループを抜けた時点で push とレビュー（最後のワークの `complete`）は済んでいる。ここからマージ前作業を `merge-prep.sh` で順に実行し、記録と再検証を通ったときだけ draft を解除する（仕様: `.claude/docs/10_spec/skill-work-ticket-driven.md`「マージ前作業の判定と状態」）。各サブコマンドは前提未充足を WF016 で返すので、状態ファイル `wip/merge-prep.json` を直接直して通そうとしない。
 
 | # | やること | 補足 |
 |---|---------|------|

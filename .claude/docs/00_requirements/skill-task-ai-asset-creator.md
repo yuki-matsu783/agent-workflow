@@ -89,7 +89,7 @@ keywords: [アセット種類判定, skill-creator, テンプレート, 重複�
 ## 関連するドキュメント
 
 - `.claude/skills/task-ai-asset-creator/SKILL.md`
-- `.claude/docs/10_spec/AIアセット作成.md`
+- `.claude/docs/10_spec/skill-task-ai-asset-creator.md`
 
 ## レビュー記録
 

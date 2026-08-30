@@ -19,8 +19,8 @@ description: >
 > 実処理は本スキル同梱のスクリプトに寄せてあり、AI はスクリプトへの入力（対象リポジトリ・変更する設定）を
 > 決めて呼び出すだけにする。コマンドをその場で自由に組み立てない。
 
-- 要件: `.claude/docs/00_requirements/マージ設定変更.md`
-- 仕様: `.claude/docs/10_spec/マージ設定変更.md`
+- 要件: `.claude/docs/00_requirements/skill-task-repo-merge-settings.md`
+- 仕様: `.claude/docs/10_spec/skill-task-repo-merge-settings.md`
 
 ## 対象設定
 

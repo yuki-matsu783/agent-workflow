@@ -85,7 +85,7 @@ keywords: [仕様書, 入出力定義, 処理フロー, インターフェース
 ## 関連するドキュメント
 
 - `.claude/skills/task-spec/SKILL.md`
-- `.claude/docs/10_spec/仕様書作成.md`
+- `.claude/docs/10_spec/skill-task-spec.md`
 
 ## レビュー記録
 

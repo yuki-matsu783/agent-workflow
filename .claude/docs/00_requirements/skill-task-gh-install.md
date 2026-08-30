@@ -92,7 +92,7 @@ keywords: [gh, glab, install, プラットフォーム判定, ヘッドレス実
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-install/SKILL.md`
-- `.claude/docs/10_spec/CLIインストール.md`
+- `.claude/docs/10_spec/skill-task-gh-install.md`
 
 ## レビュー記録
 
