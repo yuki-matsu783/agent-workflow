@@ -132,15 +132,21 @@ done コミット直後は doing が空なのでフックは働かない。issue
 
 ## 手順 5.5: ワーク境界の判定
 
-done に移したチケットの `type` と、todo の先頭（連番が最小）のチケットの `type` を Read で読んで比べる。
+done コミットの直後（doing が空）に、判定スクリプトを実行する。**目視で type を比べず、この出力に従う**。
 
-| 状態 | 判定 | 次の動き |
+```bash
+bash .claude/hooks/work-boundary.sh status
+```
+
+| `at_boundary` | 意味 | 次の動き |
 |------|------|---------|
-| todo の先頭が同じ type | 同じワークの途中 | 手順 3 に戻り、次のチケットに着手する |
-| todo の先頭が異なる type | **ワーク完了** | 手順 6 へ |
-| todo が空 | **最後のワーク完了** | 手順 6 へ |
+| `false` | 同じワークの途中（todo の先頭が直前の done と同じ type） | 手順 3 に戻り、次のチケットに着手する |
+| `true`（`todo_head` あり） | **ワーク完了**（次のチケットの type が変わる） | 手順 6 へ |
+| `true`（`todo_head` が null） | **最後のワーク完了** | 手順 6 へ |
 
-連番は実施順であり type ごとではない。レビュー指摘対応で同じ type の追加チケットを作ると連番が飛ぶ（例: 011 implementation → 012 retrospective の後に 013 implementation）が、それで構わない。
+出力には `review_state`（`none` / `requested` / `completed`）も含まれる。境界で `completed` になっていない間は、次の type のチケットを doing へ移す操作をフックが WF011 で拒否する（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」）。
+
+連番は実施順であり type ごとではない。レビュー指摘対応で同じ type の追加チケットを作ると連番が飛ぶ（例: 011 implementation → 012 retrospective の後に 013 implementation）が、それで構わない。`status` の `todo_same_type` にそうした追加チケットが列挙される。
 
 ## 手順 6: ワーク完了チェックポイント
 
@@ -157,10 +163,12 @@ done に移したチケットの `type` と、todo の先頭（連番が最小�
 
 | 呼び出し元 | やること |
 |-----------|---------|
-| `workflow-issue-mr-driven` 経由（全体計画の冒頭に issue / PR がある） | **ワーク完了報告**（完了した type・チケット一覧・差分要約・todo に残る次の type）を行い、**ここで制御を呼び出し元へ返す**。push・PR 本文更新・レビュー依頼・レビューコメントの取得・差し戻しの判断はすべて `workflow-issue-mr-driven` の手順 5（ワークループ）が行う。本スキルからは行わない |
-| 単独（issue / PR の文脈が無い） | `AskUserQuestion` で「type X のワークが完了した。差分を確認して、承認 / 差し戻し（追加チケットで対応）」を確認する。承認なら次のワークの手順 3 へ（todo が空なら下記の完了報告）。差し戻しなら指摘内容を DoD に落とした**同じ type の追加チケット**を手順 2 の要領で todo に作り、手順 3 へ |
+| `workflow-issue-mr-driven` 経由（全体計画の冒頭に issue / PR がある） | **ワーク完了報告**（完了した type・チケット一覧・差分要約・todo に残る次の type）を行い、**ここで制御を呼び出し元へ返す**。push・PR 本文更新・レビュー依頼（`work-boundary.sh request`）・レビュー完了の確認（`work-boundary.sh complete`）・差し戻しの判断はすべて `workflow-issue-mr-driven` の手順 5（ワークループ）が行う。本スキルからは行わない |
+| 単独（issue / PR の文脈が無い） | `AskUserQuestion` で「type X のワークが完了した。差分を確認して、承認 / 差し戻し（追加チケットで対応）」を確認する。承認なら `bash .claude/hooks/work-boundary.sh request --local` → `bash .claude/hooks/work-boundary.sh complete --local` を続けて実行し、次のワークの手順 3 へ（todo が空なら下記の完了報告）。差し戻しなら指摘内容を DoD に落とした**同じ type の追加チケット**を手順 2 の要領で todo に作り、手順 3 へ（`request` は不要。追加チケットが done になると境界の状態は自動で失効し、再度この手順に戻る） |
 
-**レビュー指摘への対応は、done 済みチケットを doing に戻さない。** 同じ type の新規チケット（例: `013-implementation-レビュー指摘対応.md`。`depends_on` に直前の done チケット）を追加して着手する。done を戻すと差分チェックの基準コミット（着手コミット）がずれ、作業ログの履歴も壊れる。
+**レビュー状態（`wip/10_tickets/review-state.json`）を Edit / Write / Bash で直接書き換えない。** 書き換えは `work-boundary.sh` の `request` / `complete` だけが行い、それ以外の経路はフックが WF012 で拒否する。前提条件を満たせず `request` / `complete` が WF013 / WF014 で止まったら、条件を解消するかユーザーに報告する。ファイルを直して通そうとしない。
+
+**レビュー指摘への対応は、done 済みチケットを doing に戻さない。** 同じ type の新規チケット（例: `013-implementation-レビュー指摘対応.md`。`depends_on` に直前の done チケット）を追加して着手する。done を戻すと差分チェックの基準コミット（着手コミット）がずれ、作業ログの履歴も壊れる。同じ type の追加チケットは、レビューが `completed` になっていなくても着手できる（フックが例外として許可する）。
 
 既存の `retrospective` チケット（実行者自身のセルフレビュー・結果報告の作成）は本チェックポイント（第三者による承認）とは別物であり、統合しない。retrospective 自体も1つのワークなので、その完了時にも本チェックポイントが発生する。
 
