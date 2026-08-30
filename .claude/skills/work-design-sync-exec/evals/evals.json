@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-design-sync-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（設計反映計画が done、todo に 012-design-sync-仕様書.md、その後に 013-retrospective-振り返り.md がある状態で）設計反映を進めて",
+      "expected_output": "012 を doing に移し、差分一覧に従って docs/10_spec/….md のエラーコード表に E004 を、レスポンス定義に新しい型を Edit で追記し、レビュー記録に版と変更内容（issue #N）を追記する。設計反映計画書の差分一覧の該当行を「一致」に更新する。done 後 at_boundary: true / todo_head_type: retrospective となり、更新した設計書と節を含む完了報告を返す。src/ は触らない",
+      "files": ["wip/20_plans/設計反映計画-x.md", "docs/10_spec/ログイン.md", "wip/10_tickets/20_done/011-design-sync-plan-設計反映計画.md", "wip/10_tickets/00_todo/012-design-sync-仕様書.md", "wip/10_tickets/00_todo/013-retrospective-振り返り.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（設計反映チケットが doing で、仕様書の TC005 に対応するテストが無いと分かった状態で）仕様書から TC005 を消して合わせておいて",
+      "expected_output": "実装漏れを設計書側で消さない。TC005 は差分一覧に「実装漏れ」として残し、呼び出し元に implementation の追加チケットを提案する。仕様書のテストシナリオからは削除しない",
+      "files": ["wip/10_tickets/10_doing/012-design-sync-仕様書.md", "docs/10_spec/ログイン.md"]
+    }
+  ]
+}
