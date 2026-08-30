@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "001-ai-asset-design-gh-pr-rest化設計.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "d85f21d331ee6629a663364cc198c3d6fb103029",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T12:22:08Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T12:23:41Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
