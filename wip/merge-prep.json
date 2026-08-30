@@ -28,17 +28,12 @@
     ]
   },
   "conflicts": {
-    "at": "2026-08-30T12:10:58Z",
+    "at": "2026-08-30T12:14:34Z",
     "base": "main",
     "base_sha": "973c053a651a513d9ad9d5b0b8ebf26a2db758b3",
-    "head_sha": "49b0abe138b4a1cb92e984f990f86598708411f1",
-    "files": [
-      ".claude/docs/10_spec/チケット駆動ワークフロー.md",
-      ".claude/skills/work-ticket-driven/SKILL.md",
-      ".claude/skills/work-ticket-driven/evals/evals.json",
-      ".claude/skills/workflow-issue-mr-driven/SKILL.md"
-    ],
-    "has_conflict": true
+    "head_sha": "2fbb42fd9a5664eb9e28d013fa2307c615299553",
+    "files": [],
+    "has_conflict": false
   },
   "notify": {
     "at": "2026-08-30T12:10:46Z",
