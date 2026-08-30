@@ -27,6 +27,7 @@
 | 現在ブランチの PR | object | N | `gh pr view --json number,url,isDraft,state,body`（無ければ再開ではない） | なし |
 | `wip/10_tickets/` の状態 | string[] | N | todo / doing / done のチケット一覧。再開判定に使う | 空 |
 | デフォルトブランチ | string | Y | `gh repo view --json defaultBranchRef` | |
+| 振り返りからの引き継ぎ情報 | object | N | `workflow-quick-request` 手順 5-3 から切り替えて来た場合の summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）。渡された場合は手順 2（依頼の整理）の曖昧点の質問を省略してよい | なし |
 
 ### 入力フォーマット（依頼の整理結果）
 
@@ -132,6 +133,7 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 5. **ワーク途中のチケット完了ごとの push**: 同じ作業タイプの次のチケットが todo に残っている（ワーク境界ではない）場合でも、done コミット直後（doing が空）に `git push` してよい。PR に進捗が反映される。この場合はレビュー依頼（承認④）を行わず、次のチケットの着手に進む
 6. **レビュー完了の連絡がないまま「続けて」と言われた**: 基本フロー 7-5（`work-boundary.sh complete`）を実行し、通れば次のワークへ進む。通らない（WF014）なら理由を報告して応答を終える。`complete` を経ずに次の type へ着手しようとしてもフックが WF011 で拒否する
 7. **ヘッドレス実行（`claude -p` 等）でワーク境界に達した**: レビュー依頼（7-4）を投稿した時点でそのセッションの応答を完了とする。レビュー結果の反映と次のワークは次回セッション（代替フロー 1 の再開）で行う。1セッションで全ワークを完走することは想定しない
+8. **`workflow-quick-request` の振り返り（手順 5-3）からの切り替え**: summary / acceptance / kind / チケット構成が既に引き継がれているため、手順 2（依頼の整理）の曖昧点の質問を省略し、そのまま手順 3（既存 issue の検索）へ進む。手順 1（状態確認）の未コミットの変更の確認は省略しない。チケット構成は引き継がれたとおり `ai-asset-design` → `ai-asset-implementation` を用いる
 
 ### 例外フロー
 
@@ -296,6 +298,7 @@ gh pr ready N
 | IP012 | レビュー完了後のコメント取得（指摘なし） | 「レビュー完了」の発言、PR のコメントは自分の依頼のみ | `gh pr view` / `gh api .../comments` を実行 → 指摘 0 件と報告 → 次のワーク（todo 先頭のチケット）に着手 | |
 | IP013 | レビュー完了後のコメント取得（指摘あり） | 「レビュー完了」の発言、インラインコメント 1 件 | コメントを提示 → `AskUserQuestion` で対応要否を確認 → 対応する場合、同じ作業タイプの追加チケットを todo に作成して着手（done チケットを doing に戻さない） | |
 | IP014 | レビュー完了の合図なしで続行 | ワーク完了・レビュー依頼済みの状態で「続けて」 | コメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む | |
+| IP015 | quick-request の振り返りから切り替え | `workflow-quick-request` 手順 5-3 で合意した summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）を引き継いで開始 | 依頼の要約に関する曖昧点を質問せず、引き継がれた summary / keywords で既存 issue を検索して承認①に進む。未コミットの変更があれば省略せず確認する | |
 
 ### テスト実施例
 
@@ -322,3 +325,4 @@ gh pr ready N
 | 2026-08-30 | 1.2 | スキル体系の3層再編（workflow/work/task）に伴い、言及するスキル名を新名称に更新 | Hiro |
 | 2026-08-30 | 1.3 | ワーク（作業タイプ）完了ごとに push・レビュー依頼・コメント取得・追加チケットを行うワークループ（承認④）を追加。ブランチ命名規約を `<prefix>-<N>-<slug>`（ハイフン区切り）に変更。ヘッドレス実行時の扱い、IP011〜IP014 を追加（issue #12） | Hiro |
 | 2026-08-30 | 1.4 | ワークループのレビュー依頼・コメント取得を `work-boundary.sh`（`request` / `complete` / `reply`）に委ねる形に変更。状態ファイルの直接書き換え禁止（WF012）とレビュー未完了での着手拒否（WF011）を明記（issue #12、ユーザー指示） | Hiro |
+| 2026-08-30 | 1.5 | `workflow-quick-request` 手順 5-3 の振り返りからの切り替え時の入力・代替フロー・テストケース（IP015）を追加（issue #5） | Hiro |
