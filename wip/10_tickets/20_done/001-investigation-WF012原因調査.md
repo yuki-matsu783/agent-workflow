@@ -12,8 +12,8 @@ issue #29 のとおり、`workflow-boundary.sh` の WF012 判定が引用符内�
 
 ## 完了条件（DoD）
 
-- [ ] `wip/20_plans/WF012修正計画.md` が作成され、修正対象箇所（`workflow-boundary.sh` の該当行）と追加するテストケース（`test-hooks.sh` の TC025 系）の一覧が具体的に記載されている
-- [ ] issue #29 の受け入れ条件3点それぞれが、どのロジックでどう満たされるかが計画書に明記されている
+- [x] `wip/20_plans/WF012修正計画.md` が作成され、修正対象箇所（`workflow-boundary.sh` の該当行）と追加するテストケース（`test-hooks.sh` の TC025 系）の一覧が具体的に記載されている
+- [x] issue #29 の受け入れ条件3点それぞれが、どのロジックでどう満たされるかが計画書に明記されている
 
 ## 作業内容
 
@@ -28,8 +28,9 @@ issue #29 のとおり、`workflow-boundary.sh` の WF012 判定が引用符内�
 
 ### うまくいったこと
 
--
+- workflow-guard.sh の check_bash が既に持っているクォート除去前処理（sanitized）をそのまま参照でき、workflow-boundary.sh 側の実装方針が素直に決まった
+- 既存の test-hooks.sh の TC025 系ヘルパー（run_boundary / bash_json / check）がそのまま流用できるため、テスト追加のコストが低い
 
 ### うまくいかなかったこと
 
--
+- 特になし
