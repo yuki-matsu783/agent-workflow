@@ -12,6 +12,9 @@ description: >
 
 ユーザーの要望を受け、**skill / rule / hook / agent** のいずれかに分類し、既存と重複を確認してから作成する。
 
+- 要件: `.claude/docs/00_requirements/skill-task-ai-asset-creator.md`
+- 仕様: `.claude/docs/10_spec/skill-task-ai-asset-creator.md`
+
 ## 手順 0: アセット種類の判定
 
 ユーザーの要望から、作成対象の種類を判定する。

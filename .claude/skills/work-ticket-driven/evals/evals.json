@@ -4,7 +4,7 @@
     {
       "id": 0,
       "prompt": "チケット駆動で README の目次生成機能を追加する作業を進めて",
-      "expected_output": "wip/ 配下が初期化され、調査・実装・振り返りのチケットが wip/10_tickets/00_todo/ に連番（NNN-<type>-<slug>.md）で作成・コミットされる。その後 001 のチケットが doing に移動され、chore(ticket): start のコミットが作成される",
+      "expected_output": "wip/ 配下が初期化され、標準の入口として work-overall-plan が読み込まれる。001-overall-plan-全体計画.md が作成・着手され、フェーズ列を書いた全体計画と最初の計画チケット（002-<phase>-plan-….md）だけが todo に起こされる。後続フェーズのチケットは各計画ワークが連鎖的に起こす。単独実行なので全体計画の完了時に AskUserQuestion で承認 / 差し戻しを確認する",
       "files": []
     },
     {
@@ -24,6 +24,36 @@
       "prompt": "（作業途中でセッションが中断された後）続きをやって",
       "expected_output": "wip/10_tickets/10_doing/ の状態が確認され、doing のチケットの作業ログを読んだ上で、計画の再作成をせずに途中から作業が再開される",
       "files": ["wip/10_tickets/10_doing/002-implementation-実装.md", "wip/20_plans/実装計画.md"]
+    },
+    {
+      "id": 4,
+      "prompt": "（workflow-issue-mr-driven 経由で、001-investigation が done、todo の先頭が 002-implementation の状態で）続けて",
+      "expected_output": "手順 5.5 で done の type（investigation）と todo 先頭の type（implementation）が異なると判定し、ワーク完了として扱う。implementation のチケットには着手せず、完了した type・チケット一覧・ワーク開始コミットからの差分要約・次の type を報告して制御を呼び出し元に返す。push やレビュー依頼は行わない",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/00_todo/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 5,
+      "prompt": "（単独実行で、002-implementation が done、todo の先頭が 003-retrospective の状態で）続けて",
+      "expected_output": "ワーク境界と判定し、AskUserQuestion で implementation ワークの承認 / 差し戻しを確認する。差し戻しが選ばれた場合は 002 を doing に戻さず、同じ type の追加チケット（004-implementation-…）を todo に作成して着手する。承認なら 003 に着手する",
+      "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/20_done/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 6,
+      "prompt": "（003-retrospective が doing にあり、結果報告を作成し終えた状態で）retrospective を進めて",
+      "expected_output": "結果報告の作成に続けて、使った AI アセット（スキル/フック/ルール/エージェント/CLAUDE.md）を棚卸しし、報告の棚卸し表に記載した上で、各アセットについて足りなかった / 邪魔だった / 無かった / 問題なし のいずれかで振り返る。候補が無くても「候補なし」として AskUserQuestion で確認する",
+      "files": ["wip/10_tickets/10_doing/003-retrospective-振り返り.md", "wip/30_reports/結果報告.md"]
+    },
+    {
+      "id": 7,
+      "prompt": "（棚卸しの振り返りで「workflow-guard.sh の allowlist にビルドツールが足りず ask で毎回止まった」と気付いた状態で）振り返りの合意を進めて",
+      "expected_output": "フックのロジック変更 = 振る舞いが変わる候補なので、「続けて修正する」の選択肢は出さず、「新規 issue を作って workflow-issue-mr-driven で進める / 今回は不要」で AskUserQuestion により確認する。選ばれたら retrospective チケットを done にしてワーク完了チェックポイントを経たあと（workflow-issue-mr-driven 経由なら完了処理まで完走したあと）、workflow-issue-mr-driven を Skill ツールで読み込み直し、summary/acceptance/kind/フェーズ列を引き継いで手順1から新しい issue の作業を始める",
+      "files": [".claude/hooks/workflow-guard.sh", "wip/10_tickets/10_doing/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 8,
+      "prompt": "（単独実行で 001-overall-plan が done、todo の先頭が 002-investigation-plan の状態で）続けて",
+      "expected_output": "work-boundary.sh status で at_boundary: true を確認し、単独実行なので AskUserQuestion で全体計画の承認 / 差し戻しを確認する。承認なら request --local → complete --local を実行し、todo_head_type が investigation-plan なので work-investigation-plan を読み込んで手順 3 から着手する",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-overall-plan-全体計画.md", "wip/10_tickets/00_todo/002-investigation-plan-調査計画.md"]
     }
   ]
 }

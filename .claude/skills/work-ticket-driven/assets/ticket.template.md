@@ -1,5 +1,5 @@
 ---
-type: <!-- .claude/hooks/workflow-types.json の types キー（investigation | implementation | retrospective | ai-asset-design | ai-asset-implementation） -->
+type: <!-- .claude/hooks/workflow-types.json の types キー（investigation | implementation | retrospective | ai-asset-design | ai-asset-implementation | overall-plan | <phase>-plan | design | design-sync。一覧は .claude/docs/90_glossary/チケットtype.md） -->
 status: todo
 depends_on: []
 # allowed_paths: ["lib/**"]  # type の定義外で確認なしに触りたいパスがある場合のみ記載（インライン配列のみ対応。deny / ask には勝てない）

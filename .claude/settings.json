@@ -37,6 +37,15 @@
             "command": "bash .claude/hooks/workflow-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/workflow-boundary.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

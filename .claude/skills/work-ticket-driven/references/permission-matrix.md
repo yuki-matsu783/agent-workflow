@@ -1,6 +1,6 @@
 # フェーズ×許可マトリクス（要約）
 
-正は `.claude/docs/10_spec/チケット駆動ワークフロー.md`。
+正は `.claude/docs/10_spec/skill-work-ticket-driven.md`。
 **作業タイプとパスの allow / deny / ask は `.claude/hooks/workflow-types.json` で定義**し、フックが呼び出しのたびに読み込む。
 タイプの追加・変更はこの JSON を編集する（コード変更不要）。
 
@@ -39,6 +39,19 @@
 | `ai-asset-design` | `.claude/docs/**`, `wip/20_plans/**` | AI アセットの設計（要件・仕様のみ） |
 | `ai-asset-implementation` | `.claude/hooks/**`, `.claude/rules/**`, `.claude/skills/**`, `.claude/settings.json`（+ test） | AI アセットの実装。フックのテストを実行できる |
 
+### フェーズ別ワークスキル用タイプ
+
+仕様: `.claude/docs/10_spec/フェーズ別ワークスキル.md`。計画 type（`<phase>-plan`）は同じ許可範囲だがフェーズごとに分ける（`work-boundary.sh status` の `todo_head_type` からスキルを一意に選ぶため）。
+
+| type | allow_paths | 用途 |
+|------|------------|------|
+| `overall-plan` | `wip/00_overall_plan/**`（global deny を type allow で貫通） | 全体計画。フェーズ列を決め、最初の計画チケットを起こす（`work-overall-plan`） |
+| `investigation-plan` / `design-plan` / `implementation-plan` / `design-sync-plan` / `ai-asset-design-plan` / `ai-asset-implementation-plan` | `wip/20_plans/**` | 各フェーズの計画。計画書を書き、実施チケット群と次の計画チケットを起こす（`work-<phase>-plan`） |
+| `design` | `docs/**`, `wip/20_plans/**` | 設計。`docs/` に要件定義書・仕様書を作成（`work-design-exec`） |
+| `design-sync` | `docs/**`, `wip/20_plans/**` | 設計反映。実装差分を `docs/` の設計書に書き戻す（`work-design-sync-exec`） |
+
+実施 type の `investigation` / `implementation` / `ai-asset-design` / `ai-asset-implementation` は上の標準タイプをそのまま使う（`work-<phase>-exec`）。
+
 ## Edit / Write / NotebookEdit の判定順序
 
 前段: `wip/10_tickets/10_doing/` に doing チケット以外の `*.md` を書く → **WF001**（`.gitkeep` など Markdown 以外はチケットとみなさない）。doing チケットの `type` が変わる編集 → **WF008**。
@@ -57,6 +70,7 @@
 
 - type のリストを global より先に見るので、global で `.claude/**` を deny しつつ ai-asset 系で `.claude/docs/**` 等を allow できる
 - チケットの `allowed_paths` は「確認なしで触りたいパス」の追加。deny を貫通したり ask を黙らせたりはできない（チケットは Claude 自身が書くため）
+- `wip/10_tickets/**` を対象とする `git mv` / `git add` は、この判定表を経由せず常に許可される（下記「Bash の allowlist」参照）。この表は Edit/Write/NotebookEdit と、`wip/10_tickets/**` 以外を対象とする `git add` にのみ適用される
 
 ## セッション記憶
 
@@ -74,7 +88,7 @@
 | 分類 | コマンド | 対象 |
 |------|---------|------|
 | 読み取り系 | `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `pwd`, `git status/log/diff/show/branch` | 全タイプ |
-| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
+| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（`wip/10_tickets/` 配下同士は無条件許可。それ以外は対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認。対象は `wip/10_tickets/` と許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない — glob に一致せず未記載の確認になる）, `git commit` | 全タイプ |
 | ビルド/テスト | `npm` `npx` `node` `python` `pytest` `go` `cargo` `make` | `bash_groups` に `build` を含むタイプ |
 | フックテスト | `bash .claude/hooks/tests/<name>.sh`, `bash .claude/skills/<skill>/scripts/<name>.sh`（先頭の `VAR=value` は可。それ以外の `bash <script>` は拒否） | `bash_groups` に `test` を含むタイプ |
 

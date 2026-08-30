@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 # ============================================================
-# workflow-entry — 作業の入口ガード（ワークフロースキルの宣言を強制する）
+# workflow-entry — 作業の振り分け実施済み判定（ワークフロースキルの宣言を強制する）
 # ============================================================
-# 仕様: .claude/docs/10_spec/ワークフロー入口ガード.md
+# 仕様: .claude/docs/10_spec/ワークフロー振り分け実施済み判定.md
 #
-# ユーザーのプロンプトごとに、作業を始める前に「入口となるワークフロースキル」
+# ユーザーのプロンプトごとに、作業を始める前に「振り分けとなるワークフロースキル」
 # （WF_ENTRY_SKILLS のいずれか）が Skill ツールで読み込まれたことを機械的に確認する。
 # 読み込まれていなければ書き込み系・実行系ツールを WF101 でブロックする。
 #
 # 使い方（settings.json から 3 つのタイミングで呼ぶ。第 1 引数がモード）:
 #   prompt : UserPromptSubmit。プロンプト連番を進める（= 宣言をリセットする）。
-#            プロンプトが /<入口スキル名> で始まる場合はスラッシュ起動として宣言扱いにする
-#   record : PostToolUse（matcher: Skill）。入口スキルの読み込みを宣言として記録する
+#            プロンプトが /<振り分けスキル名> で始まる場合はスラッシュ起動として宣言扱いにする
+#   record : PostToolUse（matcher: Skill）。振り分けスキルの読み込みを宣言として記録する
 #   guard  : PreToolUse（matcher: Edit|Write|NotebookEdit|Bash|EnterPlanMode|Agent|Workflow）。
 #            現在のプロンプトで未宣言かつ継続条件も満たさなければ exit 2（WF101）
 #
 # 継続条件: wip/10_tickets/00_todo/ または 10_doing/ にチケット（*.md）がある間は
 # workflow-issue-mr-driven の作業が進行中とみなし、宣言の有無にかかわらず許可する
 # （その間は workflow-guard.sh がチケットの type に基づいて統制している）。
+# todo / doing が両方空でも、review-state.json が requested（かつ ticket が 20_done の最終チケット
+# と一致）なら最後のワークのレビュー待ちとみなし、同様に許可する（work-boundary.sh の判定規則と揃える）。
 #
 # 状態ファイル: .claude/hooks/.state/<session_id>.entry（Git 管理外）
 #   prompt_seq=<プロンプト連番>
-#   workflow=<最後に宣言された入口スキル名>
+#   workflow=<最後に宣言された振り分けスキル名>
 #   declared_seq=<宣言時のプロンプト連番>
 #   → declared_seq == prompt_seq のときだけ「宣言済み」
 #
@@ -30,10 +32,14 @@
 set -uo pipefail
 
 # ---------- 設定 ----------
-# 入口として認めるスキル。追加する場合はここと CLAUDE.md「作業の入口」を合わせて更新する
+# 振り分けとして認めるスキル。追加する場合はここと CLAUDE.md「作業の振り分け」を合わせて更新する
 WF_ENTRY_SKILLS=("workflow-issue-mr-driven" "workflow-quick-request")
 # 未完了チケットの置き場。ここに *.md があれば workflow-issue-mr-driven の継続中とみなす
 WF_TICKET_ACTIVE_DIRS=("wip/10_tickets/00_todo" "wip/10_tickets/10_doing")
+# 完了チケットの置き場（最後のワークのレビュー待ち判定で最終チケットを特定するために使う）
+WF_TICKET_DONE_DIR="wip/10_tickets/20_done"
+# レビュー状態ファイル。requested かつ ticket が 20_done の最終チケットと一致する間は継続中とみなす
+WF_REVIEW_STATE_REL="wip/10_tickets/review-state.json"
 WF_STATE_DIR_REL=".claude/hooks/.state"
 WF_RS=$'\x1e'
 
@@ -56,14 +62,14 @@ wf_log() {
     echo "$(date '+%Y-%m-%dT%H:%M:%S') [entry] $*" 2>/dev/null >>"${WF_LOG_FILE}" || true
 }
 
-# 入口スキル名の一覧を「a / b」形式で返す（メッセージ用）
+# 振り分けスキル名の一覧を「a / b」形式で返す（メッセージ用）
 wf_skills_str() {
     local s
     s=$(printf '%s / ' "${WF_ENTRY_SKILLS[@]}")
     printf '%s' "${s% / }"
 }
 
-# $1 が入口スキルなら 0
+# $1 が振り分けスキルなら 0
 wf_is_entry_skill() {
     local s
     for s in "${WF_ENTRY_SKILLS[@]}"; do
@@ -81,6 +87,36 @@ wf_tickets_active() {
         done
     done
     return 1
+}
+
+# 20_done のうちファイル名先頭の連番が最大のチケット名を返す（work-boundary.sh の wb_ticket_num /
+# wb_compute の LAST_DONE 算出と同じ規則）
+wf_last_done_ticket() {
+    local f n max=-1 last=""
+    for f in "${WF_ROOT}/${WF_TICKET_DONE_DIR}"/*.md; do
+        [ -e "${f}" ] || continue
+        n="${f##*/}"
+        n="${n%%-*}"
+        [[ "${n}" =~ ^[0-9]+$ ]] || continue
+        if [ "$((10#${n}))" -gt "${max}" ]; then
+            max=$((10#${n}))
+            last="${f##*/}"
+        fi
+    done
+    printf '%s' "${last}"
+}
+
+# review-state.json が requested、かつその ticket が 20_done の最終チケットと一致すれば 0（継続中）。
+# work-boundary.sh の wb_compute（REVIEW_STATE は st_ticket == LAST_DONE のときだけ有効）と同じ規則
+wf_review_pending() {
+    local state_file="${WF_ROOT}/${WF_REVIEW_STATE_REL}"
+    [ -f "${state_file}" ] || return 1
+    local state ticket
+    state=$(wf_jq -r '.state // ""' "${state_file}" 2>/dev/null)
+    [ "${state}" = "requested" ] || return 1
+    ticket=$(wf_jq -r '.ticket // ""' "${state_file}" 2>/dev/null)
+    [ -n "${ticket}" ] || return 1
+    [ "${ticket}" = "$(wf_last_done_ticket)" ]
 }
 
 # 状態ファイルの読み込み。無ければ「プロンプト 0、未宣言」
@@ -135,7 +171,7 @@ case "${MODE}" in
         prev=""
         [ -n "${WORKFLOW}" ] && prev="（前回の宣言: ${WORKFLOW} @#${DECLARED_SEQ}）"
 
-        # /<入口スキル名> で始まるプロンプトはスラッシュ起動。Skill ツールを経由しないためここで宣言扱いにする
+        # /<振り分けスキル名> で始まるプロンプトはスラッシュ起動。Skill ツールを経由しないためここで宣言扱いにする
         first_line=$(printf '%s' "${PROMPT}" | head -1 | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
         slash="${first_line#/}"
         slash="${slash%% *}"
@@ -148,18 +184,22 @@ case "${MODE}" in
         elif wf_tickets_active; then
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（入口の宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（振り分けの宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから振り分けを宣言し直す。"
+        elif wf_review_pending; then
+            wf_save_state
+            wf_log "PROMPT #${PROMPT_SEQ} continue(review) session=${WF_SESSION_ID}"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 最後のワークのレビュー待ち（review-state.json が requested）のため workflow-issue-mr-driven の継続中とみなす（振り分けの宣言は不要）。レビュー完了の連絡を受けたら work-boundary.sh complete を実行すること。別の依頼を始める場合は、レビューを完了させるかチケットを 00_todo に戻してから振り分けを宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 作業に着手する前に、Skill ツールで $(wf_skills_str) のいずれかを読み込んで入口を宣言すること${prev}。宣言はプロンプトごとに必要で、未宣言のまま Edit / Write / NotebookEdit / Bash / EnterPlanMode / Agent / Workflow を呼ぶと WF101 でブロックされる。判断基準は CLAUDE.md「作業の入口」を参照。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 作業に着手する前に、Skill ツールで $(wf_skills_str) のいずれかを読み込んで振り分けを宣言すること${prev}。宣言はプロンプトごとに必要で、未宣言のまま Edit / Write / NotebookEdit / Bash / EnterPlanMode / Agent / Workflow を呼ぶと WF101 でブロックされる。判断基準は CLAUDE.md「作業の振り分け」を参照。"
         fi
         jq -n --arg ctx "${ctx}" \
             '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'
         exit 0
         ;;
 
-    # ===== PostToolUse (Skill): 入口スキルの読み込みを宣言として記録 =====
+    # ===== PostToolUse (Skill): 振り分けスキルの読み込みを宣言として記録 =====
     record)
         [ "${TOOL}" = "Skill" ] || exit 0
         wf_is_entry_skill "${SKILL}" || exit 0
@@ -179,14 +219,18 @@ case "${MODE}" in
             wf_log "CONTINUE(ticket) #${PROMPT_SEQ} tool=${TOOL} session=${WF_SESSION_ID}"
             exit 0
         fi
+        if wf_review_pending; then
+            wf_log "CONTINUE(review) #${PROMPT_SEQ} tool=${TOOL} session=${WF_SESSION_ID}"
+            exit 0
+        fi
         wf_log "BLOCK WF101 #${PROMPT_SEQ} tool=${TOOL} last=${WORKFLOW:-none}@${DECLARED_SEQ} session=${WF_SESSION_ID}"
         {
-            echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の入口となるスキルがまだ読み込まれていません"
+            echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の振り分けとなるスキルがまだ読み込まれていません"
             echo "対象ツール: ${TOOL}"
             if [ -n "${WORKFLOW}" ]; then
-                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間を除く）"
+                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間、または最後のワークのレビュー待ちの間を除く）"
             fi
-            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-quick-request（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の入口」と workflow-quick-request の手順 0 を参照。ブロックを迂回しないでください。"
+            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-quick-request（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の振り分け」と workflow-quick-request の手順 0 を参照。ブロックを迂回しないでください。"
         } >&2
         exit 2
         ;;

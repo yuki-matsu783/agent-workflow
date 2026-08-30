@@ -11,6 +11,9 @@ description: >
 
 新技術・ライブラリ・フレームワーク・アーキテクチャの調査を構造的にまとめるレポートを作成する。既存の調査と重複がないか確認した上で、テンプレートに基づいて作成する。
 
+- 要件: `.claude/docs/00_requirements/skill-task-investigating-technologies.md`
+- 仕様: `.claude/docs/10_spec/skill-task-investigating-technologies.md`
+
 ## 手順 0: 既存調査の照合
 
 作成前に、既存の技術調査レポートと類似するものがないか確認する。

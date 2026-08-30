@@ -61,6 +61,7 @@ OKF（Open Knowledge Format、<https://okf.md/spec/>）のフィールド定義�
 | `.claude/skills/task-gh-feature/assets/pr.template.md` | **対象外** | GitHub の PR 本文としてそのまま投稿される。frontmatter を追加すると PR 説明欄に YAML がそのまま表示されてしまう |
 | `.claude/skills/task-gh-issue/assets/issue.template.md` | **対象外** | 同上（GitHub issue 本文として投稿される） |
 | `.claude/skills/workflow-issue-mr-driven/assets/issue-addendum.template.md` | **対象外** | 既存 issue 本文の末尾に追記される断片であり、単独の文書ではない |
+| `.claude/skills/workflow-issue-mr-driven/assets/issue-notify.template.md` | **対象外** | `merge-prep.sh notify-issue` で GitHub issue のコメントとしてそのまま投稿される |
 | `.claude/skills/*/SKILL.md`、`.claude/agents/*.md` | `title` / `type` / `tags` / `keywords` のみ追加。`description` は追加しない | 既存の `description` は Claude Code がスキル/エージェント選択に使う実キーのため、重複させず流用する |
 
 いずれも既存のfrontmatterブロックは1つのまま、新キーを既存キーの下に追記する形にし、既存キーの値・順序は変更しない。

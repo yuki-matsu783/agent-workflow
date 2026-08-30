@@ -3,8 +3,8 @@ name: workflow-quick-request
 description: >
   issue と PR を作るまでもない軽作業（質問への回答・説明・調査、typo やドキュメントの修正、
   設定値の微調整、1〜3 ファイルに閉じた振る舞いを変えない変更）を、範囲を宣言してから進め、
-  作業後に使った AI アセット（スキル・フック・ルール・エージェント）の修正・新規作成の要否をユーザーに確認する作業の入口。
-  workflow-issue-mr-driven と対になる 2 つの入口の一方で、CLAUDE.md「作業の入口」により
+  作業後に使った AI アセット（スキル・フック・ルール・エージェント）の修正・新規作成の要否をユーザーに確認する作業の振り分け。
+  workflow-issue-mr-driven と対になる 2 つの振り分けの一方で、CLAUDE.md「作業の振り分け」により
   すべての依頼はどちらかを読み込んでから着手する（フックが WF101 で強制する）。
   Use when the user mentions "軽く", "ちょっと", "さっと", "質問", "教えて", "説明して", "確認して",
   "調べて", "typo", "誤字", "ドキュメント直して", "issue 不要", "issue にしなくていい",
@@ -14,12 +14,14 @@ description: >
 
 # workflow-quick-request — 軽作業を範囲を宣言してから進める
 
-issue / PR / チケットを作らずに進めてよい**軽作業**のための入口。
+issue / PR / チケットを作らずに進めてよい**軽作業**のための振り分け。
 「本当に軽作業か」を最初に判定し、範囲を宣言してから作業し、範囲を超えたら止まる。
 判定に迷ったら重い側（`workflow-issue-mr-driven`）に倒す。
 
-- 入口ガードの仕様: `.claude/docs/10_spec/ワークフロー入口ガード.md`
-- 対になる入口: `workflow-issue-mr-driven`（issue と draft PR に紐づけてチケット駆動で進める）
+- 要件: `.claude/docs/00_requirements/skill-workflow-quick-request.md`
+- 仕様: `.claude/docs/10_spec/skill-workflow-quick-request.md`
+- 振り分け実施済み判定の仕様（WF101 フックの正。`workflow-issue-mr-driven` と共有するメタ文書）: `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`
+- 対になる振り分け: `workflow-issue-mr-driven`（issue と draft PR に紐づけてチケット駆動で進める）
 
 ## 手順 0: 軽作業かどうかの判定
 
@@ -33,6 +35,7 @@ issue / PR / チケットを作らずに進めてよい**軽作業**のための
 | 検証 | 目視・既存テストの実行で足りる | テストの追加・変更やレビューが必要 |
 | 追跡 | 経緯を GitHub に残す必要がない | issue / PR で経緯を追いたい、他の人がレビューする |
 | ユーザーの指定 | 「軽く」「issue 不要」「質問」など | 「issue 駆動で」「PR にして」「#N をやって」など |
+| 対象 | `.claude/` 配下のアセット以外。または `.claude/` 配下でも SKILL.md・ルール・テンプレートの typo・文言修正など振る舞いが変わらないもの | `.claude/` 配下のアセット（スキル・フック・ルール・エージェント・settings.json）の作成・変更（新規作成、フックのロジック変更、スキルの手順変更など振る舞いが変わるもの） |
 
 - 判定結果は 1 行で述べる（例: 「README の誤字修正 1 ファイル、振る舞いの変更なし → 軽作業として進める」）
 - issue-pr 側に該当する場合は、その旨を伝えて **`workflow-issue-mr-driven` を Skill ツールで読み込んで**そちらの手順に切り替える（このスキルの手順は続けない）
@@ -118,7 +121,7 @@ gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
 - **「issue を作って workflow-issue-mr-driven で進める」が選ばれたら、その場で `workflow-issue-mr-driven` を Skill ツールで読み込み、手順 1 から始める**（次のプロンプトに先送りしない）。引き継ぐ内容:
   - summary / acceptance: 振り返りで挙げた対象アセット・変更点・理由・期待する挙動
   - kind: 改善・最適化（新規作成ならタスク）
-  - チケットは `ai-asset-design`（`.claude/docs/` の要件・仕様）→ `ai-asset-implementation`（フック・スキル・settings.json）の順で切る。実装は `task-ai-asset-creator` の規約に従う
+  - フェーズ列は AI アセットの標準（調査 → AI アセット設計（`.claude/docs/` の要件・仕様）→ AI アセット実装（フック・スキル・settings.json）→ 振り返り）。`work-overall-plan` が全体計画に書き、各計画ワークがチケットを起こす。実装は `task-ai-asset-creator` の規約に従う
   - どの issue で対応するか（既存 / 新規）と issue 本文の承認は、workflow-issue-mr-driven 側の承認①②で改めて取る。ここでの合意は「そのルートに進むこと」の合意であり、issue の内容の承認ではない
 - 今回の軽作業に未コミットの変更が残っている場合、workflow-issue-mr-driven の手順 0（ブランチを切る前の扱いの確認）で扱う。勝手に stash・破棄しない
 - ヘッドレス実行（`claude -p`、CI）では確認に応答できないため、振り返りと候補を報告に含めるだけにして完了扱いとする（承認待ちで止まらない・issue も作らない）
@@ -140,5 +143,5 @@ gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
 
 - 「軽い」は規模ではなく**振る舞いが変わらないこと**で判断する。1 行でもロジックの変更はバグ修正 = issue-pr 側
 - 宣言した「やらないこと」は報告で積み残しとして返す。気付きを黙って捨てない
-- 質問・説明だけの依頼でもこのスキルを読み込む（入口ガードはプロンプトごとに宣言を求める）
+- 質問・説明だけの依頼でもこのスキルを読み込む（振り分け実施済み判定はプロンプトごとに宣言を求める）
 - 振り返り（手順 5）は作業の直後に行う。アセットの不備は使った直後が一番具体的に言語化できる

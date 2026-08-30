@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-design-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（調査結果が done、todo の先頭が 005-design-plan-設計計画.md の状態で）設計計画を立てて",
+      "expected_output": "005 を doing に移してコミットし、調査結果の候補から結論方針を決めて wip/20_plans/設計計画-….md を Write する（設計書の一覧: docs/00_requirements/…・docs/10_spec/… と骨子、受け入れ条件との対応）。設計チケット（006-design-…、type design）と次の計画チケット 00N-implementation-plan-実装計画.md を起こす。docs/ には書かない。done にしてコミットし、at_boundary: true / todo_head_type: design を確認して完了報告を返す",
+      "files": ["wip/00_overall_plan/plan.md", "wip/20_plans/調査結果-x.md", "wip/10_tickets/20_done/004-investigation-制約調査.md", "wip/10_tickets/00_todo/005-design-plan-設計計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（設計計画チケットが doing の状態で）ついでに仕様書も書いちゃって",
+      "expected_output": "設計計画ワークでは設計書を書かない（design-plan は docs/** に書けない）。仕様書は設計チケット（work-design-exec）で書く旨を伝え、設計計画書と設計チケットの起票に集中する",
+      "files": ["wip/10_tickets/10_doing/005-design-plan-設計計画.md"]
+    }
+  ]
+}

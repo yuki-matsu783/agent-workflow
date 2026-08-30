@@ -14,7 +14,7 @@
 - 設計や実装の意図を明確に説明すること
 - 判断のメリット・デメリットを提示すること
 
-## 作業の入口（必須）
+## 作業の振り分け（必須）
 
 ユーザーからの依頼は、**内容を問わずすべて**、次のどちらかのスキルを Skill ツールで読み込んでから着手すること。
 読み込み前に Edit / Write / NotebookEdit / Bash / EnterPlanMode / Agent / Workflow を呼ぶと、フック（`.claude/hooks/workflow-entry.sh`）が **WF101** でブロックする。
@@ -27,10 +27,11 @@
 - 宣言は**ユーザーのプロンプトごと**に必要。フォローアップ（「はい」「続けて」）でも前のプロンプトの宣言は引き継がれない
 - ただし `wip/10_tickets/00_todo/` または `10_doing/` にチケットがある間（`workflow-issue-mr-driven` の作業中）は継続とみなし、再宣言は不要。別の依頼を始めるならチケットを完了するか todo に戻してから宣言し直す
 - 判断基準は `workflow-quick-request` の手順 0 の表に従う。迷ったら `workflow-issue-mr-driven`（重い側）に倒すか、AskUserQuestion で確認する
+- `.claude/` 配下のアセット（スキル・フック・ルール・エージェント・settings.json）の作成・変更は `workflow-issue-mr-driven`（`ai-asset-design` → `ai-asset-implementation`）で進める。例外: SKILL.md・ルール・テンプレートの typo・文言修正など振る舞いが変わらないものは `workflow-quick-request` でよい
 - 軽作業として始めた後に基準を超えると分かったら、止めて `workflow-issue-mr-driven` への切り替えを提案する
 - WF101 でブロックされたら迂回せず、該当スキルを Skill ツールで読み込んでから元の操作をやり直す
 - `WORKFLOW_ENTRY_ENFORCE=0` での無効化はユーザーの明示的な指示があるときだけ
-- 仕様: `.claude/docs/10_spec/ワークフロー入口ガード.md`
+- 仕様: `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`
 
 ## スキルの3層構造
 

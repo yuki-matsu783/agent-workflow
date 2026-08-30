@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-investigation-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（全体計画が done、todo の先頭が 002-investigation-plan-調査計画.md、フェーズ列が 調査 → 設計 → 実装・テスト → 設計反映 → 振り返り の状態で）調査計画を立てて",
+      "expected_output": "002 を doing に移してコミットし、全体計画の判断点と受け入れ条件から調査観点を列挙した wip/20_plans/調査計画-….md を Write する。調査チケット（003-investigation-…〜、type investigation）と次の計画チケット 00N-design-plan-設計計画.md を todo に起こす。実装チケットや設計チケットは起こさない。done にしてコミットし、work-boundary.sh status で at_boundary: true / todo_head_type: investigation を確認して完了報告を返す",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-overall-plan-全体計画.md", "wip/10_tickets/00_todo/002-investigation-plan-調査計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（フェーズ列が 調査 → 振り返り だけの全体計画で）調査計画を立てて",
+      "expected_output": "調査チケット群のあとに、次の計画チケットではなく 00N-retrospective-振り返り.md を起こす",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/00_todo/002-investigation-plan-調査計画.md"]
+    }
+  ]
+}
