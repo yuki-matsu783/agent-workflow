@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 40,
   "branch": "feature-39-work-phase-skills",
-  "state": "checked",
+  "state": "notified",
   "review": {
     "ticket": "009-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -35,6 +35,14 @@
     "files": [],
     "has_conflict": false
   },
-  "notify": null,
+  "notify": {
+    "at": "2026-08-30T12:10:46Z",
+    "issues": [
+      {
+        "number": 39,
+        "comment_url": "https://github.com/yuki-matsu783/agent-workflow/issues/39#issuecomment-5468600141"
+      }
+    ]
+  },
   "ready": null
 }
