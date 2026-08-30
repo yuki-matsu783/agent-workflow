@@ -1,22 +1,15 @@
 {
   "version": 1,
-  "ticket": "002-ai-asset-design-仕様書と既存仕様の更新.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "008-ai-asset-implementation-呼び出し元とevalsの更新.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
   "local": false,
   "pr": 40,
-  "head_sha": "5e5e022d537029a9a3b1e52f67e09ee2976440d5",
+  "head_sha": "3ebee5e5d534aa5baa73f664297be4d94c7852c2",
   "request": {
-    "comment_id": "5468281794",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468281794",
-    "at": "2026-08-30T11:01:43Z"
+    "comment_id": "5468534987",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/40#issuecomment-5468534987",
+    "at": "2026-08-30T11:56:41Z"
   },
-  "complete": {
-    "at": "2026-08-30T11:19:04Z",
-    "review_decision": "",
-    "comment_ids": [
-      "IC_kwDOUHO_g88AAAABRe9bwg"
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
