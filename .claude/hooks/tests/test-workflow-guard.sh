@@ -3,7 +3,10 @@
 # test-workflow-guard.sh — workflow-guard.sh の git add / git mv 判定のユニットテスト
 # ============================================================
 # .claude/docs/10_spec/チケット駆動ワークフロー.md の
-# 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」を検証する。
+# 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」と、
+# 「git add の対象パスの規約」（対象は wip/10_tickets/ と許可パス内のファイルに限定し、
+# wip/ のような親ディレクトリ全体を指定しない。指定すると未記載 WF009 の確認になる。
+# 2.3 / TC022b・TC022c、issue #47）を検証する。
 # 一時ディレクトリをプロジェクトルートに見立てて stdin に JSON を与え、
 # exit code / stdout / stderr を検証する。
 #
@@ -85,6 +88,21 @@ check() { # $1=テストID $2=期待exit $3=含まれるべき文字列(空可)
     PASS=$((PASS + 1))
 }
 
+check_absent() { # $1=テストID $2=期待exit $3=含まれてはいけない文字列（確認なしで許可されたことの検証）
+    local id="$1" want_exit="$2" unwanted="$3"
+    local combined="${R_ERR}${R_OUT}"
+    if [ "${R_EXIT}" -ne "${want_exit}" ]; then
+        echo "FAIL ${id}: exit ${R_EXIT} (expected ${want_exit}) : ${combined}"
+        FAIL=$((FAIL + 1)); return
+    fi
+    if grep -q -- "${unwanted}" <<<"${combined}"; then
+        echo "FAIL ${id}: 出力に '${unwanted}' が含まれている : ${combined}"
+        FAIL=$((FAIL + 1)); return
+    fi
+    echo "PASS ${id}"
+    PASS=$((PASS + 1))
+}
+
 write_ticket implementation
 
 # ---------- TG001: global.allow_paths を空にしても git add wip/10_tickets/** は allow ----------
@@ -146,6 +164,34 @@ check TC035c 0 'WF009'
 write_ticket implementation
 run "$(edit_json Edit docs/spec.md)"
 check TC039 0 'WF009'
+
+# ============================================================
+# git add の対象パスの規約（.claude/docs/10_spec/チケット駆動ワークフロー.md 2.3 TC022b / TC022c、issue #47）
+# wip/ のような親ディレクトリ全体は wip/10_tickets/* にも type の allow にも一致せず未記載（WF009）になる。
+# 規約どおり wip/10_tickets/ と許可パス内のファイルを明示すれば確認なしで許可される
+# ============================================================
+
+# ---------- TC022b: 親ディレクトリ全体の git add は未記載扱い（investigation / overall-plan） ----------
+write_ticket investigation
+run "$(cmd_json "git add wip/")"
+check TC022b-1 0 'WF009'
+write_ticket overall-plan
+run "$(cmd_json "git add wip/")"
+check TC022b-2 0 'WF009'
+
+# ---------- TC022c: 規約どおりの git add は確認なし（done コミットの複合コマンド / overall-plan の許可パス） ----------
+write_ticket investigation
+run "$(cmd_json "git mv wip/10_tickets/10_doing/${TICKET_NAME} wip/10_tickets/20_done/ && git add wip/10_tickets/ wip/20_plans/調査結果.md && git commit -m x")"
+check_absent TC022c-1 0 'WF009'
+write_ticket overall-plan
+run "$(cmd_json "git add wip/10_tickets/ wip/00_overall_plan/")"
+check_absent TC022c-2 0 'WF009'
+
+# ---------- TC022d（仕様書未記載・現行挙動の固定）: 末尾スラッシュ無しの wip/10_tickets は wip/10_tickets/* に一致せず未記載扱い ----------
+# 規約のコマンド例は必ず末尾スラッシュ付き（wip/10_tickets/）で書く。フックを変えて許可する場合はこのケースの期待値を見直す
+write_ticket investigation
+run "$(cmd_json "git add wip/10_tickets")"
+check TC022d 0 'WF009'
 
 echo
 echo "結果: PASS=${PASS} FAIL=${FAIL}"
