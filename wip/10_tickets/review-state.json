@@ -1,24 +1,15 @@
 {
   "version": 1,
-  "ticket": "003-ai-asset-design-チケット駆動ワークフロー仕様書の更新.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "004-ai-asset-implementation-plan-AIアセット実装計画.md",
+  "work_type": "ai-asset-implementation-plan",
+  "state": "requested",
   "local": false,
   "pr": 48,
-  "head_sha": "e9d9439c14537ccf5466c7e9bd15a91464c6b75f",
+  "head_sha": "310bdcb56784c7ae5929a3fd6489def3fe870cf8",
   "request": {
-    "comment_id": "5468820168",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/48#issuecomment-5468820168",
-    "at": "2026-08-30T12:57:18Z"
+    "comment_id": "5468890694",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/48#issuecomment-5468890694",
+    "at": "2026-08-30T13:11:55Z"
   },
-  "complete": {
-    "at": "2026-08-30T13:08:05Z",
-    "review_decision": "",
-    "comment_ids": [
-      "IC_kwDOUHO_g88AAAABRfX_vQ",
-      "IC_kwDOUHO_g88AAAABRfcGgQ",
-      "IC_kwDOUHO_g88AAAABRfeSyA"
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
