@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "003-ai-asset-design-チケット駆動ワークフロー仕様書の更新.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": false,
   "pr": 48,
   "head_sha": "e9d9439c14537ccf5466c7e9bd15a91464c6b75f",
@@ -11,5 +11,14 @@
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/48#issuecomment-5468820168",
     "at": "2026-08-30T12:57:18Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T13:08:05Z",
+    "review_decision": "",
+    "comment_ids": [
+      "IC_kwDOUHO_g88AAAABRfX_vQ",
+      "IC_kwDOUHO_g88AAAABRfcGgQ",
+      "IC_kwDOUHO_g88AAAABRfeSyA"
+    ],
+    "inline_ids": []
+  }
 }
