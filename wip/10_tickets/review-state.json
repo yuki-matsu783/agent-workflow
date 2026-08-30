@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "017-retrospective-振り返り.md",
   "work_type": "retrospective",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "cf89681a32ee6b062257f43188e9bbf75841992e",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T09:14:36Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T09:19:58Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
