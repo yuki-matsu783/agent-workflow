@@ -105,6 +105,15 @@ ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/d
 
 依頼が独立した複数の問題を含む場合は、issue 1 件ずつに分割する案を提示し、ユーザーが選んだ 1 件で進める（1 issue = 1 PR = 1 ワークフロー）。
 
+### 振り返りからの切り替え
+
+`workflow-quick-request` 手順 5-3 で「issue を作って workflow-issue-mr-driven で進める」と合意し、その場でこのスキルが読み込まれた場合は、依頼文からの抽出をやり直さない。
+
+- 引き継ぐ項目（quick-request 側と項目名を一致させる）: `summary` / `acceptance` / `kind`（改善・最適化、または新規作成ならタスク）/ チケット構成（`ai-asset-design` → `ai-asset-implementation`）
+- 省略できる: 依頼の要約に関する曖昧点の質問（上記が既に確定しているため、まとめて 1 回質問するステップは不要）
+- 省略できない: 手順 0 の未コミットの変更の確認、承認①②③④はすべてこの手順で改めて取る（quick-request 側の合意は「このルートに進むこと」の合意であり、issue の内容や PR の承認ではない）
+- `keywords` は quick-request 側から渡されないため、`summary` から自分で組み立てて手順 2（既存 issue の検索）に使う
+
 ## 手順 2: 既存 issue の検索（task-gh-issue 検索モード）
 
 `task-gh-issue` スキルの検索モードに従い、open issue を keywords で検索する。0 件なら `--state all` で closed も含めて再検索する。
@@ -172,6 +181,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 - 全体計画（プランモード）の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書く
 - issue の受け入れ条件（acceptance）を、実装チケットの DoD と振り返りチケットの確認項目に落とす
 - 結果報告（`wip/30_reports/`）の「対象 issue」「PR」欄を埋める
+- 対象が AI アセット（フック・スキル・ルール・エージェント・設定）の場合、チケット構成は `ai-asset-design`（`.claude/docs/` の要件・仕様）→ `ai-asset-implementation`（フック・スキル・settings.json）→（必要なら）`retrospective` を標準とする。振り返りからの切り替え（上記）で引き継いだチケット構成もこれに従う
 
 以降、todo と doing が両方空になるまで次を繰り返す。1 回のループが 1 ワーク（同じ type のチケット群）に対応する。
 

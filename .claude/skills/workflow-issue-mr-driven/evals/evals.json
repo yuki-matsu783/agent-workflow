@@ -83,6 +83,18 @@
         "done 済みチケットを doing に戻さず、同じ type の追加チケットを作っている",
         "002-implementation（別 type）には着手していない"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "（workflow-quick-request 手順 5-3 で「issue を作って workflow-issue-mr-driven で進める」と合意し、summary: 'work-boundary.sh のエラーメッセージが分かりにくい'、acceptance: ['エラーメッセージに対処方法が含まれる'], kind: '改善・最適化', チケット構成: ai-asset-design → ai-asset-implementation が引き継がれた直後に）このスキルを読み込んで進めて",
+      "expected_output": "依頼文からの抽出をやり直さず、引き継がれた summary/acceptance/kind/チケット構成をそのまま用いて手順 0（未コミットの変更確認は省略しない）を経てから、summary から組み立てた keywords で既存 issue を検索し承認①に進む。曖昧点の質問はしない",
+      "files": [],
+      "expectations": [
+        "summary/acceptance/kind を聞き直さず、引き継がれた内容をそのまま使っている",
+        "手順 0 の未コミットの変更確認は省略していない",
+        "gh issue list による検索を行ってから承認①（AskUserQuestion）に進んでいる",
+        "チケット構成が ai-asset-design → ai-asset-implementation になっている"
+      ]
     }
   ]
 }
