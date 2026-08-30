@@ -11,7 +11,7 @@ ASSET_TYPE="${1:?アセットの種類を指定してください (rule/hook/age
 ASSET_NAME="${2:?アセット名を指定してください}"
 SCOPE="${3:-}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
-TEMPLATE_DIR="${PROJECT_DIR}/.claude/skills/ai-asset-creator/assets"
+TEMPLATE_DIR="${PROJECT_DIR}/.claude/skills/task-ai-asset-creator/assets"
 
 # agent の name は小文字とハイフンのみ（Claude Code の制約）
 validate_agent_name() {
@@ -47,7 +47,7 @@ case "${ASSET_TYPE}" in
         ;;
     skill)
         echo "Error: skill の作成は skill-creator を活用してください。" >&2
-        echo "  $ ai-asset-creator で '○○というスキルを作って' と聞いてください。" >&2
+        echo "  $ task-ai-asset-creator で '○○というスキルを作って' と聞いてください。" >&2
         exit 1
         ;;
     *)

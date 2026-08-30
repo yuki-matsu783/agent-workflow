@@ -46,10 +46,10 @@ find .claude/skills -name "SKILL.md" | xargs grep -l -i "<検索キーワード>
 
 ## 手順 1: テンプレートのコピー
 
-`ai-asset-creator` の `assets/skill-template/` をベースに新しいスキルディレクトリを作成する。
+`task-ai-asset-creator` の `assets/skill-template/` をベースに新しいスキルディレクトリを作成する。
 
 ```bash
-cp -r .claude/skills/ai-asset-creator/assets/skill-template/ .claude/skills/<スキル名>/
+cp -r .claude/skills/task-ai-asset-creator/assets/skill-template/ .claude/skills/<スキル名>/
 ```
 
 ---
@@ -83,7 +83,7 @@ cp -r .claude/skills/ai-asset-creator/assets/skill-template/ .claude/skills/<ス
 
 ## エラーハンドリング
 
-- テンプレートディレクトリが存在しない場合: `ai-asset-creator` の `assets/skill-template/` を確認する
+- テンプレートディレクトリが存在しない場合: `task-ai-asset-creator` の `assets/skill-template/` を確認する
 - 既存のスキルと完全に同じ名前がある場合: 上書きせず、更新を提案する
 - 権限エラーが発生した場合: `chmod` は `block-chmod.sh` フックによりブロックされる可能性があるため、`git update-index --chmod=+x` を使用する
 
