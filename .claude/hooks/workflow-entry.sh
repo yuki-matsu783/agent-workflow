@@ -16,7 +16,7 @@
 #            現在のプロンプトで未宣言かつ継続条件も満たさなければ exit 2（WF101）
 #
 # 継続条件: wip/10_tickets/00_todo/ または 10_doing/ にチケット（*.md）がある間は
-# issue-pr-driven-workflow の作業が進行中とみなし、宣言の有無にかかわらず許可する
+# workflow-issue-mr-driven の作業が進行中とみなし、宣言の有無にかかわらず許可する
 # （その間は workflow-guard.sh がチケットの type に基づいて統制している）。
 #
 # 状態ファイル: .claude/hooks/.state/<session_id>.entry（Git 管理外）
@@ -31,8 +31,8 @@ set -uo pipefail
 
 # ---------- 設定 ----------
 # 入口として認めるスキル。追加する場合はここと CLAUDE.md「作業の入口」を合わせて更新する
-WF_ENTRY_SKILLS=("issue-pr-driven-workflow" "light-task-workflow")
-# 未完了チケットの置き場。ここに *.md があれば issue-pr-driven-workflow の継続中とみなす
+WF_ENTRY_SKILLS=("workflow-issue-mr-driven" "workflow-light-task")
+# 未完了チケットの置き場。ここに *.md があれば workflow-issue-mr-driven の継続中とみなす
 WF_TICKET_ACTIVE_DIRS=("wip/10_tickets/00_todo" "wip/10_tickets/10_doing")
 WF_STATE_DIR_REL=".claude/hooks/.state"
 WF_RS=$'\x1e'
@@ -148,7 +148,7 @@ case "${MODE}" in
         elif wf_tickets_active; then
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため issue-pr-driven-workflow の継続中とみなす（入口の宣言は不要）。ticket-driven-workflow の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（入口の宣言は不要）。ticket-driven-workflow の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"
@@ -186,7 +186,7 @@ case "${MODE}" in
             if [ -n "${WORKFLOW}" ]; then
                 echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間を除く）"
             fi
-            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: issue-pr-driven-workflow（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ light-task-workflow（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の入口」と light-task-workflow の手順 0 を参照。ブロックを迂回しないでください。"
+            echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-light-task（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の入口」と workflow-light-task の手順 0 を参照。ブロックを迂回しないでください。"
         } >&2
         exit 2
         ;;
