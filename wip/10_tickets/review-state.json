@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "016-ai-asset-implementation-振り返り切り替え受け口実装.md",
   "work_type": "ai-asset-implementation",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "dbb1e9285e9be5b987772a1ca03736011b1fa10a",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T08:24:18Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T08:25:02Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
