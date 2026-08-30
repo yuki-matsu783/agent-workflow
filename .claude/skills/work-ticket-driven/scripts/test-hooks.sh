@@ -420,10 +420,16 @@ BARE=$(mktemp -d)
 trap 'rm -rf "${TMP}" "${ERRF}" "${MOCK_BIN}" "${BARE}"' EXIT
 cat >"${MOCK_BIN}/gh" <<'EOF'
 #!/usr/bin/env bash
+[ -n "${GH_MOCK_LOG:-}" ] && printf '%s\n' "$*" >>"${GH_MOCK_LOG}"
+[ -n "${GH_MOCK_NO_PR:-}" ] && case "$*" in *"pr view"*) exit 1 ;; esac
 case "$*" in
     *"pr view --json number"*) echo "${GH_MOCK_PR:-13}" ;;
+    *"pr view"*"--json body"*) printf '%s' "${GH_MOCK_PRBODY:-## 関連 Issue
+- Closes #30}" ;;
     *"pr view"*) printf '%s' "${GH_MOCK_PRVIEW:-{\"reviewDecision\":\"\",\"reviews\":[],\"comments\":[]}}" ;;
     *"pr comment"*) echo "https://example.test/pull/13#issuecomment-4242" ;;
+    *"pr ready"*) echo "✓ Pull request #13 is marked as ready for review" ;;
+    *"issue comment"*) echo "https://example.test/issues/$3#issuecomment-777$3" ;;   # $1=issue $2=comment $3=番号
     *"/replies"*) echo "https://example.test/reply" ;;
     *"/comments"*) printf '%s' "${GH_MOCK_INLINE:-[]}" ;;
     *) echo "mock gh: unsupported: $*" >&2; exit 1 ;;
@@ -557,11 +563,11 @@ run_boundary "$(write_json "${TMPW}/wip/10_tickets/10_doing/004-investigation-fi
 type: investigation
 ---")"
 check TC026f2 0 "" "WF"
-# 最後のワーク（todo 空）で requested のまま gh pr ready は WF011
+# 最後のワーク（todo 空）で requested のまま gh pr ready は WF015（issue #30 で WF011 から変更。直接実行は常に拒否）
 rm -f "${TMP}/wip/10_tickets/00_todo/003-implementation-c.md"
 write_state 002-investigation-b.md requested false
 run_boundary "$(bash_json "gh pr ready 13")"
-check TC026g 2 "WF011"
+check TC026g 2 "WF015"
 ENFORCE=0 run_boundary "$(bash_json "gh pr ready 13")"
 check TC026h 0 "" "WF"
 unset ENFORCE
@@ -654,6 +660,165 @@ check TC028c-decision 0 '"review_decision": "APPROVED"'
 unset GH_MOCK_PRVIEW GH_MOCK_INLINE
 run_wb reply 1 "対応しました"
 check TC028-reply 0 "example.test/reply"
+
+# ============================================================
+# マージ前作業（merge-prep.sh / workflow-boundary.sh）
+# 仕様: チケット駆動ワークフロー.md「マージ前作業の判定と状態」TC029〜TC031
+# ============================================================
+MP="${HOOKS_DIR}/merge-prep.sh"
+MP_STATE_FILE="${TMP}/wip/merge-prep.json"
+MP_STATE_W="${TMPW}/wip/merge-prep.json"
+MOCK_LOG=$(mktemp)
+export GH_MOCK_LOG="${MOCK_LOG}"
+trap 'rm -rf "${TMP}" "${ERRF}" "${MOCK_BIN}" "${BARE}" "${MOCK_LOG}" "${TMP2:-}"' EXIT
+
+run_mp() { # merge-prep.sh <subcommand...> を一時リポジトリ内で実行
+    GUARD_OUT=$(cd "${TMP}" && CLAUDE_PROJECT_DIR="${TMPW}" PATH="${MOCK_BIN}:${PATH}" bash "${MP}" "$@" 2>"${ERRF}")
+    GUARD_EXIT=$?
+    GUARD_ERR=$(cat "${ERRF}")
+}
+pass_if() { # $1=テストID $2=条件（bash -c で評価）
+    if bash -c "$2"; then echo "PASS $1"; PASS=$((PASS + 1)); else echo "FAIL $1"; FAIL=$((FAIL + 1)); fi
+}
+
+# ---------- TC029: merge-prep.json の保護（WF012）と gh pr ready の常時拒否（WF015） ----------
+# 現状: done 002 / 003、todo 004-retrospective、review-state は 003 completed（境界・completed）
+run_boundary "$(edit_json "${MP_STATE_W}")"
+check TC029 2 "WF012"
+run_boundary "$(write_json "${MP_STATE_W}" "{}")"
+check TC029-w 2 "WF012"
+for cmd in "rm wip/merge-prep.json" "sed -i s/reset/ready/ wip/merge-prep.json" \
+    "echo x > wip/merge-prep.json" "git checkout -- wip/merge-prep.json"; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC029b(${cmd%% *})" 2 "WF012"
+done
+for cmd in "cat wip/merge-prep.json" "git diff wip/merge-prep.json" "bash .claude/hooks/merge-prep.sh status"; do
+    run_boundary "$(bash_json "${cmd}")"
+    check "TC029c(${cmd%% *})" 0 "" "WF"
+done
+# gh pr ready は completed でも WF015
+run_boundary "$(bash_json "gh pr ready 13")"
+check TC029d 2 "WF015"
+check TC029d-remedy 2 "merge-prep.sh ready"
+run_boundary "$(bash_json "git push && gh pr ready 13")"
+check TC029d2 2 "WF015"
+make_ticket doing 009-investigation-x.md investigation   # doing があっても同じ
+run_boundary "$(bash_json "gh pr ready 13")"
+check TC029d3 2 "WF015"
+clear_doing
+ENFORCE=0 run_boundary "$(bash_json "gh pr ready 13")"
+check TC029e 0 "" "WF"
+unset ENFORCE
+# merge-prep.sh ready 経由は WF015 にならない
+run_boundary "$(bash_json "bash .claude/hooks/merge-prep.sh ready")"
+check TC029f 0 "" "WF"
+
+# ---------- TC030: reset-wip ----------
+touch "${TMP}/wip/10_tickets/20_done/.gitkeep" "${TMP}/wip/20_plans/.gitkeep" "${TMP}/wip/30_reports/.gitkeep"
+echo plan >"${TMP}/wip/20_plans/plan.md"
+echo report >"${TMP}/wip/30_reports/report.md"
+commit_all "tc030 setup"
+git -C "${TMP}" push -q 2>/dev/null
+run_mp reset-wip                   # todo が残っている
+check TC030 2 "WF016"
+check TC030-msg 2 "todo にチケットが残っています"
+[ ! -f "${MP_STATE_FILE}" ] && { echo "PASS TC030-nostate"; PASS=$((PASS + 1)); } || { echo "FAIL TC030-nostate"; FAIL=$((FAIL + 1)); }
+rm -f "${TMP}/wip/10_tickets/00_todo/004-retrospective-r.md"
+commit_all "tc030 todo empty"
+git -C "${TMP}" push -q 2>/dev/null
+echo dirty >"${TMP}/src/dirty.ts"
+run_mp reset-wip                   # 未コミットあり
+check TC030-dirty 2 "未コミット"
+rm -f "${TMP}/src/dirty.ts"
+GH_MOCK_NO_PR=1 run_mp reset-wip   # PR なし
+check TC030-nopr 2 "open な PR"
+write_state 001-investigation-a.md completed false   # 失効 → review_state none
+commit_all "tc030 stale review"
+run_mp reset-wip
+check TC030-review 2 "completed ではありません"
+write_state 003-implementation-c.md completed false
+commit_all "tc030 review ok"
+git -C "${TMP}" push -q 2>/dev/null
+run_mp reset-wip --dry-run
+check TC030-dry 0 '"dry_run": true'
+check TC030-dry2 0 '003-implementation-c.md'
+pass_if TC030-dry-keep "[ -f '${TMP}/wip/10_tickets/20_done/003-implementation-c.md' ] && [ -f '${STATE_FILE}' ]"
+run_mp reset-wip
+check TC030b 0 '"merge_state": "reset"'
+check TC030b2 0 'wip/30_reports/report.md'
+pass_if TC030b-deleted "[ ! -f '${TMP}/wip/10_tickets/20_done/003-implementation-c.md' ] && [ ! -f '${STATE_FILE}' ] && [ ! -f '${TMP}/wip/20_plans/plan.md' ]"
+pass_if TC030b-gitkeep "[ -f '${TMP}/wip/10_tickets/20_done/.gitkeep' ] && [ -f '${TMP}/wip/20_plans/.gitkeep' ]"
+pass_if TC030b-state "jq -e '.state == \"reset\" and .pr == 13 and .review.ticket == \"003-implementation-c.md\"' '${MP_STATE_FILE}' >/dev/null"
+pass_if TC030b-commit "git -C '${TMP}' log -1 --pretty=%s | grep -q 'chore(merge-prep): reset wip'"
+pass_if TC030b-clean "[ -z \"\$(git -C '${TMP}' status --porcelain)\" ]"
+pass_if TC030b-pushed "[ \"\$(git -C '${TMP}' rev-parse HEAD)\" = \"\$(git -C '${TMP}' rev-parse '@{u}')\" ]"
+run_mp status
+check TC030c 0 '"merge_state": "reset"'
+check TC030c2 0 '"wip_clean": true'
+run_mp reset-wip                   # 再実行は done が無いので拒否
+check TC030d 2 "WF016"
+
+# ---------- TC031: check-conflicts / notify-issue / ready ----------
+# ベースブランチ base を bare に用意し、両側で src/main.ts を別々に変える
+git -C "${TMP}" branch -q base "$(git -C "${TMP}" rev-list --max-parents=0 HEAD | tail -1)"
+git -C "${TMP}" push -q origin base 2>/dev/null
+echo head-change >"${TMP}/src/main.ts"
+commit_all "tc031 head change"
+git -C "${TMP}" push -q 2>/dev/null
+TMP2=$(mktemp -d)
+git clone -q "${BARE}" "${TMP2}" 2>/dev/null
+git -C "${TMP2}" config user.email test@example.com
+git -C "${TMP2}" config user.name test
+git -C "${TMP2}" checkout -q base
+echo base-change >"${TMP2}/src/main.ts"
+git -C "${TMP2}" commit -qam "tc031 base change"
+git -C "${TMP2}" push -q origin base 2>/dev/null
+run_mp ready --base base           # notify 前の ready は前提未充足（衝突も列挙される）
+check TC031-early 2 "WF016"
+check TC031-early2 2 "notified ではありません"
+run_mp check-conflicts --base base
+check TC031 2 "WF016"
+check TC031-file 2 "src/main.ts"
+check TC031-remedy 2 "git merge origin/base"
+pass_if TC031-recorded "jq -e '.conflicts.has_conflict == true and .state == \"reset\"' '${MP_STATE_FILE}' >/dev/null"
+pass_if TC031-tree-clean "[ -z \"\$(git -C '${TMP}' status --porcelain)\" ]"
+# 解消: origin/base を merge して衝突を直す
+git -C "${TMP}" merge -q origin/base >/dev/null 2>&1
+echo merged >"${TMP}/src/main.ts"
+git -C "${TMP}" add src/main.ts
+git -C "${TMP}" commit -qm "chore: base をマージし src/main.ts の衝突を解消"
+git -C "${TMP}" push -q 2>/dev/null
+run_mp check-conflicts --base base
+check TC031b 0 '"has_conflict": false'
+check TC031b2 0 '"merge_state": "checked"'
+pass_if TC031b-commit "git -C '${TMP}' log -1 --pretty=%s | grep -q 'chore(merge-prep): check conflicts'"
+# notify-issue
+run_mp notify-issue                # 本文なし
+check TC031c 2 "body-file"
+BODY=$(mktemp); echo "完了報告" >"${BODY}"
+GH_MOCK_PRBODY="no links" run_mp notify-issue --body-file "${BODY}"   # 通知先なし
+check TC031c2 2 "通知先の issue がありません"
+run_mp notify-issue --body-file "${BODY}" --issue 7
+check TC031d 0 '"merge_state": "notified"'
+check TC031d2 0 'issuecomment-77730'
+check TC031d3 0 'issuecomment-7777'
+pass_if TC031d-log "grep -q '^issue comment 30 ' '${MOCK_LOG}' && grep -q '^issue comment 7 ' '${MOCK_LOG}'"
+pass_if TC031d-state "jq -e '.state == \"notified\" and (.notify.issues | map(.number)) == [7,30]' '${MP_STATE_FILE}' >/dev/null"
+run_mp notify-issue --body-file "${BODY}"   # 二重投稿は拒否
+check TC031e 2 "既に notified"
+rm -f "${BODY}"
+# ready
+: >"${MOCK_LOG}"
+run_mp ready --base base
+check TC031f 0 '"merge_state": "ready"'
+pass_if TC031f-gh "grep -q '^pr ready 13' '${MOCK_LOG}'"
+pass_if TC031f-state "jq -e '.state == \"ready\" and .ready.head_sha != null' '${MP_STATE_FILE}' >/dev/null"
+pass_if TC031f-commit "git -C '${TMP}' log -1 --pretty=%s | grep -q 'chore(merge-prep): ready'"
+run_mp status
+check TC031g 0 '"merge_state": "ready"'
+run_mp check-conflicts --base base   # ready 後は不可
+check TC031h 2 "WF016"
+unset GH_MOCK_LOG
 
 echo ""
 echo "結果: PASS=${PASS} FAIL=${FAIL}"
