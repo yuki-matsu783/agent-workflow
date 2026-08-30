@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "015-ai-asset-design-振り返り切り替え受け口仕様追加.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": true,
   "pr": null,
   "head_sha": "f0891073af404ed7fee2fdf207cf24e4a128a67c",
@@ -11,5 +11,10 @@
     "url": null,
     "at": "2026-08-30T03:40:48Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T08:22:09Z",
+    "review_decision": "",
+    "comment_ids": [],
+    "inline_ids": []
+  }
 }
