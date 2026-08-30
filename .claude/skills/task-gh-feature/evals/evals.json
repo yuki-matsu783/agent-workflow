@@ -43,6 +43,22 @@
         "git push -u origin でリモートにプッシュしている",
         "gh pr create で PR を作成し、docs/readme.md の内容が本文に含まれている"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "このプロジェクトは GitLab です。feature ブランチを作って。タイトルは「ログイン機能の実装」で",
+      "expected_output": "GitLab と判定し、デフォルトブランチを確認してそれをベースに feature ブランチを作成し、リモートに push して glab で MR を作成する",
+      "files": [],
+      "expectations": [
+        "origin のホスト名または依頼内容から GitLab と判定し、glab コマンド体系を使っている",
+        "glab api または glab repo view でデフォルトブランチを取得している",
+        "git checkout でベースブランチにチェックアウトしている",
+        "git pull でベースブランチを最新化している",
+        "git checkout -b で feature ブランチを作成している",
+        "git push -u origin でリモートにプッシュしている",
+        "gh pr create ではなく glab mr create --yes で MR を作成している",
+        "MR タイトルに「ログイン機能の実装」が使われている"
+      ]
     }
   ]
 }

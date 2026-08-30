@@ -3,8 +3,8 @@ name: workflow-issue-mr-driven
 description: >
   ユーザーの依頼を GitHub の issue と PR（MR）に紐づけてから、チケット駆動ワークフローで実作業を進める。
   既存 issue の検索 → 類似があればそれで対応するか確認 → 人間の承認 → issue の作成/修正（task-gh-issue）
-  → feature ブランチと draft PR の作成（task-gh-feature）→ チケット駆動ワークフロー、の順で進める開発の入口。
-  workflow-quick-request と対になる 2 つの入口の一方で、振る舞いが変わる変更（機能追加・バグ修正・リファクタリング）、
+  → feature ブランチと draft PR の作成（task-gh-feature）→ チケット駆動ワークフロー、の順で進める開発の振り分け。
+  workflow-quick-request と対になる 2 つの振り分けの一方で、振る舞いが変わる変更（機能追加・バグ修正・リファクタリング）、
   複数モジュールや 4 ファイル以上に及ぶ変更、GitHub に経緯を残したい作業はこちら。
   質問・説明・typo 修正など振る舞いを変えない軽作業は workflow-quick-request を使う。
   Use when the user mentions "issue 駆動で", "issue-MR 駆動", "MR 駆動", "PR 駆動", "issue から作業",
@@ -20,7 +20,7 @@ description: >
 - 要件: `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`
 - 仕様（承認ポイント・命名規約・委譲内容の正）: `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`
 - 類似 issue の判定基準と `gh` コマンド集: `references/issue-triage.md`
-- 対になる入口: `workflow-quick-request`（issue / PR を作るまでもない軽作業。判定表は同スキルの手順 0 が正。依頼が軽作業に該当すると分かったら、そちらを Skill ツールで読み込んで切り替える）
+- 対になる振り分け: `workflow-quick-request`（issue / PR を作るまでもない軽作業。判定表は同スキルの手順 0 が正。依頼が軽作業に該当すると分かったら、そちらを Skill ツールで読み込んで切り替える）
 
 ```
 依頼 ─→ 既存 issue を検索 ─┬─ 類似あり ─→ 承認①「#N で対応する？」─→ 追記案 ─→ 承認② ─→ task-gh-issue（編集）─┐
@@ -210,7 +210,7 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 | 状況 | 対処 |
 |------|------|
 | `gh` 未導入 / 未認証 | `task-gh-install` または `gh auth login` を案内して停止 |
-| `origin` が GitHub でない | 対象外として報告する（GitLab の MR は未対応） |
+| `origin` が GitHub でない | 対象外として報告する（`task-gh-feature` 自体は GitHub/GitLab 両対応だが、本ワークフローの issue 検索・作成・編集は `task-gh-issue` に依存しており、`task-gh-issue` が GitHub 専用の間は本ワークフロー全体として GitLab には未対応） |
 | 未コミットの変更がある | 手順 0「未コミットの変更があるとき」に従い、扱いをユーザーに確認する。勝手に stash / コミット / 破棄しない |
 | 検索が 0 件 | closed を含めて再検索。それでも 0 件なら 3B へ |
 | `gh pr create` が「差分なし」で失敗 | 空コミットを作って再試行 |

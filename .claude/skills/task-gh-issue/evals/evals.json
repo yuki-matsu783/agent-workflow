@@ -4,20 +4,26 @@
     {
       "id": 0,
       "prompt": "issue を作成して。タイトルは「ログイン機能のバグ」、本文は「ログイン時に500エラーが発生する」という内容で",
-      "expected_output": "gh issue create コマンドが実行され、タイトル「ログイン機能のバグ」、本文「ログイン時に500エラーが発生する」で issue が作成される",
+      "expected_output": "origin のホストが GitHub/GitLab のどちらかを判定し、タイトル「ログイン機能のバグ」、本文「ログイン時に500エラーが発生する」で issue が作成される（GitHub なら gh issue create、GitLab なら glab issue create）",
       "files": []
     },
     {
       "id": 1,
       "prompt": "assets/issue.template.md をテンプレートとして使って issue を作成して。タイトルは「テストissue」で",
-      "expected_output": "issue.template.md の内容を読み込み、タイトル「テストissue」、テンプレートの内容を本文として gh issue create が実行される",
+      "expected_output": "issue.template.md の内容を読み込み、タイトル「テストissue」、テンプレートの内容を本文として issue が作成される（GitHub なら gh issue create、GitLab なら glab issue create）",
       "files": ["assets/issue.template.md"]
     },
     {
       "id": 2,
       "prompt": "ドキュメントを issue にして。ファイル docs/design.md を読んで title を「デザイン更新」、body には docs/design.md の内容を使って issue を作成して",
-      "expected_output": "docs/design.md を読み込み、タイトル「デザイン更新」、docs/design.md の内容を本文として gh issue create が実行される",
+      "expected_output": "docs/design.md を読み込み、タイトル「デザイン更新」、docs/design.md の内容を本文として issue が作成される（GitHub なら gh issue create、GitLab なら glab issue create）",
       "files": ["docs/design.md"]
+    },
+    {
+      "id": 3,
+      "prompt": "このプロジェクトの GitLab で「ログイン画面の日本語崩れ」という類似 issue がないか探して。無ければタイトル「ログイン画面の文字化け」、本文「特定のブラウザでログイン画面の日本語が崩れる」で新規作成して",
+      "expected_output": "git remote get-url origin のホスト名から GitLab と判定し、glab issue list --search で類似 issue を検索する。0 件なら glab issue create --title \"ログイン画面の文字化け\" --description \"特定のブラウザでログイン画面の日本語が崩れる\" で issue が作成される",
+      "files": []
     }
   ]
 }

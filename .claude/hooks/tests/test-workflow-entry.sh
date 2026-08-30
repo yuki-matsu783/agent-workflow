@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ============================================================
-# test-workflow-entry.sh — workflow-entry.sh（作業の入口ガード）のユニットテスト
+# test-workflow-entry.sh — workflow-entry.sh（作業の振り分け実施済み判定）のユニットテスト
 # ============================================================
-# .claude/docs/10_spec/ワークフロー入口ガード.md のテストシナリオを検証する。
+# .claude/docs/10_spec/ワークフロー入口ガード.md（ファイル名は旧称のまま据え置き）のテストシナリオを検証する。
 # 一時ディレクトリをプロジェクトルートに見立てて stdin に JSON を与え、
 # exit code / stderr / stdout を検証する。
 #
@@ -88,7 +88,7 @@ check TE003b 2 "WF101"
 run guard "$(tool_json Agent)"
 check TE003c 2 "WF101"
 
-# ---------- TE004: 入口スキルの読み込みを記録 → 許可 ----------
+# ---------- TE004: 振り分けスキルの読み込みを記録 → 許可 ----------
 run record "$(skill_json workflow-quick-request)"
 check TE004 0 "" "WF"
 run guard "$(tool_json Edit)"
@@ -97,7 +97,7 @@ run guard "$(tool_json Bash)"
 check TE004c 0 "" "WF"
 grep -q '^workflow=workflow-quick-request$' "$(state_file)" && echo "PASS TE004d" && PASS=$((PASS + 1)) || { echo "FAIL TE004d: workflow が記録されていない"; FAIL=$((FAIL + 1)); }
 
-# ---------- TE005: 入口以外のスキル読み込みは宣言にならない ----------
+# ---------- TE005: 振り分け以外のスキル読み込みは宣言にならない ----------
 clear_state
 run prompt "$(prompt_json "issue 作って")"
 run record "$(skill_json task-gh-issue)"
@@ -126,7 +126,7 @@ run record "$(skill_json workflow-issue-mr-driven)"
 run guard "$(tool_json Edit)"
 check TE006e 0 "" "WF"
 
-# ---------- TE007: /<入口スキル> によるスラッシュ起動は宣言扱い ----------
+# ---------- TE007: /<振り分けスキル> によるスラッシュ起動は宣言扱い ----------
 clear_state
 run prompt "$(prompt_json "/workflow-quick-request README の誤字を直して")"
 check TE007 0 "スラッシュ起動"
@@ -137,7 +137,7 @@ run prompt "$(prompt_json "/workflow-issue-mr-driven
 ログインのバグを直したい")"
 run guard "$(tool_json Edit)"
 check TE007c 0 "" "WF"
-# 入口以外のスラッシュコマンドは宣言にならない
+# 振り分け以外のスラッシュコマンドは宣言にならない
 run prompt "$(prompt_json "/task-gh-issue バグ報告")"
 run guard "$(tool_json Edit)"
 check TE007d 2 "WF101"

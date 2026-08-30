@@ -57,6 +57,7 @@
 
 - type のリストを global より先に見るので、global で `.claude/**` を deny しつつ ai-asset 系で `.claude/docs/**` 等を allow できる
 - チケットの `allowed_paths` は「確認なしで触りたいパス」の追加。deny を貫通したり ask を黙らせたりはできない（チケットは Claude 自身が書くため）
+- `wip/10_tickets/**` を対象とする `git mv` / `git add` は、この判定表を経由せず常に許可される（下記「Bash の allowlist」参照）。この表は Edit/Write/NotebookEdit と、`wip/10_tickets/**` 以外を対象とする `git add` にのみ適用される
 
 ## セッション記憶
 
@@ -74,7 +75,7 @@
 | 分類 | コマンド | 対象 |
 |------|---------|------|
 | 読み取り系 | `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `pwd`, `git status/log/diff/show/branch` | 全タイプ |
-| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
+| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（`wip/10_tickets/` 配下同士は無条件許可。それ以外は対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
 | ビルド/テスト | `npm` `npx` `node` `python` `pytest` `go` `cargo` `make` | `bash_groups` に `build` を含むタイプ |
 | フックテスト | `bash .claude/hooks/tests/<name>.sh`, `bash .claude/skills/<skill>/scripts/<name>.sh`（先頭の `VAR=value` は可。それ以外の `bash <script>` は拒否） | `bash_groups` に `test` を含むタイプ |
 
