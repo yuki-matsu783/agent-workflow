@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "015-ai-asset-design-マージ前作業の仕様.md",
   "work_type": "ai-asset-design",
-  "state": "requested",
+  "state": "completed",
   "local": false,
   "pr": 31,
   "head_sha": "ba5d4f6cf2864e4563008ac8300a185563ee448f",
@@ -11,5 +11,12 @@
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/31#issuecomment-5467620764",
     "at": "2026-08-30T08:24:22Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-30T08:39:47Z",
+    "review_decision": "",
+    "comment_ids": [
+      "IC_kwDOUHO_g88AAAABReVFnA"
+    ],
+    "inline_ids": []
+  }
 }
