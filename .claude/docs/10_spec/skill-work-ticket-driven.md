@@ -469,6 +469,7 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 ### 共通事項
 
 - 実行は doing が空のとき（全チケット done 後）に限る。doing があれば `workflow-guard.sh` の Bash allowlist 外で WF003 になる
+- doing が空のときは `wf_init`（`workflow-lib.sh`）のガード2で `workflow-guard.sh` / `workflow-diff-check.sh` が exit 0 で抜けるため、allowed_paths による Edit/Write の制限自体が働かない。`check-conflicts` で検知した衝突を解消する Edit は、この状態でどのディレクトリに対しても制限なく行える（別途の許可設定は不要）
 - 前提未充足は exit 2 + `[WF016]` を stderr に出し、**状態ファイルを書き換えない**。例外は `check-conflicts` の「衝突あり」だけで、結果を記録したうえで exit 2 にする
 - 成功時は結果 JSON を stdout に出し、状態ファイルを `chore(merge-prep): <内容>` でコミットして push する
 - `--local` は無い（マージ前作業は PR の存在が前提）。`permissionDecision: ask` は使わず exit 2 のみ（ヘッドレス実行で「確認できないため拒否」にならない）
