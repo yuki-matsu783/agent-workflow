@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-investigation-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（調査計画が done、todo に 003-investigation-現状調査.md と 004-investigation-制約調査.md、その後に 005-design-plan-設計計画.md がある状態で）調査を進めて",
+      "expected_output": "003 を doing に移してコミットし、Read/Glob/Grep で調査して wip/20_plans/調査結果-….md を Write する（根拠つき）。done にしてコミットし、work-boundary.sh status が at_boundary: false なので 004 に着手する。004 完了後は at_boundary: true / todo_head_type: design-plan となり、完了報告を返して制御を戻す。005 には着手しない",
+      "files": ["wip/20_plans/調査計画-x.md", "wip/10_tickets/20_done/002-investigation-plan-調査計画.md", "wip/10_tickets/00_todo/003-investigation-現状調査.md", "wip/10_tickets/00_todo/004-investigation-制約調査.md", "wip/10_tickets/00_todo/005-design-plan-設計計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（調査チケットが doing の状態で）調査中に見つけたバグを直しておいて",
+      "expected_output": "調査ワークではコードを変更しない。バグの内容と根拠を調査結果の「リスク・未解決事項」に書き、修正は後続フェーズ（実装）で扱う旨を伝える。src/ への Edit は行わない",
+      "files": ["wip/10_tickets/10_doing/003-investigation-現状調査.md"]
+    }
+  ]
+}

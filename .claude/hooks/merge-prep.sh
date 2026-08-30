@@ -2,8 +2,8 @@
 # ============================================================
 # merge-prep — マージ前作業の実行と状態の記録（CLI）
 # ============================================================
-# 仕様: .claude/docs/10_spec/チケット駆動ワークフロー.md「マージ前作業の判定と状態」
-#       .claude/docs/10_spec/issue-PR駆動ワークフロー.md「完了処理」
+# 仕様: .claude/docs/10_spec/skill-work-ticket-driven.md「マージ前作業の判定と状態」
+#       .claude/docs/10_spec/skill-workflow-issue-mr-driven.md「完了処理」
 #
 # 使い方:
 #   bash .claude/hooks/merge-prep.sh status [--pr <N>]

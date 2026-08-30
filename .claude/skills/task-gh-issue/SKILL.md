@@ -13,8 +13,8 @@ description: >
 現在のワークスペースが紐づくリポジトリに対し、`gh`（GitHub）または `glab`（GitLab）CLI で issue を
 扱う。どちらの CLI を使うかは手順1でホストを判定して決める。モードは 3 つ。
 
-- 要件: `.claude/docs/00_requirements/issue操作.md`
-- 仕様: `.claude/docs/10_spec/issue操作.md`
+- 要件: `.claude/docs/00_requirements/skill-task-gh-issue.md`
+- 仕様: `.claude/docs/10_spec/skill-task-gh-issue.md`
 
 | モード | 用途 | 主なコマンド（GitHub / GitLab） |
 |--------|------|-------------|

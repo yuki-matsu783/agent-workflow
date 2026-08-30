@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-implementation-exec",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（実装計画が done、todo に 009-implementation-バリデーション.md（DoD: TC001〜TC003、npm test）と 010-implementation-API.md、その後に 011-design-sync-plan-設計反映計画.md がある状態で）実装を進めて",
+      "expected_output": "009 を doing に移し、TC001〜TC003 のテスト（失敗ケース含む）を先に書いて失敗を確認し、src/ を変更して npm test を通す。done 後 at_boundary: false なので 010 に着手。010 完了後 at_boundary: true / todo_head_type: design-sync-plan となり、テスト結果と仕様からの逸脱一覧を含む完了報告を返す。docs/ は変更しない",
+      "files": ["wip/20_plans/実装計画-x.md", "docs/10_spec/ログイン.md", "wip/10_tickets/20_done/008-implementation-plan-実装計画.md", "wip/10_tickets/00_todo/009-implementation-バリデーション.md", "wip/10_tickets/00_todo/010-implementation-API.md", "wip/10_tickets/00_todo/011-design-sync-plan-設計反映計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（実装チケットが doing で、仕様書のエラーコード表に無いケースが見つかった状態で）仕様書も直しておいて",
+      "expected_output": "実装ワークでは docs/ を直さない。追加したエラーケースを作業ログの「うまくいかなかったこと」に仕様からの逸脱として書き、設計反映フェーズで書き戻す旨を伝える",
+      "files": ["wip/10_tickets/10_doing/009-implementation-バリデーション.md", "docs/10_spec/ログイン.md"]
+    }
+  ]
+}

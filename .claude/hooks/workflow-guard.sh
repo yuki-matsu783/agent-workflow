@@ -4,7 +4,7 @@
 # ============================================================
 # 発火タイミング: PreToolUse
 # Matcher: Edit|Write|NotebookEdit|Bash|EnterPlanMode
-# 仕様: .claude/docs/10_spec/チケット駆動ワークフロー.md
+# 仕様: .claude/docs/10_spec/skill-work-ticket-driven.md
 #   - doing チケットのフロントマター type を唯一の状態ソースとし、
 #     type ごとの allow / deny / ask パスは .claude/hooks/workflow-types.json から動的に読む
 #   - Edit/Write/NotebookEdit はパス判定（wf_resolve）:

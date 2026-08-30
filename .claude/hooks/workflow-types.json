@@ -48,6 +48,69 @@
       "deny_paths": [],
       "ask_paths": [],
       "bash_groups": ["test"]
+    },
+    "overall-plan": {
+      "description": "全体計画。フェーズ列を決めて wip/00_overall_plan/ に全体計画を書き、最初の計画チケットを起こす（work-overall-plan）",
+      "allow_paths": ["wip/00_overall_plan/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "investigation-plan": {
+      "description": "調査の計画。調査計画書を wip/20_plans/ に書き、調査チケットと次の計画チケットを起こす（work-investigation-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "design-plan": {
+      "description": "設計の計画。設計計画書を wip/20_plans/ に書き、設計チケットと次の計画チケットを起こす（work-design-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "design": {
+      "description": "設計。docs/ に要件定義書・仕様書を作成・更新する（work-design-exec）",
+      "allow_paths": ["docs/**", "wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "implementation-plan": {
+      "description": "実装・テストの計画。実装計画書を wip/20_plans/ に書き、実装チケットと次の計画チケットを起こす（work-implementation-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "design-sync-plan": {
+      "description": "設計反映の計画。実装差分と設計書の突き合わせ計画を wip/20_plans/ に書き、設計反映チケットと次の計画チケットを起こす（work-design-sync-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "design-sync": {
+      "description": "設計反映。実装・テストで判明した差分を docs/ の設計書に書き戻す（work-design-sync-exec）",
+      "allow_paths": ["docs/**", "wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "ai-asset-design-plan": {
+      "description": "AI アセット設計の計画。設計計画書を wip/20_plans/ に書き、AI アセット設計チケットと次の計画チケットを起こす（work-ai-asset-design-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
+    },
+    "ai-asset-implementation-plan": {
+      "description": "AI アセット実装の計画。実装計画書を wip/20_plans/ に書き、AI アセット実装チケットと次の計画チケット（最後なら振り返りチケット）を起こす（work-ai-asset-implementation-plan）",
+      "allow_paths": ["wip/20_plans/**"],
+      "deny_paths": [],
+      "ask_paths": [],
+      "bash_groups": []
     }
   }
 }

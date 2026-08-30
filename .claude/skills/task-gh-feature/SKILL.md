@@ -14,8 +14,8 @@ description: >
 
 現在のワークスペースが紐づくリポジトリに対し、デフォルトブランチを確認してベースを決定し、feature ブランチを切って PR（GitHub）/MR（GitLab）を作成する。
 
-- 要件: `.claude/docs/00_requirements/featureブランチとPR作成.md`
-- 仕様: `.claude/docs/10_spec/featureブランチとPR作成.md`
+- 要件: `.claude/docs/00_requirements/skill-task-gh-feature.md`
+- 仕様: `.claude/docs/10_spec/skill-task-gh-feature.md`
 
 ## 手順 0: 前準備チェック
 
@@ -316,7 +316,7 @@ glab mr update N --description-file <path>
 glab mr update N --ready
 ```
 
-**GitHub では `gh pr ready N` を直接実行しない。** `workflow-issue-mr-driven` の完了処理（手順 6）では、マージ前作業（wip のリセット・default ブランチとの衝突確認・関連 issue へのコメント）の記録と再検証を通ったときだけ `bash .claude/hooks/merge-prep.sh ready` が内部で `gh pr ready` を実行する。Bash ツールからの直接実行はフック `workflow-boundary.sh` が WF015 で常に拒否する（このスキルを単独で使う場合も同じ。draft のまま人間が GitHub 上で ready にするか、`workflow-issue-mr-driven` の完了処理を通す）。仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」。
+**GitHub では `gh pr ready N` を直接実行しない。** `workflow-issue-mr-driven` の完了処理（手順 6）では、マージ前作業（wip のリセット・default ブランチとの衝突確認・関連 issue へのコメント）の記録と再検証を通ったときだけ `bash .claude/hooks/merge-prep.sh ready` が内部で `gh pr ready` を実行する。Bash ツールからの直接実行はフック `workflow-boundary.sh` が WF015 で常に拒否する（このスキルを単独で使う場合も同じ。draft のまま人間が GitHub 上で ready にするか、`workflow-issue-mr-driven` の完了処理を通す）。仕様: `.claude/docs/10_spec/skill-work-ticket-driven.md`「マージ前作業の判定と状態」。
 
 ---
 

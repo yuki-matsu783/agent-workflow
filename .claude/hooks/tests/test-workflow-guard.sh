@@ -2,8 +2,11 @@
 # ============================================================
 # test-workflow-guard.sh — workflow-guard.sh の git add / git mv 判定のユニットテスト
 # ============================================================
-# .claude/docs/10_spec/チケット駆動ワークフロー.md の
-# 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」を検証する。
+# .claude/docs/10_spec/skill-work-ticket-driven.md の
+# 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」と、
+# 「git add の対象パスの規約」（対象は wip/10_tickets/ と許可パス内のファイルに限定し、
+# wip/ のような親ディレクトリ全体を指定しない。指定すると未記載 WF009 の確認になる。
+# 2.3 / TC022b・TC022c、issue #47）を検証する。
 # 一時ディレクトリをプロジェクトルートに見立てて stdin に JSON を与え、
 # exit code / stdout / stderr を検証する。
 #
@@ -54,6 +57,16 @@ cmd_json() { # $1=command
         '{hook_event_name: "PreToolUse", tool_name: "Bash", session_id: $s, tool_input: {command: $c}}'
 }
 
+edit_json() { # $1=tool(Edit|Write) $2=リポジトリ相対パス
+    jq -n --arg t "$1" --arg p "${TMPW}/$2" --arg s "${SESSION}" \
+        '{hook_event_name: "PreToolUse", tool_name: $t, session_id: $s, tool_input: {file_path: $p, content: "x"}}'
+}
+
+# 実物の作業タイプ定義を読み込む（フェーズ別ワークスキル用 type の検証に使う）
+use_real_types() {
+    cp "${SCRIPT_DIR}/../workflow-types.json" "${TMP}/.claude/hooks/workflow-types.json"
+}
+
 run() { # $1=stdin JSON。結果は R_EXIT / R_OUT / R_ERR
     R_OUT=$(CLAUDE_PROJECT_DIR="${TMPW}" WORKFLOW_ENFORCE=1 bash "${GUARD}" 2>"${ERRF}" <<<"$1")
     R_EXIT=$?
@@ -69,6 +82,21 @@ check() { # $1=テストID $2=期待exit $3=含まれるべき文字列(空可)
     fi
     if [ -n "${want}" ] && ! grep -q -- "${want}" <<<"${combined}"; then
         echo "FAIL ${id}: 出力に '${want}' が無い : ${combined}"
+        FAIL=$((FAIL + 1)); return
+    fi
+    echo "PASS ${id}"
+    PASS=$((PASS + 1))
+}
+
+check_absent() { # $1=テストID $2=期待exit $3=含まれてはいけない文字列（確認なしで許可されたことの検証）
+    local id="$1" want_exit="$2" unwanted="$3"
+    local combined="${R_ERR}${R_OUT}"
+    if [ "${R_EXIT}" -ne "${want_exit}" ]; then
+        echo "FAIL ${id}: exit ${R_EXIT} (expected ${want_exit}) : ${combined}"
+        FAIL=$((FAIL + 1)); return
+    fi
+    if grep -q -- "${unwanted}" <<<"${combined}"; then
+        echo "FAIL ${id}: 出力に '${unwanted}' が含まれている : ${combined}"
         FAIL=$((FAIL + 1)); return
     fi
     echo "PASS ${id}"
@@ -95,6 +123,75 @@ check TG003 0
 write_types '{"global": {"allow_paths": [], "deny_paths": [], "ask_paths": []}, "types": {"implementation": {"allow_paths": [], "deny_paths": [], "ask_paths": []}}}'
 run "$(cmd_json "git add src/main.ts")"
 check TG004 0 'WF009'
+
+# ============================================================
+# フェーズ別ワークスキル用 type（.claude/docs/10_spec/フェーズ別ワークスキル.md TC032〜TC035・TC039）
+# 実物の workflow-types.json を使い、type 定義の追加だけで許可範囲が成立することを検証する
+# ============================================================
+use_real_types
+
+# ---------- TC032: design は docs/** を allow、.claude/** は global deny（WF002） ----------
+write_ticket design
+run "$(edit_json Edit docs/spec.md)"
+check TC032a 0
+run "$(edit_json Edit .claude/hooks/x.sh)"
+check TC032b 2 'WF002'
+
+# ---------- TC033: design-sync も同様 ----------
+write_ticket design-sync
+run "$(edit_json Edit docs/spec.md)"
+check TC033a 0
+run "$(edit_json Edit .claude/docs/x.md)"
+check TC033b 2 'WF002'
+
+# ---------- TC034: overall-plan は global deny の wip/00_overall_plan/** を type allow で貫通、src/** は未記載（WF009） ----------
+write_ticket overall-plan
+run "$(edit_json Write wip/00_overall_plan/plan.md)"
+check TC034a 0
+run "$(edit_json Write src/foo.ts)"
+check TC034b 0 'WF009'
+
+# ---------- TC035: 計画 type は wip/20_plans/** と wip/10_tickets/00_todo/**（global allow）に書ける。src/** は未記載（WF009） ----------
+write_ticket investigation-plan
+run "$(edit_json Write wip/20_plans/計画.md)"
+check TC035a 0
+run "$(edit_json Write wip/10_tickets/00_todo/003-investigation-x.md)"
+check TC035b 0
+run "$(edit_json Write src/foo.ts)"
+check TC035c 0 'WF009'
+
+# ---------- TC039: implementation に docs/** は無い（設計書の更新は設計反映ワークへ。WF009） ----------
+write_ticket implementation
+run "$(edit_json Edit docs/spec.md)"
+check TC039 0 'WF009'
+
+# ============================================================
+# git add の対象パスの規約（.claude/docs/10_spec/skill-work-ticket-driven.md 2.3 TC022b / TC022c、issue #47）
+# wip/ のような親ディレクトリ全体は wip/10_tickets/* にも type の allow にも一致せず未記載（WF009）になる。
+# 規約どおり wip/10_tickets/ と許可パス内のファイルを明示すれば確認なしで許可される
+# ============================================================
+
+# ---------- TC022b: 親ディレクトリ全体の git add は未記載扱い（investigation / overall-plan） ----------
+write_ticket investigation
+run "$(cmd_json "git add wip/")"
+check TC022b-1 0 'WF009'
+write_ticket overall-plan
+run "$(cmd_json "git add wip/")"
+check TC022b-2 0 'WF009'
+
+# ---------- TC022c: 規約どおりの git add は確認なし（done コミットの複合コマンド / overall-plan の許可パス） ----------
+write_ticket investigation
+run "$(cmd_json "git mv wip/10_tickets/10_doing/${TICKET_NAME} wip/10_tickets/20_done/ && git add wip/10_tickets/ wip/20_plans/調査結果.md && git commit -m x")"
+check_absent TC022c-1 0 'WF009'
+write_ticket overall-plan
+run "$(cmd_json "git add wip/10_tickets/ wip/00_overall_plan/")"
+check_absent TC022c-2 0 'WF009'
+
+# ---------- TC022d（仕様書未記載・現行挙動の固定）: 末尾スラッシュ無しの wip/10_tickets は wip/10_tickets/* に一致せず未記載扱い ----------
+# 規約のコマンド例は必ず末尾スラッシュ付き（wip/10_tickets/）で書く。フックを変えて許可する場合はこのケースの期待値を見直す
+write_ticket investigation
+run "$(cmd_json "git add wip/10_tickets")"
+check TC022d 0 'WF009'
 
 echo
 echo "結果: PASS=${PASS} FAIL=${FAIL}"

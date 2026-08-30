@@ -1,0 +1,17 @@
+{
+  "skill_name": "work-design-sync-plan",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "（実装が done、実装チケットの作業ログに「エラーコード E004 を追加した」「レスポンスの型を変えた」とあり、todo の先頭が 011-design-sync-plan-設計反映計画.md の状態で）設計反映の計画を立てて",
+      "expected_output": "011 を doing に移してコミットし、git diff / 作業ログと docs/10_spec/….md を照合した差分一覧（一致 / 設計書が古い / 実装漏れ / 設計に無い決定事項）を wip/20_plans/設計反映計画-….md に Write する。E004 とレスポンス型の変更を「設計書を直す」に分類し、設計反映チケット 012-design-sync-仕様書.md（DoD に節・レビュー記録）と 013-retrospective-振り返り.md を起こす。docs/ は直さない。done 後に完了報告を返す",
+      "files": ["wip/20_plans/実装計画-x.md", "docs/10_spec/ログイン.md", "wip/10_tickets/20_done/010-implementation-API.md", "wip/10_tickets/00_todo/011-design-sync-plan-設計反映計画.md"]
+    },
+    {
+      "id": 1,
+      "prompt": "（照合の結果、仕様書のテストシナリオ TC005 に対応するテストが実装されていないと分かった状態で）続けて",
+      "expected_output": "TC005 を「実装が漏れている」に分類し、設計書を書き換えて辻褄を合わせない。呼び出し元に implementation type の追加チケットを提案し、その旨を計画書とレビュー観点に書く",
+      "files": ["wip/10_tickets/10_doing/011-design-sync-plan-設計反映計画.md", "docs/10_spec/ログイン.md"]
+    }
+  ]
+}
