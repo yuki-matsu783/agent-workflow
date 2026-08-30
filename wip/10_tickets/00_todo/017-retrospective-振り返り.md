@@ -1,14 +1,14 @@
 ---
 type: retrospective
 status: todo
-depends_on: ["001-ai-asset-implementation-review-pending継続判定.md", "002-ai-asset-design-仕様書追記.md"]
+depends_on: ["015-ai-asset-implementation-review-pending継続判定.md", "016-ai-asset-design-仕様書追記.md"]
 ---
 
 # 振り返り
 
 ## 目的
 
-001・002 の作業を振り返り、`wip/30_reports/` に結果報告を作成する。
+015・016 の作業を振り返り、`wip/30_reports/` に結果報告を作成する。
 
 ## 完了条件（DoD）
 
@@ -19,7 +19,7 @@ depends_on: ["001-ai-asset-implementation-review-pending継続判定.md", "002-a
 
 ## 作業内容
 
-1. 001・002 の作業ログを読む
+1. 015・016 の作業ログを読む
 2. `assets/report.template.md` をコピーして結果報告を作成する
 
 ## 作業ログ

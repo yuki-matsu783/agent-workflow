@@ -54,8 +54,12 @@ TE014 の直後（`20_done` が空になった状態）に追加する:
 
 ## チケット分割
 
-1. `001-ai-asset-implementation-review-pending継続判定.md`（上記1〜2をまとめて実装。フックとテストは `.claude/hooks/**` 配下のため `ai-asset-implementation` タイプ。フックとテストは対で1チケット）
-2. `002-ai-asset-design-仕様書追記.md`（`.claude/docs/` のみを変更するため `ai-asset-design` タイプ）
-3. `003-retrospective-振り返り.md`
+`wip/10_tickets/20_done/` には過去の PR（#12 等）から連番が 014 まで残っている。`work-boundary.sh`
+の「最後の done チケット」判定はファイル名先頭の連番の最大値で決まるため、001 から振ると過去の
+無関係なチケットを最後の done と誤認する。連番は 015 から続ける。
 
-依存関係: 2 は 1 の変更内容を仕様に反映するため 1 に依存。3 は 1・2 に依存。
+1. `015-ai-asset-implementation-review-pending継続判定.md`（上記1〜2をまとめて実装。フックとテストは `.claude/hooks/**` 配下のため `ai-asset-implementation` タイプ。フックとテストは対で1チケット）
+2. `016-ai-asset-design-仕様書追記.md`（`.claude/docs/` のみを変更するため `ai-asset-design` タイプ）
+3. `017-retrospective-振り返り.md`
+
+依存関係: 016 は 015 の変更内容を仕様に反映するため 015 に依存。017 は 015・016 に依存。
