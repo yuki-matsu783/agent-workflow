@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ticket": "001-overall-plan-全体計画.md",
+  "work_type": "overall-plan",
+  "state": "requested",
+  "local": false,
+  "pr": 48,
+  "head_sha": "45ebe7cbe83b7b137a5c4d3eaf023b8f7bb2ae85",
+  "request": {
+    "comment_id": "5468716989",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/48#issuecomment-5468716989",
+    "at": "2026-08-30T12:34:59Z"
+  },
+  "complete": null
+}
