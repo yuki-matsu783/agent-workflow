@@ -35,7 +35,9 @@ description: >
    │                                                指摘なし: 次のワークへ ──────────────────────────┐
    └────────────────────────────────────────────────────────────────────────────────────────────────┘
                                                                                                           ▼
-                                                                  完了処理（PR 本文の最終整形 / 承認③ ready）
+   完了処理: PR 本文の最終整形 ─→ 承認③ ─→ merge-prep.sh reset-wip ─→ check-conflicts ─(衝突あり: 承認⑤ → merge → 再実行)─┐
+                                                                                                                    ▼
+                                              停止（マージは人間） ◄── merge-prep.sh ready ◄── notify-issue ◄── 承認⑥（本文）┘
 ```
 
 ## 役割分担
@@ -47,8 +49,9 @@ description: >
 | `task-gh-feature` | feature ブランチの作成・push・draft PR の作成 | 「issue 連携モード」を指定して手順に従う |
 | `work-ticket-driven` | `wip/` 配下での実作業（フックで統制）。1 つのワーク（チケット type）が完了するたびに制御を返す | 初回は手順 1 から実施し issue / PR の文脈を渡す。2 回目以降は手順 0 の再開判定から |
 | `work-boundary.sh` | ワーク境界の判定（`status`）、レビュー依頼（`request`）、レビュー完了の確認（`complete`）、インライン返信（`reply`）。レビュー状態ファイルを書き換える唯一の経路 | `bash .claude/hooks/work-boundary.sh <subcommand>` |
+| `merge-prep.sh` | 完了処理のマージ前作業: wip のリセット（`reset-wip`）、default ブランチとの衝突判定（`check-conflicts`）、関連 issue へのコメント（`notify-issue`）、draft 解除（`ready`）。状態 `wip/merge-prep.json` を書き換える唯一の経路で、`ready` は先行ステップの記録と再検証を通ったときだけ `gh pr ready` を実行する | `bash .claude/hooks/merge-prep.sh <subcommand>` |
 
-**GitHub 操作（`gh`、`git push`）はチケット作業の外でのみ行う**。`wip/10_tickets/10_doing/` にチケットがある間はフックが WF003 でブロックする。迂回しない。**レビュー状態（`wip/10_tickets/review-state.json`）を Edit / Write / Bash で直接書き換えない**（フックが WF012 で拒否する）。レビューが完了していないのに次のワークへ着手する操作はフックが WF011 で拒否する。
+**GitHub 操作（`gh`、`git push`）はチケット作業の外でのみ行う**。`wip/10_tickets/10_doing/` にチケットがある間はフックが WF003 でブロックする。迂回しない。**状態ファイル（`wip/10_tickets/review-state.json`、`wip/merge-prep.json`）を Edit / Write / Bash で直接書き換えない**（フックが WF012 で拒否する）。レビューが完了していないのに次のワークへ着手する操作はフックが WF011 で拒否する。**`gh pr ready` を直接実行しない**（フックが WF015 で拒否する。draft の解除は `merge-prep.sh ready` 経由のみ）。**PR のマージは行わない**（`gh pr merge` は手順に含まれない。人間が行う）。
 
 ## 承認ポイント（人間の判断が必要な場所）
 
@@ -56,10 +59,12 @@ description: >
 |---|-----------|---------|
 | ① | 候補提示のあと | どの issue で対応するか（既存 #N / 新規作成 / 別の候補 / 依頼を分割） |
 | ② | issue の本文案・追記案のあと | issue に書く内容。あわせてブランチ名と PR タイトル |
-| ③ | 全チケット完了・PR 本文更新のあと | draft PR を ready for review にするか |
+| ③ | 全チケット完了・PR 本文の最終更新のあと | マージ前作業（wip リセット → コンフリクト確認 → issue コメント → draft 解除）に進むか。承認されれば `merge-prep.sh ready` まで進む（ready 自体を改めて確認しない） |
 | ④ | 各ワーク（チケット type）完了・push のあと | PR 上のレビュー。レビュー完了の連絡を受け、`work-boundary.sh complete` が通るまで次のワークに進まない（type の数だけ発生） |
+| ⑤ | `check-conflicts` が衝突を検知したとき | 衝突ファイルを示し、default ブランチを取り込んで解消してよいか。解消方針が一意に決まらない衝突は両側の意図を要約して判断を仰ぐ |
+| ⑥ | issue コメントの投稿前 | 通知先の issue 番号と**本文そのもの**（「投稿してよいか」だけを聞かない）。他人の issue への投稿は取り消せない外部への副作用のため |
 
-①②③は `AskUserQuestion` で選択肢として提示する（「Other」で修正を受け取れる）。**承認を得るまで issue の変更・ブランチ作成・実作業に進まない**。
+①②③⑤⑥は `AskUserQuestion` で選択肢として提示する（「Other」で修正を受け取れる）。**承認を得るまで issue の変更・ブランチ作成・実作業・マージ前作業・issue への投稿に進まない**。ヘッドレス実行では⑤⑥の応答が得られないため、衝突内容または本文案を報告して停止する。
 
 ④は **`AskUserQuestion` で待たない**。`request` でレビューを依頼したらチャットで報告して応答を終え、次のユーザー発言（「レビュー完了」等）で再開する。人間が GitHub 上でレビューする時間は 1 ターンに収まらず、ヘッドレス実行では `AskUserQuestion` の応答が得られないためである。取得した指摘への対応要否の確認には `AskUserQuestion` を使ってよい。
 
@@ -202,17 +207,26 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 
 ## 手順 6: 完了処理（全ワーク done 後）
 
-ループを抜けた時点で push とレビュー（最後のワークの `complete`）は済んでいる。
+ループを抜けた時点で push とレビュー（最後のワークの `complete`）は済んでいる。ここからマージ前作業を `merge-prep.sh` で順に実行し、記録と再検証を通ったときだけ draft を解除する（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」）。各サブコマンドは前提未充足を WF016 で返すので、状態ファイル `wip/merge-prep.json` を直接直して通そうとしない。
 
-1. PR 本文を最終整形する: 「変更内容の概要」「動作確認」を `wip/30_reports/` の要約で埋め、`- Closes #N` を確認して `gh pr edit M --body-file <path>`
-2. **承認③**: 「ready for review にする」「draft のまま」「追加作業がある」を確認する。承認されたときだけ `gh pr ready M`（最後のワークが `completed` でなければフックが WF011 で拒否する）
-3. issue 側の残課題があれば `gh issue comment N` で記録する（issue のクローズは PR のマージで `Closes #N` が行うため、手動で閉じない）
+| # | やること | 補足 |
+|---|---------|------|
+| 6-1 | PR 本文を最終整形する: 「変更内容の概要」「動作確認」を `wip/30_reports/` の要約で埋め、`- Closes #N` を確認して `gh pr edit M --body-file <path>` | **6-3 より前に行う**。結果報告・計画・チケットはリセットで削除され main に残らないため、残したい要約は PR 本文に書く |
+| 6-2 | **承認③**: 「マージ前作業（wip リセット → コンフリクト確認 → issue コメント → draft 解除）に進む」「draft のまま」「追加作業がある」を確認する | 承認されたら 6-6 まで進む。ready 自体を改めて確認しない |
+| 6-3 | `bash .claude/hooks/merge-prep.sh reset-wip --dry-run` で削除対象を提示し、続けて `bash .claude/hooks/merge-prep.sh reset-wip` を実行する | wip の成果物（全体計画・チケット・計画書・結果報告・`review-state.json`）を削除し、最後のワークのレビュー完了の証跡を `wip/merge-prep.json` へ写してコミット・push する。前提（todo / doing が空・`review_state: completed`・未コミット無し・PR あり）を満たさなければ WF016 |
+| 6-4 | `bash .claude/hooks/merge-prep.sh check-conflicts` を実行する | 衝突なしなら 6-5 へ。衝突あり（WF016 + ファイル一覧）なら**承認⑤**を取り、`git merge origin/<default>`（**`git rebase` は使わない**）→ 解消 → コミット → `git push` → `check-conflicts` を再実行する。解消方針が一意でない衝突は両側の意図を要約して `AskUserQuestion` で判断を仰ぐ |
+| 6-5 | `assets/issue-notify.template.md` を Read し、issue コメントの本文案（対象 PR・変更の要約・受け入れ条件との対応・成果物・マージ後の扱い）を作って**承認⑥**を取る。承認後、本文を一時ファイルに Write して `bash .claude/hooks/merge-prep.sh notify-issue --body-file <path>` | 通知先は PR 本文の `Closes #N`。他に通知すべき issue があれば `--issue N` を添える（追加先の判断は人間）。`gh issue comment` を直接叩かない |
+| 6-6 | `bash .claude/hooks/merge-prep.sh ready` | reset / conflicts（衝突なし）/ notify の記録と再検証（wip が空・未コミット無し・push 済み・fetch して衝突なし）を通ったときだけ `gh pr ready` が実行される。**`gh pr ready` を直接実行しない**（フックが WF015 で拒否する） |
+| 6-7 | 手順 7 の報告をして**停止する**。マージは人間が行う（`gh pr merge` を実行しない） | |
+
+承認③で「draft のまま」「追加作業がある」が選ばれたら 6-3 以降に進まない（追加作業は同じ type の追加チケットとして手順 5 に戻る）。承認⑤で「解消しない」、承認⑥で「投稿しない」が選ばれたら、その時点で報告して停止する（`ready` は前提未充足で実行できない）。途中で止まった後に再開するときは `bash .claude/hooks/merge-prep.sh status` の `merge_state`（`reset` / `checked` / `notified`）を見て、次のサブコマンドから続ける。
 
 ## 手順 7: 報告
 
-- issue: `#N <url>`（新規 / 追記）
-- ブランチと PR: `<branch>` / `#M <url>`（draft or ready）
-- 成果物: `wip/20_plans/`、`wip/30_reports/`、コード変更の要約
+- issue: `#N <url>`（新規 / 追記）と、`notify-issue` が投稿したコメントの URL
+- ブランチと PR: `<branch>` / `#M <url>`（ready 済み or draft のまま。draft のままなら理由）
+- マージ前作業の結果: `reset-wip` の削除件数、`check-conflicts` の結果（衝突の有無・解消した場合はその内容）、`merge_state`
+- 成果物: コード変更の要約（`wip/` の計画・報告はリセット済みのため、PR 本文の要約を指す）
 - 振り返りから得られた改善提案
 
 ## エラーハンドリング
@@ -231,6 +245,12 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 | `work-boundary.sh request` が WF013 で止まった | 未充足の条件（未コミット / 未 push / PR なし / 境界でない / 既に requested）を解消して再実行する。境界でないなら次のチケットに着手する |
 | `work-boundary.sh complete` が WF014 で止まった | `requested` でないなら `request` から。`CHANGES_REQUESTED` なら同じ type の追加チケットで対応して再度 `request`。未返信スレッドは `reply` で返信してから再実行 |
 | 次のチケットへの `git mv` が WF011 で止まった | 前のワークのレビューが未完了。メッセージの対処（`request` または `complete`）に従う。状態ファイルを直接編集しない（WF012） |
+| `gh pr ready` が WF015 で止まった | 直接実行は常に拒否される。`bash .claude/hooks/merge-prep.sh ready` に切り替える（手順 6-6）。迂回しない |
+| `merge-prep.sh reset-wip` が WF016 で止まった | 未充足（todo にチケットが残っている / doing あり / 最後のワークが `completed` でない / 未コミット / PR なし）を解消する。残りのチケットは手順 5 へ、レビュー未完了は `request` → `complete` へ戻る |
+| `merge-prep.sh check-conflicts` が WF016（衝突あり）で止まった | 手順 6-4 のとおり承認⑤を取り、`git merge origin/<default>` で取り込んで解消する。`git rebase` や `git checkout --ours/--theirs` でのファイル丸ごと片側採用はしない（もう一方の変更を無言で捨てる）。解消後に `check-conflicts` を再実行する |
+| `merge-prep.sh notify-issue` が WF016 で止まった | `checked` でない（先に `check-conflicts`）/ 本文ファイルが空 / 通知先なし（`--issue N` を指定）/ 既に `notified`（二重投稿はしない。`ready` へ）のいずれか。`gh issue comment` の失敗なら投稿済みの issue（stderr）を確認し、未投稿分だけ `--issue` で指定して再実行する |
+| `merge-prep.sh ready` が WF016 で止まった | 未充足（`notified` でない / wip に成果物が残っている / 未コミット / 未 push / default ブランチが進んで衝突）を列挙どおりに解消する。衝突は 6-4 からやり直す。状態ファイルを直接編集しない |
+| ヘッドレス実行で承認⑤⑥が必要になった | 衝突内容または通知本文案を報告してセッションを終える。続きは次回セッションで `merge-prep.sh status` から再開する |
 | レビュー完了の連絡がないまま「続けて」と言われた | `complete` を実行し、通れば次のワークへ。通らなければ理由を報告して応答を終える |
 | ヘッドレス実行（`claude -p` 等）でワーク境界に達した | `request` を実行した時点でそのセッションの応答を完了とする。レビュー結果の反映と次のワークは次回セッション（手順 0 の再開判定）で行う。1 セッションで全ワークを完走することは想定しない |
 
@@ -243,3 +263,6 @@ WF014 で `complete` が止まった場合（`CHANGES_REQUESTED` のまま／未
 - `--body-file` 用の一時ファイルはリポジトリ外（例: `/tmp/`）に置き、残さない
 - レビュー依頼（`request --body-file`）には「対象の差分範囲」「見てほしい観点」「次のワーク」を書く。後段のワークで確定したい判断があれば、そこで指摘してもらえるよう明示する
 - ワークの粒度が細かすぎてレビュー往復が多いと感じたら、type をまとめるのではなく、レビュー依頼に「軽微なので approve のみで可」と添える
+- `reset-wip` で消える情報（結果報告の「うまくいかなかったこと」「改善提案」「残課題」）は、6-1 の PR 本文と 6-5 の issue コメントに要約して残す。`wip/` は PR の作業領域であり、main に残す記録ではない
+- issue コメントの本文は「受け入れ条件との対応」を表にし、根拠（ファイル・テスト ID）を添える。後から issue だけを読んでも何が満たされたか分かるようにする
+- 完了処理はできるだけ 1 つの応答内で 6-1〜6-7 を通す。リセット後は `wip/10_tickets/` が空になり入口ガードの継続判定が効かないため、別プロンプトで再開すると振り分けの再宣言が必要になる（issue #28 と同種の既知の制約）

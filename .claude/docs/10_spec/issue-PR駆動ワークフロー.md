@@ -5,8 +5,8 @@
 - **背景**: 要件定義書 `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md` に基づき、スキルの処理フロー・承認ポイント・既存スキルへの委譲方法・命名規約を確定する。
 - **目的**: 「依頼 → issue 照合 → 承認 → issue 確定 → ブランチ/PR → チケット駆動 → 完了処理」の各段階で、何を入力に何を出力するか、どこで人間が判断するかを実装可能なレベルで固定する。
 - **スコープ**:
-  - 含む: 処理フロー、承認ポイント、task-gh-issue / task-gh-feature / work-ticket-driven への委譲内容、issue / ブランチ / PR / コミットの命名規約、既存フックとの関係、例外処理、テストシナリオ
-  - 含まない: スキル本文（SKILL.md）の文言、task-gh-issue / task-gh-feature の内部手順（各スキルの SKILL.md が正）
+  - 含む: 処理フロー、承認ポイント、task-gh-issue / task-gh-feature / work-ticket-driven への委譲内容、issue / ブランチ / PR / コミットの命名規約、既存フックとの関係、完了処理（マージ前作業と draft 解除）の順序と承認、例外処理、テストシナリオ
+  - 含まない: スキル本文（SKILL.md）の文言、task-gh-issue / task-gh-feature の内部手順（各スキルの SKILL.md が正）、`merge-prep.sh` / `work-boundary.sh` の入出力の詳細（`.claude/docs/10_spec/チケット駆動ワークフロー.md` が正）、PR のマージ操作（人間が行う）
 
 ---
 
@@ -61,7 +61,9 @@ out_of_scope:
 | draft PR | number, url | 本文に `Closes #N` を含む draft PR | |
 | 全体計画 | file | `wip/00_overall_plan/` 配下。冒頭に issue / PR を記載 | |
 | 結果報告 | file | `wip/30_reports/` 配下。対象 issue / PR を記載 | |
-| PR 本文（完了時） | string | 変更内容・動作確認・振り返り要約・`Closes #N` | |
+| PR 本文（完了時） | string | 変更内容・動作確認・振り返り要約・`Closes #N`。`wip/30_reports/` はリセットで削除されるため、要約は PR 本文に残す | |
+| issue コメント（完了時） | url | `merge-prep.sh notify-issue` が `Closes #N` の issue に投稿した完了報告（承認⑥を経た本文） | |
+| マージ前作業の状態 | file | `wip/merge-prep.json`。`reset-wip` / `check-conflicts` / `notify-issue` / `ready` の証跡（`merge-prep.sh` だけが書く） | |
 
 ### 出力フォーマット（PR 本文）
 
@@ -79,8 +81,9 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 
 | 状態 | 意味 |
 |------|------|
-| 完了 | 全ワーク（全チケット）done、push 済み、PR 本文更新済み。ready 化はユーザー判断 |
+| 完了 | 全ワーク（全チケット）done、PR 本文更新済み、マージ前作業（wip リセット・コンフリクト確認・issue コメント）済み、`merge-prep.sh ready` で draft 解除済み。マージは人間が行う |
 | 中断（レビュー待ち） | ワーク完了後に push・レビュー依頼を行い、レビュー完了の連絡を待って応答を終えた。次の発言（または次回セッション）で再開する |
+| 中断（マージ前作業の前提未充足） | `merge-prep.sh` が WF016 で止まった（衝突あり・通知先なし等）。未充足の内容を報告して停止し、解消後に該当サブコマンドから再開する |
 | 中断（承認待ち） | 承認ポイントでユーザーが保留・却下した。承認済みの段階までの成果（issue 等）は残る |
 | 中断（エラー） | `gh` / `git` の失敗。失敗したコマンドと出力を報告して停止 |
 
@@ -94,10 +97,12 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 |---|-----------|-------------|--------|
 | ① | 類似 issue の提示後 | どの issue で対応するか | 既存 #N で対応 / 新規 issue を作成 / 別の候補を見る / 依頼を分割する |
 | ② | issue 本文（新規）または追記案の提示後 | issue に書く内容、ブランチ名、PR タイトル | 承認 / 修正して承認 / 却下 |
-| ③ | 全チケット完了・PR 本文更新後 | draft を ready for review にするか | ready にする / draft のまま / 追加作業 |
+| ③ | 全チケット完了・PR 本文の最終更新後 | マージ前作業（wip リセット → コンフリクト確認 → issue コメント → draft 解除）に進むか。承認されれば `merge-prep.sh ready` まで進む（ready 自体を改めて確認しない） | 進む / draft のまま / 追加作業 |
 | ④ | 各ワーク（チケットの作業タイプ）完了・push 後 | PR 上のレビュー。レビュー完了の連絡を受け、コメントを取得して対応要否を確認するまで次のワークに進まない | 指摘なし → 次のワークへ / 指摘あり → 同タイプの追加チケットで対応 / 対応不要と判断 |
+| ⑤ | `check-conflicts` が衝突を検知したとき | 衝突ファイルを示し、default ブランチを取り込んで解消してよいか。解消方針が一意に決まらない衝突（同じ箇所を両側で別々に変えた等）は、両側の意図を要約して判断を仰ぐ | 解消する / 今回は解消しない（draft のまま停止） |
+| ⑥ | issue コメントの投稿前 | 通知先の issue 番号と**本文そのもの**。他人の issue への投稿は取り消せない外部への副作用のため、「投稿してよいか」だけを聞かず本文を見せる | 承認 / 修正して承認 / 投稿しない（draft のまま停止） |
 
-①②③は `AskUserQuestion` で選択肢として提示し、「Other」で修正内容を受け取れるようにする。承認を得るまで次の段階に進まない。
+①②③⑤⑥は `AskUserQuestion` で選択肢として提示し、「Other」で修正内容を受け取れるようにする。承認を得るまで次の段階に進まない。ヘッドレス実行（`claude -p` 等）では⑤⑥の応答が得られないため、衝突ありまたは通知本文の確認が必要な時点で報告して停止する（`.claude/rules/claude-config-headless-awareness.md`）。`merge-prep.sh` 自体は `permissionDecision: ask` を使わず、前提未充足を exit 2（WF016）で返す。
 
 ④は**レビュー依頼を投稿した時点でスキルの応答を終える**（`AskUserQuestion` で待たない）。人間が GitHub 上でレビューする時間は対話の1ターンに収まらず、ヘッドレス実行では `AskUserQuestion` の応答が得られないためである。レビュー完了の連絡（次のユーザー発言）を受けてからコメントを取得し、取得した指摘への対応要否は `AskUserQuestion` で確認する（自動判定しない）。④はワーク（作業タイプ）の数だけ発生する。
 
@@ -121,8 +126,15 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
    6. 対応が必要な指摘があれば、`work-ticket-driven` に同じ作業タイプの追加チケット（指摘内容を DoD に落とす）を作らせ、7-1 に戻る（同じ type の追加チケットは境界でも着手できる。完了後は done 末尾が変わるため、再度 7-2〜7-5 を回して `request` → `complete` する）
 
    レビュー状態（`wip/10_tickets/review-state.json`）を Edit / Write / Bash で直接書き換えない（フックが WF012 で拒否する）。レビューが完了していない状態で次の type のチケットに着手しようとするとフックが WF011 で拒否し、対処（`request` または `complete`）を返す
-8. **完了処理**（全ワーク done 後）: ループ内で push と PR 本文更新は済んでいるため、`wip/30_reports/` の要約で PR 本文を最終整形 → **承認③** → 承認されれば `gh pr ready`
-9. **報告**: issue / PR の URL、ブランチ、成果物一覧、振り返りの要約を報告する
+8. **完了処理**（全ワーク done・最後のワークの `complete` 後）。マージ前作業の実施と記録は `merge-prep.sh`（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」）に委ね、スキルは順序と承認を司る:
+   1. `wip/30_reports/` の要約で PR 本文を最終整形する（`gh pr edit M --body-file`）。**リセットより前に行う**（報告は 8-3 で削除される。要約は PR 本文に残す）
+   2. **承認③**: マージ前作業に進むか
+   3. `bash .claude/hooks/merge-prep.sh reset-wip --dry-run` で削除対象を提示してから `reset-wip` を実行する（wip の成果物を削除し、最後のワークのレビュー完了の証跡を `wip/merge-prep.json` へ写してコミット・push）
+   4. `bash .claude/hooks/merge-prep.sh check-conflicts`。衝突なしならそのまま 8-5 へ。衝突あり（WF016）なら衝突ファイルを示して**承認⑤**を取り、`git merge origin/<default>`（**`git rebase` は使わない**）→ 解消 → コミット → push → `check-conflicts` を再実行する
+   5. issue コメントの本文案（`assets/issue-notify.template.md`。対象 PR・変更の要約・受け入れ条件との対応・成果物）を作り**承認⑥**を取ってから、`bash .claude/hooks/merge-prep.sh notify-issue --body-file <path>` を実行する（通知先は PR 本文の `Closes #N`。他に通知すべき issue があれば `--issue N` で追加。追加先の判断は人間）
+   6. `bash .claude/hooks/merge-prep.sh ready`（reset / conflicts / notify の記録と再検証を通ったときだけ `gh pr ready` が実行される）。**`gh pr ready` を直接実行しない**（フックが WF015 で拒否する）
+   7. AI エージェントはここで止まる。マージは人間が行う（`gh pr merge` は実行しない）
+9. **報告**: issue / PR の URL、ブランチ、マージ前作業の結果（削除件数・衝突の有無・コメント URL）、振り返りの要約を報告する
 
 ### 代替フロー
 
@@ -134,6 +146,8 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 6. **レビュー完了の連絡がないまま「続けて」と言われた**: 基本フロー 7-5（`work-boundary.sh complete`）を実行し、通れば次のワークへ進む。通らない（WF014）なら理由を報告して応答を終える。`complete` を経ずに次の type へ着手しようとしてもフックが WF011 で拒否する
 7. **ヘッドレス実行（`claude -p` 等）でワーク境界に達した**: レビュー依頼（7-4）を投稿した時点でそのセッションの応答を完了とする。レビュー結果の反映と次のワークは次回セッション（代替フロー 1 の再開）で行う。1セッションで全ワークを完走することは想定しない
 8. **`workflow-quick-request` の振り返り（手順 5-3）からの切り替え**: summary / acceptance / kind / チケット構成が既に引き継がれているため、手順 2（依頼の整理）の曖昧点の質問を省略し、そのまま手順 3（既存 issue の検索）へ進む。手順 1（状態確認）の未コミットの変更の確認は省略しない。チケット構成は引き継がれたとおり `ai-asset-design` → `ai-asset-implementation` を用いる
+9. **完了処理の途中で default ブランチと衝突した**: 基本フロー 8-4 の承認⑤を経て `git merge origin/<default>` で取り込み、解消してコミット・push し、`check-conflicts` を再実行する。`ready` の再検証で衝突が見つかった場合（default ブランチが後から進んだ）も同じ手順で 8-4 からやり直す。承認⑤で「解消しない」が選ばれたら draft のまま停止する。マージで default ブランチ側の wip 成果物（他 PR のチケット・計画・報告・`review-state.json`）が入ってくる場合は、リセット済みの状態を保つためマージの解消の一部としてそれらを削除する（`ready` の再検証は wip が空であることを要求する）
+10. **完了処理の再開**: `merge-prep.sh status` の `merge_state`（`reset` / `checked` / `notified`）に応じて、次のサブコマンドから再開する。ただしリセット後は `wip/10_tickets/` が空になるため、入口ガードの継続判定は効かず、別プロンプトで再開する場合は振り分けの再宣言が必要（issue #28 と同種の課題。本仕様では対応しない）
 
 ### 例外フロー
 
@@ -143,6 +157,8 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 4. **ブランチ名の衝突**: task-gh-feature の手順（別名の提案）に従う
 5. **`gh issue edit` / `gh pr create` の失敗**: コマンドと出力を報告して停止する。手動での作成を案内してよいが、別コマンドで代替しない
 6. **チケット作業中に GitHub 操作が必要になった**: フックが WF003 でブロックする。迂回せず、チケット完了後（doing が空）まで待つ
+7. **`merge-prep.sh` が WF016 で止まった**: 未充足の条件（todo にチケットが残っている・最後のワークのレビューが `completed` でない・未コミット・PR なし・衝突あり・通知先なし・先行サブコマンド未実行）を報告する。`wip/merge-prep.json` を直接編集して通そうとしない（WF012）
+8. **`gh pr ready` を直接実行した**: フックが WF015 で拒否する。`merge-prep.sh ready` に切り替える
 
 ---
 
@@ -168,7 +184,8 @@ workflow-issue-mr-driven（オーケストレータ）
 └── work-ticket-driven   wip/ 配下での実作業（フックによる統制下）
         └── ワーク（作業タイプ）完了ごとにオーケストレータへ戻る
               （push / PR 本文更新 / レビュー依頼 → 承認④ → コメント取得 / 追加チケット）
-              全ワーク完了後: PR 本文の最終整形 / ready 確認（承認③）
+              全ワーク完了後: PR 本文の最終整形 / 承認③ / merge-prep.sh（reset-wip → check-conflicts（承認⑤）
+              → notify-issue（承認⑥）→ ready）/ 停止（マージは人間）
 ```
 
 ### 状態遷移
@@ -184,7 +201,9 @@ workflow-issue-mr-driven（オーケストレータ）
    │                                     指摘なし: 次のワークへ（todo が空ならループ終了）    │
    └──────────────────────────────────────────────────────────────────────────────────────┘
                                                                                         ▼
-   ──PR 本文の最終整形──> 承認③ ──> ready for review（or draft のまま）
+   ──PR 本文の最終整形──> 承認③ ──reset-wip──> check-conflicts ──（衝突あり: 承認⑤ → merge → 再実行）──┐
+                                                                                                        ▼
+                                              停止（マージは人間） <──ready──  notify-issue <──承認⑥（本文）──┘
 ```
 
 ---
@@ -216,10 +235,15 @@ bash .claude/hooks/work-boundary.sh status                       # ワーク境�
 bash .claude/hooks/work-boundary.sh request --body-file <path>   # レビュー依頼（内部で gh pr comment）
 bash .claude/hooks/work-boundary.sh complete                     # レビュー完了の確認（内部で gh pr view / gh api .../pulls/N/comments）
 bash .claude/hooks/work-boundary.sh reply <id> "<対応内容>"      # インラインスレッドへの返信
-gh pr ready N
+bash .claude/hooks/merge-prep.sh status                          # マージ前作業の状態（JSON）
+bash .claude/hooks/merge-prep.sh reset-wip [--dry-run]           # wip の成果物の削除（証跡を wip/merge-prep.json へ）
+bash .claude/hooks/merge-prep.sh check-conflicts                 # default ブランチとの衝突判定（git merge-tree。作業ツリー不変）
+bash .claude/hooks/merge-prep.sh notify-issue --body-file <path> [--issue N]  # Closes #N の issue へコメント（内部で gh issue comment）
+bash .claude/hooks/merge-prep.sh ready                           # 記録と再検証を通れば draft 解除（内部で gh pr ready）
 ```
 
 - レビュー依頼・コメント取得はスキルが `gh pr comment` / `gh pr view` / `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」が正）。`complete` は `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
+- draft 解除・issue コメント・wip の削除も同様に `merge-prep.sh` に委ねる（同「マージ前作業の判定と状態」が正）。`gh pr ready` の直接実行はフックが WF015 で拒否する。`ready` は `reset-wip` / `check-conflicts`（衝突なし）/ `notify-issue` の記録に加え、その時点で wip が空・未コミット無し・push 済み・衝突なしを再検証してから `gh pr ready` を実行する
 
 ---
 
@@ -238,6 +262,10 @@ gh pr ready N
 | 承認却下 | ユーザーの選択 | 却下された段階に留まり、修正案を作り直すか停止する |
 | レビュー完了の連絡なしで続行を求められた | ユーザーの発言に「レビュー完了」相当の合図が無い | コメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む |
 | ヘッドレス実行でワーク境界に達した | 対話できない環境 | レビュー依頼を投稿してセッションを終える。続きは次回セッションの再開で行う |
+| マージ前作業の前提未充足 | `merge-prep.sh` の exit 2（WF016） | 未充足を報告する。衝突ありは承認⑤の後に `git merge origin/<default>` で解消して再実行。状態ファイルを直接編集しない |
+| `gh pr ready` の直接実行 | フックの WF015 | `merge-prep.sh ready` に切り替える。迂回しない |
+| issue コメントの投稿失敗 | `notify-issue` の exit 2 | 投稿済みの issue（stderr に列挙）を確認し、`gh` の認証・issue 番号を直してから再実行する（未投稿分だけを対象にしたい場合は `--issue` で指定） |
+| ヘッドレス実行で承認⑤⑥が必要になった | 対話できない環境 | 衝突内容または通知本文案を報告してセッションを終える。承認後の続きは次回セッションで `merge-prep.sh status` から再開する |
 
 ### ユーザーへの提示フォーマット（候補 issue）
 
@@ -260,7 +288,7 @@ gh pr ready N
 
 ## 制約条件
 
-- **技術的制約**: GitHub / `gh` CLI 前提。フックの Bash allowlist により、doing チケットがある間は `gh` と `git push` が使えない（仕様として許容し、`workflow-guard.sh` は変更しない）。ワーク境界の判定とレビュー状態の遷移は `work-boundary.sh` が決定論的に行い、`workflow-boundary.sh` がレビュー未完了での次ワーク着手（WF011）と状態ファイルの直接書き換え（WF012）を拒否する。本スキルはその出力に従う
+- **技術的制約**: GitHub / `gh` CLI 前提。フックの Bash allowlist により、doing チケットがある間は `gh` と `git push` が使えない（仕様として許容し、`workflow-guard.sh` は変更しない）。ワーク境界の判定とレビュー状態の遷移は `work-boundary.sh` が決定論的に行い、`workflow-boundary.sh` がレビュー未完了での次ワーク着手（WF011）と状態ファイルの直接書き換え（WF012）を拒否する。マージ前作業（wip リセット・衝突判定・issue コメント・draft 解除）も `merge-prep.sh` が実行・記録し、直接の `gh pr ready` は同フックが WF015 で拒否する。本スキルはその出力に従う。`git merge-tree --write-tree` のため git 2.38 以降が必要
 - **対話上の制約**: 承認④（ワーク完了ごとのレビュー）は応答を終えて次の発言を待つ方式のため、1つのワークフローが複数ターン・複数セッションにまたがる。ヘッドレス実行では1セッションで完走しない
 - **ビジネス的制約**: 特になし
 - **外部的制約**: task-gh-issue / task-gh-feature / work-ticket-driven の手順に従う（本スキルは順序と承認を司るだけで、各操作の詳細を再定義しない）
@@ -292,13 +320,17 @@ gh pr ready N
 | IP006 | `gh` 未認証 | `gh auth status` 失敗 | task-gh-install / `gh auth login` を案内して停止 | |
 | IP007 | 未コミットの変更あり | `git status --short` 非空 | ブランチ作成前にユーザーへ扱いを確認 | |
 | IP008 | チケット作業中の `gh` | doing 1 枚で `gh pr edit` | WF003 でブロック。迂回せず完了後に実行 | |
-| IP009 | 完了処理 | 最後のワーク done、レビュー完了（指摘なし） | PR 本文の最終整形 → 承認③ → 承認時のみ `gh pr ready` | |
+| IP009 | 完了処理（衝突なし） | 最後のワーク done、レビュー完了（指摘なし） | PR 本文の最終整形 → 承認③ → `merge-prep.sh reset-wip --dry-run` → `reset-wip` → `check-conflicts`（衝突なし）→ 本文案の承認⑥ → `notify-issue` → `ready`（`gh pr ready` はスクリプト内でのみ実行）→ 報告して停止（マージしない） | |
 | IP010 | 既存 issue の本文保全 | 既存 #12 に追記 | 追記前の本文が変更されず、末尾に `## 今回の依頼（日付）` が追加される | |
 | IP011 | ワーク完了時のレビュー依頼 | investigation の最後のチケットが done、todo の先頭が ai-asset-design | `git push` → PR 本文に investigation の要約を追記 → `gh pr comment` でレビュー依頼 → 応答を終える（次のチケットに着手しない・`AskUserQuestion` で待たない） | |
 | IP012 | レビュー完了後のコメント取得（指摘なし） | 「レビュー完了」の発言、PR のコメントは自分の依頼のみ | `gh pr view` / `gh api .../comments` を実行 → 指摘 0 件と報告 → 次のワーク（todo 先頭のチケット）に着手 | |
 | IP013 | レビュー完了後のコメント取得（指摘あり） | 「レビュー完了」の発言、インラインコメント 1 件 | コメントを提示 → `AskUserQuestion` で対応要否を確認 → 対応する場合、同じ作業タイプの追加チケットを todo に作成して着手（done チケットを doing に戻さない） | |
 | IP014 | レビュー完了の合図なしで続行 | ワーク完了・レビュー依頼済みの状態で「続けて」 | コメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む | |
 | IP015 | quick-request の振り返りから切り替え | `workflow-quick-request` 手順 5-3 で合意した summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）を引き継いで開始 | 依頼の要約に関する曖昧点を質問せず、引き継がれた summary / keywords で既存 issue を検索して承認①に進む。未コミットの変更があれば省略せず確認する | |
+| IP016 | reset-wip の前提未充足 | todo にチケットが残っている、または最後のワークが `requested` のまま「仕上げて」 | `reset-wip` が WF016 で止まり、理由（todo 残り / レビュー未完了）を報告する。`wip/merge-prep.json` や `review-state.json` を編集しない。残りのチケット／`complete` に戻る | |
+| IP017 | 完了処理（衝突あり） | `reset-wip` 後の `check-conflicts` で main と衝突 | 衝突ファイルを提示して承認⑤ → `git merge origin/main`（rebase しない）→ 解消・コミット・push → `check-conflicts` 再実行で `checked` → 承認⑥ → `notify-issue` → `ready` | |
+| IP018 | 直接の `gh pr ready` | 完了処理で `gh pr ready 31` を Bash から実行 | WF015 で拒否される。`merge-prep.sh ready` に切り替え、前提未充足なら WF016 の内容を報告する | |
+| IP019 | 通知本文の却下 | 承認⑥で「投稿しない」 | `notify-issue` を実行せず、draft のまま停止して理由を報告する。`ready` は実行できない（`merge_state` が `checked` のため WF016） | |
 
 ### テスト実施例
 
@@ -326,3 +358,4 @@ gh pr ready N
 | 2026-08-30 | 1.3 | ワーク（作業タイプ）完了ごとに push・レビュー依頼・コメント取得・追加チケットを行うワークループ（承認④）を追加。ブランチ命名規約を `<prefix>-<N>-<slug>`（ハイフン区切り）に変更。ヘッドレス実行時の扱い、IP011〜IP014 を追加（issue #12） | Hiro |
 | 2026-08-30 | 1.4 | ワークループのレビュー依頼・コメント取得を `work-boundary.sh`（`request` / `complete` / `reply`）に委ねる形に変更。状態ファイルの直接書き換え禁止（WF012）とレビュー未完了での着手拒否（WF011）を明記（issue #12、ユーザー指示） | Hiro |
 | 2026-08-30 | 1.5 | `workflow-quick-request` 手順 5-3 の振り返りからの切り替え時の入力・代替フロー・テストケース（IP015）を追加（issue #5） | Hiro |
+| 2026-08-30 | 1.6 | 完了処理（基本フロー 8）にマージ前作業（`merge-prep.sh reset-wip` → `check-conflicts` → `notify-issue` → `ready`）を追加。承認⑤（衝突の解消）・⑥（issue コメント本文）、代替フロー 9・10、例外フロー 7・8、IP016〜IP019 を追加。`gh pr ready` の直接実行は WF015 で拒否、AI はマージしない（issue #30。main 側の 1.5（issue #5）との衝突を解消して繰り下げ） | Hiro |

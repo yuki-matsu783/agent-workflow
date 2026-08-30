@@ -306,12 +306,14 @@ issue 番号・ブランチ名・PR/MR タイトル・ベースブランチは�
 ```bash
 # GitHub の場合
 gh pr edit N --body-file <path>
-gh pr ready N
+bash .claude/hooks/merge-prep.sh ready   # gh pr ready を直接実行しない（下記）
 
 # GitLab の場合
 glab mr update N --description-file <path>
 glab mr update N --ready
 ```
+
+**GitHub では `gh pr ready N` を直接実行しない。** `workflow-issue-mr-driven` の完了処理（手順 6）では、マージ前作業（wip のリセット・default ブランチとの衝突確認・関連 issue へのコメント）の記録と再検証を通ったときだけ `bash .claude/hooks/merge-prep.sh ready` が内部で `gh pr ready` を実行する。Bash ツールからの直接実行はフック `workflow-boundary.sh` が WF015 で常に拒否する（このスキルを単独で使う場合も同じ。draft のまま人間が GitHub 上で ready にするか、`workflow-issue-mr-driven` の完了処理を通す）。仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「マージ前作業の判定と状態」。
 
 ---
 
