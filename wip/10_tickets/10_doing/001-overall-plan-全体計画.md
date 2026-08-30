@@ -12,8 +12,8 @@ depends_on: []
 
 ## 完了条件（DoD）
 
-- [ ] 全体計画 wip/00_overall_plan/conflict-wf012-exception.md にフェーズ列・省略理由・受け入れ条件との対応が書かれている
-- [ ] 最初の計画チケット 002-<phase>-plan-<slug>.md が todo に起票されている
+- [x] 全体計画 wip/00_overall_plan/conflict-wf012-exception.md にフェーズ列・省略理由・受け入れ条件との対応が書かれている
+- [x] 最初の計画チケット 002-<phase>-plan-<slug>.md が todo に起票されている
 
 ## 作業内容
 
@@ -25,8 +25,8 @@ depends_on: []
 
 ### うまくいったこと
 
--
+- 既存の類似issue検索・issue #51作成・PR #52作成まで完了し、全体計画と最初の計画チケット（調査計画）を起票できた
 
 ### うまくいかなかったこと
 
--
+- このセッションでは `gh` CLI が使えず、issue/PR操作は mcp__github__ 系ツールで代替した（issue #41 と同種の制約）
