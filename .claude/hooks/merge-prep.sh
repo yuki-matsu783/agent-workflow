@@ -440,15 +440,19 @@ mp_ready() {
     mp_pushed || fails+="HEAD が push されていません（git push してください）"$'\n'
     [ -n "${PR}" ] || fails+="現在のブランチに open な PR がありません"$'\n'
     # 再検証: default ブランチが後から進んで衝突していないか（記録があるときだけ結果を更新する）
+    # HAS_CONFLICT は mp_merge_tree を実際に呼んだときだけ設定されるため、呼んでいなければ
+    # remedy_suffix は空のままにする（mp_conflict_remedy の未定義変数参照を避ける）
+    local remedy_suffix=""
     if [ "${MERGE_STATE}" != "none" ] && ! mp_dirty; then
         mp_merge_tree "${base}"
         if [ "${HAS_CONFLICT}" = true ]; then
             mp_record_conflicts "${base}"
             fails+="default ブランチ ${base} と衝突しています: $(printf '%s' "${CONFLICT_FILES}" | paste -sd ',' -)"$'\n'
+            remedy_suffix=" 衝突がある場合は $(mp_conflict_remedy "${base}")"
         fi
     fi
     [ -n "${fails}" ] && mp_die "ready を実行できません" "${fails%$'\n'}" \
-        "先行するサブコマンド（reset-wip → check-conflicts → notify-issue）を順に実行し、未コミットはコミット・push してください。衝突がある場合は $(mp_conflict_remedy "${base}")"
+        "先行するサブコマンド（reset-wip → check-conflicts → notify-issue）を順に実行し、未コミットはコミット・push してください。${remedy_suffix}"
 
     local via
     if [ "${external_mode}" = true ]; then
