@@ -2,7 +2,7 @@
   "version": 1,
   "pr": 48,
   "branch": "feature-47-skill-git-add-paths",
-  "state": "notified",
+  "state": "ready",
   "review": {
     "ticket": "007-retrospective-振り返り.md",
     "work_type": "retrospective",
@@ -44,5 +44,8 @@
       }
     ]
   },
-  "ready": null
+  "ready": {
+    "at": "2026-08-30T21:58:51Z",
+    "head_sha": "a2311c6fd8b978901729ed2dba8bc9ac393aa8bd"
+  }
 }
