@@ -2,7 +2,7 @@
 type: report
 title: <結果報告のタイトル>          # 例: 結果報告 ○○機能の追加
 description: <1行要約>
-tags: [ticket-driven-workflow, report]
+tags: [work-ticket-driven, report]
 keywords: []                        # 本文の頻出語, 3〜20個
 ---
 
@@ -13,9 +13,10 @@ keywords: []                        # 本文の頻出語, 3〜20個
      （Bash の cp は allowlist 外のためブロックされる） -->
 
 - 対象ブランチ: <!-- git branch --show-current の結果 -->
-- 対象 issue: <!-- #N <url>（issue-pr-driven-workflow 経由の場合。無ければ「なし」） -->
+- 対象 issue: <!-- #N <url>（workflow-issue-mr-driven 経由の場合。無ければ「なし」） -->
 - PR: <!-- #M <url>（同上） -->
 - 期間: <!-- 開始日 〜 完了日 -->
+- レビュー結果: <!-- ワーク完了チェックポイントの結果。自動化されるまでは「未実施（今後の自動化対象）」 -->
 
 ## 実施したチケットと結果
 

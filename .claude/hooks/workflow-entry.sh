@@ -148,7 +148,7 @@ case "${MODE}" in
         elif wf_tickets_active; then
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
-            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（入口の宣言は不要）。ticket-driven-workflow の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（入口の宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから入口を宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"

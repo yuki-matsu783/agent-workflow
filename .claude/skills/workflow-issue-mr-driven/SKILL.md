@@ -26,7 +26,7 @@ description: >
 依頼 ─→ 既存 issue を検索 ─┬─ 類似あり ─→ 承認①「#N で対応する？」─→ 追記案 ─→ 承認② ─→ task-gh-issue（編集）─┐
                            └─ 類似なし ─→ 承認①「新規で作る？」  ─→ 本文案 ─→ 承認② ─→ task-gh-issue（作成）─┤
                                                                                                           ▼
-     完了処理（push / PR 本文更新 / 承認③ ready）←─ ticket-driven-workflow ←─ task-gh-feature（ブランチ + draft PR）
+     完了処理（push / PR 本文更新 / 承認③ ready）←─ work-ticket-driven ←─ task-gh-feature（ブランチ + draft PR）
 ```
 
 ## 役割分担
@@ -36,7 +36,7 @@ description: >
 | このスキル | 依頼の整理、候補の提示、承認の取得、各スキルへの引き継ぎ、完了処理 | — |
 | `task-gh-issue` | issue の検索・作成・編集 | 「検索モード」「作成モード」「編集モード」を指定して手順に従う |
 | `task-gh-feature` | feature ブランチの作成・push・draft PR の作成 | 「issue 連携モード」を指定して手順に従う |
-| `ticket-driven-workflow` | `wip/` 配下での実作業（フックで統制） | 手順 1 から実施。issue / PR の文脈を渡す |
+| `work-ticket-driven` | `wip/` 配下での実作業（フックで統制） | 手順 1 から実施。issue / PR の文脈を渡す |
 
 **GitHub 操作（`gh`、`git push`）はチケット作業の外でのみ行う**。`wip/10_tickets/10_doing/` にチケットがある間はフックが WF003 でブロックする。迂回しない。
 
@@ -61,7 +61,7 @@ ls wip/10_tickets/00_todo/ wip/10_tickets/10_doing/ wip/10_tickets/20_done/ 2>/d
 ```
 
 - `gh` が未導入・未認証 → `task-gh-install` スキルまたは `gh auth login` を案内して停止する
-- **現在ブランチに open な PR があり、`wip/10_tickets/` に todo / doing のチケットがある** → 再開。手順 1〜4 を飛ばし、PR 本文の `Closes #N` から issue 番号を控えて手順 5（`ticket-driven-workflow` の手順 0）に進む
+- **現在ブランチに open な PR があり、`wip/10_tickets/` に todo / doing のチケットがある** → 再開。手順 1〜4 を飛ばし、PR 本文の `Closes #N` から issue 番号を控えて手順 5（`work-ticket-driven` の手順 0）に進む
 - 未コミットの変更がある → 下記「未コミットの変更があるとき」に従い、**必ずユーザーに確認する**
 - ユーザーが `#N` を指定している → `gh issue view N --json number,title,state,url,body` で内容を取得し、手順 2 を飛ばして「既存 #N で対応」として手順 3A に進む
 
@@ -154,7 +154,7 @@ gh issue list --state open --search "<keywords>" --limit 20 --json number,title,
 
 ## 手順 5: チケット駆動ワークフロー
 
-`ticket-driven-workflow` スキルを**手順 1 から**実施する。引き継ぐ文脈:
+`work-ticket-driven` スキルを**手順 1 から**実施する。引き継ぐ文脈:
 
 - 全体計画（プランモード）の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書く
 - issue の受け入れ条件（acceptance）を、実装チケットの DoD と振り返りチケットの確認項目に落とす

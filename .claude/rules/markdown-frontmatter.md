@@ -57,7 +57,7 @@ OKF（Open Knowledge Format、<https://okf.md/spec/>）のフィールド定義�
 
 | ファイル | 扱い | 理由 |
 |---|---|---|
-| `.claude/skills/ticket-driven-workflow/assets/ticket.template.md` および生成後の `wip/10_tickets/**/*.md` | **対象外**（OKF frontmatter を追加しない） | 既に `type` / `status` / `depends_on` / `allowed_paths` を持つ、フック（`workflow-guard.sh` 等）が機械的に解釈する専用フロントマターを1ブロックだけ持つ。OKF の `type`（文書種別）と意味の異なる同名キーを同じブロックへ足すと、フックがどちらの意味か判別できなくなる |
+| `.claude/skills/work-ticket-driven/assets/ticket.template.md` および生成後の `wip/10_tickets/**/*.md` | **対象外**（OKF frontmatter を追加しない） | 既に `type` / `status` / `depends_on` / `allowed_paths` を持つ、フック（`workflow-guard.sh` 等）が機械的に解釈する専用フロントマターを1ブロックだけ持つ。OKF の `type`（文書種別）と意味の異なる同名キーを同じブロックへ足すと、フックがどちらの意味か判別できなくなる |
 | `.claude/skills/task-gh-feature/assets/pr.template.md` | **対象外** | GitHub の PR 本文としてそのまま投稿される。frontmatter を追加すると PR 説明欄に YAML がそのまま表示されてしまう |
 | `.claude/skills/task-gh-issue/assets/issue.template.md` | **対象外** | 同上（GitHub issue 本文として投稿される） |
 | `.claude/skills/workflow-issue-mr-driven/assets/issue-addendum.template.md` | **対象外** | 既存 issue 本文の末尾に追記される断片であり、単独の文書ではない |

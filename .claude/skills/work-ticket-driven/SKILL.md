@@ -1,22 +1,24 @@
 ---
-name: ticket-driven-workflow
+name: work-ticket-driven
 description: >
   作業ブランチでの作業を「計画 → チケット化 → 1枚ずつ実施 → 記録」のチケット駆動で進める。
-  issue-pr-driven-workflow（issue と draft PR を確定してから作業する入口）の最終段階としても呼ばれる。
+  workflow-issue-mr-driven（issue と draft PR を確定してから作業する入口）の最終段階としても呼ばれる。
   Use when the user mentions "チケット駆動で", "チケットで進めて", "チケット化して作業して",
   "ワークフローで作業", "ticket workflow", or wants work split into investigation /
   implementation / retrospective tickets under wip/ with hook-enforced phase restrictions.
 ---
 
-# ticket-driven-workflow — チケット駆動で作業を進める
+# work-ticket-driven — チケット駆動で作業を進める
 
 作業を「調査 → 実装 → 振り返り」のチケットに分割し、`wip/` 配下で 1 枚ずつ実施する。
 フェーズごとのツール利用制限は PreToolUse / PostToolUse フック（`.claude/hooks/workflow-*.sh`）が機械的に強制する。
 
+このスキルにおける「チケット」は、`.claude/docs/10_spec/スキル体系.md` が定義する3層構造（workflow/work/task）の「タスク」に相当する。本スキル自身は3層構造の `work-*` に分類される（ワーク内は人間の明示的承認不要、全チケット完了時点で敵対的レビューエージェントの承認が入る。手順6参照）。
+
 - 要件: `.claude/docs/00_requirements/チケット駆動ワークフロー.md`
 - 仕様（許可マトリクス・エラーコードの正）: `.claude/docs/10_spec/チケット駆動ワークフロー.md`
 - マトリクスの要約: `references/permission-matrix.md`
-- 作業を GitHub の issue / PR に紐づけて始めたい場合は、先に `issue-pr-driven-workflow` を使う（このスキルはその最終段階として呼ばれる）
+- 作業を GitHub の issue / PR に紐づけて始めたい場合は、先に `workflow-issue-mr-driven` を使う（このスキルはその最終段階として呼ばれる）
 
 ## テンプレート（assets/）
 
@@ -58,7 +60,7 @@ mkdir -p wip/10_tickets/00_todo wip/10_tickets/10_doing wip/10_tickets/20_done w
 
 作業ブランチ上であることを `git branch --show-current` で確認する（main 上では作業しない。必要ならブランチ作成をユーザーに提案する）。
 
-**`issue-pr-driven-workflow` から呼ばれた場合**: feature ブランチと draft PR は作成済み。全体計画の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書き、issue の受け入れ条件を実装チケットの DoD と振り返りチケットの確認項目に落とす。
+**`workflow-issue-mr-driven` から呼ばれた場合**: feature ブランチと draft PR は作成済み。全体計画の冒頭に `- 対象 issue: #N <url>` と `- PR: #M <url>` を書き、issue の受け入れ条件を実装チケットの DoD と振り返りチケットの確認項目に落とす。
 
 ## 手順 2: チケット作成
 
@@ -125,15 +127,31 @@ git commit -m "chore(ticket): done NNN-<slug>"
 
 done コミット直後は doing が空なのでフックは働かない。issue / PR に紐づけて進めている場合は、次のチケットに着手する前にここで `git push` してよい（PR に進捗が反映される）。
 
-## 手順 6: 繰り返しと完了報告
+## 手順 6: ワーク完了チェックポイントと完了報告
 
-todo が空になるまで手順 3〜5 を繰り返す。全チケットが done になったら、以下をユーザーに報告する:
+todo が空になるまで手順 3〜5 を繰り返す。全チケットが done になったら、以下を行う。
+
+### ワーク完了チェックポイント
+
+本ワークにおける「タスク」（＝チケット）がすべて完了したことを受け、報告の前に以下のチェックポイントを設置する（仕様: `.claude/docs/10_spec/スキル体系.md`）。
+
+| 項目 | 内容 |
+|------|------|
+| 位置 | 全チケット done 直後、結果報告の作成前 |
+| レビュー対象 | ワーク開始コミット（最初のチケット着手時のコミット）から現在までの全差分 |
+| 出力 | 承認 / 差し戻し（差し戻し時は追加チケットで対応する） |
+| 承認者 | 敵対的レビューエージェント |
+
+**現状の運用**: このチェックポイントを自動起動する実装は未整備（今後の課題）。自動化されるまでは、結果報告に「レビュー結果: 未実施（今後の自動化対象）」と明記する。既存の `retrospective` チケット（セルフレビュー・結果報告の作成）とは別物であり、統合しない。
+
+### 完了報告
 
 - 各チケットの結果（うまくいったこと・いかなかったことの要約）
 - 成果物の一覧（`wip/20_plans/`、`wip/30_reports/`、コード変更）
 - 振り返りから得られた改善提案
+- ワーク完了チェックポイントのレビュー結果（上記の運用に従う）
 
-issue / PR に紐づく作業（`issue-pr-driven-workflow` 経由）なら、報告のあと同スキルの手順 6（完了処理: push・PR 本文の更新・ready for review の確認）に戻る。
+issue / PR に紐づく作業（`workflow-issue-mr-driven` 経由）なら、報告のあと同スキルの手順 6（完了処理: push・PR 本文の更新・ready for review の確認）に戻る。
 
 ## エラーハンドリング
 

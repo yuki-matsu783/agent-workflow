@@ -103,7 +103,7 @@ run prompt "$(prompt_json "issue 作って")"
 run record "$(skill_json task-gh-issue)"
 run guard "$(tool_json Edit)"
 check TE005 2 "WF101"
-run record "$(skill_json ticket-driven-workflow)"
+run record "$(skill_json work-ticket-driven)"
 run guard "$(tool_json Edit)"
 check TE005b 2 "WF101"
 # Skill 以外のツールの PostToolUse は無視する

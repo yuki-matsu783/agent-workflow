@@ -6,7 +6,7 @@
 # 一時ディレクトリに Git リポジトリを作って stdin に JSON を与え、
 # exit code / stderr / stdout を検証する。
 #
-# 使い方: bash .claude/skills/ticket-driven-workflow/scripts/test-hooks.sh
+# 使い方: bash .claude/skills/work-ticket-driven/scripts/test-hooks.sh
 # ============================================================
 set -uo pipefail
 
@@ -307,7 +307,7 @@ check TC017d 0 "" "WF"
 # TC023: bash_groups "test" を持つ type はフックのテストスクリプトを実行できる（環境変数の前置も可）。対象外のスクリプトは WF003
 run_guard "$(bash_json "bash .claude/hooks/tests/test-workflow-entry.sh")"
 check TC023 0 "" "WF"
-run_guard "$(bash_json "WF_ENTRY_SCRIPT=/tmp/x.sh bash .claude/skills/ticket-driven-workflow/scripts/test-hooks.sh")"
+run_guard "$(bash_json "WF_ENTRY_SCRIPT=/tmp/x.sh bash .claude/skills/work-ticket-driven/scripts/test-hooks.sh")"
 check TC023b 0 "" "WF"
 run_guard "$(bash_json "bash .claude/hooks/workflow-guard.sh")"
 check TC023c 2 "WF003"
