@@ -112,12 +112,14 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
    - 承認②では、ブランチ名と PR タイトルの案も同時に確認する（往復を減らす）
 6. **ブランチと draft PR の作成**（task-gh-feature の issue 連携モード）: デフォルトブランチを最新化 → `feature-<N>-<slug>` を作成 → 空コミット → push → `Closes #N` を含む draft PR を作成する
 7. **チケット駆動ワークフロー（ワークループ）**: 初回のみ `work-ticket-driven` の手順 1 から実施し、全体計画の合意（冒頭に issue / PR を記載、issue の `acceptance` をチケットの DoD に反映）とチケット全件の作成まで進める。以降、todo と doing が両方空になるまで次を繰り返す:
-   1. `work-ticket-driven` を実施する。1つのワーク（作業タイプ）が完了すると、完了報告とともに制御が戻る
+   1. `work-ticket-driven` を実施する。1つのワーク（作業タイプ）が完了すると、完了報告とともに制御が戻る。境界かどうかは `bash .claude/hooks/work-boundary.sh status` の `at_boundary` で確認する（目視の type 比較はしない）
    2. `git push`（doing が空なのでフックは働かない）
    3. `gh pr edit M --body-file` で PR 本文の「変更点」に完了したワークの要約を追記する
-   4. `gh pr comment M` でレビュー依頼を1回投稿し（本文冒頭に `Claude Code より:`）、チャットでレビュー依頼した旨を報告して**応答を終える**（承認④の待機）
-   5. レビュー完了の連絡を受けたら、`gh pr view M --json reviewDecision,reviews,comments` と `gh api repos/<owner>/<repo>/pulls/M/comments` でコメントを取得し、自分の投稿を除いて提示する。指摘が 0 件ならそのまま次のワークへ。1 件以上なら対応要否を `AskUserQuestion` で確認する
-   6. 対応が必要な指摘があれば、`work-ticket-driven` に同じ作業タイプの追加チケット（指摘内容を DoD に落とす）を作らせ、7-1 に戻る（同じワークとして再度 7-2〜7-5 を回す）
+   4. `bash .claude/hooks/work-boundary.sh request --body-file <レビュー観点を書いた一時ファイル>` でレビューを依頼する（スクリプトが `gh pr comment` を実行し、レビュー状態を `requested` にしてコミット・push する。`gh pr comment` を直接叩かない）。チャットでレビュー依頼した旨を報告して**応答を終える**（承認④の待機）
+   5. レビュー完了の連絡を受けたら、`bash .claude/hooks/work-boundary.sh complete` を実行する（スクリプトがコメント・レビューを取得し、`CHANGES_REQUESTED` や未返信のインラインスレッドがあれば WF014 で拒否する。通れば `completed` にしてコミットし、取得した指摘を JSON で返す）。指摘が 0 件ならそのまま次のワークへ。1 件以上なら対応要否を `AskUserQuestion` で確認する。インラインスレッドへの返信は `work-boundary.sh reply <id> "<対応内容>"`
+   6. 対応が必要な指摘があれば、`work-ticket-driven` に同じ作業タイプの追加チケット（指摘内容を DoD に落とす）を作らせ、7-1 に戻る（同じ type の追加チケットは境界でも着手できる。完了後は done 末尾が変わるため、再度 7-2〜7-5 を回して `request` → `complete` する）
+
+   レビュー状態（`wip/10_tickets/review-state.json`）を Edit / Write / Bash で直接書き換えない（フックが WF012 で拒否する）。レビューが完了していない状態で次の type のチケットに着手しようとするとフックが WF011 で拒否し、対処（`request` または `complete`）を返す
 8. **完了処理**（全ワーク done 後）: ループ内で push と PR 本文更新は済んでいるため、`wip/30_reports/` の要約で PR 本文を最終整形 → **承認③** → 承認されれば `gh pr ready`
 9. **報告**: issue / PR の URL、ブランチ、成果物一覧、振り返りの要約を報告する
 
@@ -128,7 +130,7 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 3. **候補が closed のみ**: 承認①の選択肢に「#N を再オープンして対応」を加える。再オープンは `gh issue reopen N`（承認後）
 4. **依頼が複数の問題を含む**: 分割案（issue 1 件ずつ）を提示し、ユーザーが選んだ 1 件で本フローを進める。残りは新規 issue として起票だけ提案する
 5. **ワーク途中のチケット完了ごとの push**: 同じ作業タイプの次のチケットが todo に残っている（ワーク境界ではない）場合でも、done コミット直後（doing が空）に `git push` してよい。PR に進捗が反映される。この場合はレビュー依頼（承認④）を行わず、次のチケットの着手に進む
-6. **レビュー完了の連絡がないまま「続けて」と言われた**: 基本フロー 7-5 のコメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む。確認せずに進まない
+6. **レビュー完了の連絡がないまま「続けて」と言われた**: 基本フロー 7-5（`work-boundary.sh complete`）を実行し、通れば次のワークへ進む。通らない（WF014）なら理由を報告して応答を終える。`complete` を経ずに次の type へ着手しようとしてもフックが WF011 で拒否する
 7. **ヘッドレス実行（`claude -p` 等）でワーク境界に達した**: レビュー依頼（7-4）を投稿した時点でそのセッションの応答を完了とする。レビュー結果の反映と次のワークは次回セッション（代替フロー 1 の再開）で行う。1セッションで全ワークを完走することは想定しない
 
 ### 例外フロー
@@ -208,14 +210,14 @@ gh issue edit N --body-file <path>
 gh pr create --base <default> --head <branch> --title "<title>" --body-file <path> --draft
 gh pr view --json number,url,isDraft,state,body
 gh pr edit N --body-file <path>
-gh pr comment N --body "<Claude Code より: ワーク完了のレビュー依頼>"
-gh pr view N --json reviewDecision,reviews,comments
-gh api repos/<owner>/<repo>/pulls/N/comments --jq '.[] | {id, path, line, body, in_reply_to_id, user: .user.login, url: .html_url}'
+bash .claude/hooks/work-boundary.sh status                       # ワーク境界とレビュー状態の判定（JSON）
+bash .claude/hooks/work-boundary.sh request --body-file <path>   # レビュー依頼（内部で gh pr comment）
+bash .claude/hooks/work-boundary.sh complete                     # レビュー完了の確認（内部で gh pr view / gh api .../pulls/N/comments）
+bash .claude/hooks/work-boundary.sh reply <id> "<対応内容>"      # インラインスレッドへの返信
 gh pr ready N
 ```
 
-- `gh pr view --json reviewDecision,reviews,comments`: `reviewDecision` は未レビューなら空文字、レビュー後は `APPROVED` / `CHANGES_REQUESTED` / `REVIEW_REQUIRED`。`comments` は会話タブのコメント、`reviews` はレビュー本文
-- `gh api .../pulls/N/comments`: 行に紐づくインラインコメント。`in_reply_to_id` が null のものがスレッドの起点で、同じ id を `in_reply_to_id` に持つ要素が無ければ未返信
+- レビュー依頼・コメント取得はスキルが `gh pr comment` / `gh pr view` / `gh api` を直接組み立てず、`work-boundary.sh` に委ねる（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」が正）。`complete` は `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`）と、返信の無いインラインスレッド（`in_reply_to_id` が null で、その id を `in_reply_to_id` に持つ要素が無いもの）を機械的に検査する
 
 ---
 
@@ -256,7 +258,7 @@ gh pr ready N
 
 ## 制約条件
 
-- **技術的制約**: GitHub / `gh` CLI 前提。フックの Bash allowlist により、doing チケットがある間は `gh` と `git push` が使えない（仕様として許容し、フックは変更しない）。ワーク境界の判定もフックは行わず、スキルの手順で担う
+- **技術的制約**: GitHub / `gh` CLI 前提。フックの Bash allowlist により、doing チケットがある間は `gh` と `git push` が使えない（仕様として許容し、`workflow-guard.sh` は変更しない）。ワーク境界の判定とレビュー状態の遷移は `work-boundary.sh` が決定論的に行い、`workflow-boundary.sh` がレビュー未完了での次ワーク着手（WF011）と状態ファイルの直接書き換え（WF012）を拒否する。本スキルはその出力に従う
 - **対話上の制約**: 承認④（ワーク完了ごとのレビュー）は応答を終えて次の発言を待つ方式のため、1つのワークフローが複数ターン・複数セッションにまたがる。ヘッドレス実行では1セッションで完走しない
 - **ビジネス的制約**: 特になし
 - **外部的制約**: task-gh-issue / task-gh-feature / work-ticket-driven の手順に従う（本スキルは順序と承認を司るだけで、各操作の詳細を再定義しない）
@@ -319,3 +321,4 @@ gh pr ready N
 | 2026-08-30 | 1.1 | スキル体系仕様書への相互参照を追加 | Hiro |
 | 2026-08-30 | 1.2 | スキル体系の3層再編（workflow/work/task）に伴い、言及するスキル名を新名称に更新 | Hiro |
 | 2026-08-30 | 1.3 | ワーク（作業タイプ）完了ごとに push・レビュー依頼・コメント取得・追加チケットを行うワークループ（承認④）を追加。ブランチ命名規約を `<prefix>-<N>-<slug>`（ハイフン区切り）に変更。ヘッドレス実行時の扱い、IP011〜IP014 を追加（issue #12） | Hiro |
+| 2026-08-30 | 1.4 | ワークループのレビュー依頼・コメント取得を `work-boundary.sh`（`request` / `complete` / `reply`）に委ねる形に変更。状態ファイルの直接書き換え禁止（WF012）とレビュー未完了での着手拒否（WF011）を明記（issue #12、ユーザー指示） | Hiro |
