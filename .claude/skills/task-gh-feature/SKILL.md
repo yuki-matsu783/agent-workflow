@@ -1,15 +1,18 @@
 ---
 name: task-gh-feature
 description: >
-  Creates feature branches and PRs using the `gh` CLI. Use when the user mentions "feature branch", "branch", "PR", "pull request",
-  "feature branch 作って", "ブランチ切って", "pr 作成", "issue に紐づくブランチ", "draft PR", or "feature branch create".
-  Checks the default branch, updates the base, creates the feature branch, and pushes to remote. Has an issue-linked mode
-  (branch named after the issue, empty initial commit, draft PR with "Closes #N") used by workflow-issue-mr-driven.
+  Creates feature branches and PRs/MRs using the `gh`/`glab` CLI, auto-detecting whether the
+  repository is GitHub or GitLab from the origin remote. Use when the user mentions "feature branch",
+  "branch", "PR", "pull request", "MR", "merge request", "feature branch 作って", "ブランチ切って",
+  "pr 作成", "mr 作成", "issue に紐づくブランチ", "draft PR", "draft MR", or "feature branch create".
+  Checks the default branch, updates the base, creates the feature branch, and pushes to remote. Has
+  an issue-linked mode (branch named after the issue, empty initial commit, draft PR/MR with
+  "Closes #N") used by workflow-issue-mr-driven.
 ---
 
-# task-gh-feature — feature ブランチ作成と PR 作成
+# task-gh-feature — feature ブランチ作成と PR/MR 作成
 
-現在のワークスペースが紐づくリポジトリに対し、デフォルトブランチを確認してベースを決定し、feature ブランチを切って PR を作成する。
+現在のワークスペースが紐づくリポジトリに対し、デフォルトブランチを確認してベースを決定し、feature ブランチを切って PR（GitHub）/MR（GitLab）を作成する。
 
 ## 手順 0: 前準備チェック
 
@@ -23,13 +26,33 @@ git rev-parse --is-inside-work-tree
 
 リポジトリ外の場合は、まず該当するリポジトリに `cd` するか、ユーザーにワークスペースを確認する。
 
-### `gh` CLI がインストールされていること
+### プラットフォームの判定（GitHub / GitLab）
+
+`task-repo-merge-settings` と同じ方式で判定する。
 
 ```bash
-gh auth status
+git remote get-url origin
 ```
 
-`gh` が見つからない、または認証されていない場合は、ユーザーに `gh auth login` を案内する。
+- ホスト名に `github.com` を含む、または GitHub Enterprise 等で GitHub と明言されている → GitHub（`gh`）
+- ホスト名に `gitlab.com` を含む、または GitLab Self-Managed 等で GitLab と明言されている → GitLab（`glab`）
+- `origin` が無い、ホスト名からどちらか判定できない場合は、`AskUserQuestion` で GitHub/GitLab の
+  どちらとして進めるかをユーザーに確認する。推測で決め打ちしない
+
+以降、判定結果に応じて `gh`（GitHub）/`glab`（GitLab）のいずれかのコマンド体系を使う。
+
+### 対応する CLI がインストールされていること
+
+```bash
+# GitHub の場合
+gh auth status
+
+# GitLab の場合
+glab auth status
+```
+
+`gh`/`glab` が見つからない、または認証されていない場合は、`task-gh-install` スキル
+（GitHub/GitLab 両対応）または `gh auth login`/`glab auth login` を案内する。
 
 ### 未コミットの変更がないことを確認
 
@@ -53,24 +76,22 @@ git status --short
 
 ## 手順 1: デフォルトブランチの確認
 
-`gh` CLI でリポジトリのデフォルトブランチを取得する。
-
 ```bash
 git remote get-url origin
 ```
 
-でリモート URL を取得し、`org/repo` 形式に変換する。
+でリモート URL を取得し、`org/repo`（GitLab は `group/project`）形式に変換する。
 
 その後、デフォルトブランチを取得する：
 
 ```bash
+# GitHub の場合
 gh api repos/ORG/REPO --jq '.default_branch'
-```
-
-または：
-
-```bash
+# または
 gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
+
+# GitLab の場合（"/" は "%2F" にエンコードする。gitlab-merge-settings.sh と同じ方式）
+glab api "projects/GROUP%2FPROJECT" --jq '.default_branch'
 ```
 
 **デフォルトブランチが `main`、`master`、`develop`、`trunk` など何であれ、それをベースとして使用する。**
@@ -134,7 +155,7 @@ git pull --ff-only origin BASE_BRANCH
 git ls-remote --heads origin BRANCH_NAME
 ```
 
-リモートに同名ブランチが存在する場合は、ユーザーに確認を促す：
+GitHub/GitLab 共通（`git` 標準コマンドのため CLI の違いを問わない）。リモートに同名ブランチが存在する場合は、ユーザーに確認を促す：
 
 > リモートに `BRANCH_NAME` が既に存在します。別の名前を指定しますか？
 
@@ -169,6 +190,8 @@ git commit --allow-empty -m "WIP: start BRANCH_NAME"
 git push -u origin BRANCH_NAME
 ```
 
+GitHub/GitLab 共通（`git` 標準コマンド）。
+
 ### エラーハンドリング
 
 - **パーミッションエラーの場合**：リポジトリへの push 権限があるか確認する。
@@ -176,48 +199,60 @@ git push -u origin BRANCH_NAME
 
 ---
 
-## 手順 6: PR の作成
+## 手順 6: PR/MR の作成
 
-### PR のタイトルと本文の収集
+### PR/MR のタイトルと本文の収集
 
-ユーザーに PR のタイトルを聞く。
+ユーザーに PR（GitHub）/MR（GitLab）のタイトルを聞く。
 
-**PR のタイトル**は必須。例：`feat: ログイン画面の実装`
+**タイトル**は必須。例：`feat: ログイン画面の実装`
 
-**PR の本文**は以下のいずれかの方法で収集する：
+**本文**は以下のいずれかの方法で収集する：
 
 1. **ユーザーが直接指定した場合**：そのまま使う
-2. **テンプレートがある場合**：`assets/pr.template.md` を読み込んでテンプレートとして提示する
+2. **テンプレートがある場合**：`assets/pr.template.md` を読み込んでテンプレートとして提示する（PR/MR 共通で使える内容）
 3. **変更内容を自動収集する場合**：
    ```bash
    git log --oneline BASE_BRANCH..BRANCH_NAME
    ```
    でコミット履歴を取得し、本文の土台とする。
 
-### PR の作成
+### PR/MR の作成
 
 ```bash
+# GitHub の場合
 gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "PRタイトル" --body "PR本文"
+
+# GitLab の場合（非対話実行では確認プロンプトで止まるため --yes を付ける）
+glab mr create --source-branch BRANCH_NAME --target-branch BASE_BRANCH --title "MRタイトル" --description "MR本文" --yes
 ```
 
-または対話的に作成する（タイトルと本文をプロンプトで聞く）：
+本文が長い場合は Write で一時ファイル（リポジトリ外。例: `/tmp/pr-body.md`）に書き出し、
+`gh pr create --body-file /tmp/pr-body.md` / `glab mr create --description-file /tmp/pr-body.md` を使う。
+
+または対話的に作成する（ブラウザで作成画面を開く）：
 
 ```bash
+# GitHub の場合
 gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --web
+
+# GitLab の場合
+glab mr create --source-branch BRANCH_NAME --target-branch BASE_BRANCH --web
 ```
 
-`--web` を使うとブラウザで PR 作成画面が開くため、本文の記述が楽になる。
+`--web` を使うとブラウザで作成画面が開くため、本文の記述が楽になる。
 
-### PR 作成時のオプション
+### PR/MR 作成時のオプション
 
-- **ドラフト PR** にする場合：`--draft` を追加する
+- **ドラフト** にする場合：GitHub は `--draft`、GitLab も `--draft` を追加する
   ```bash
   gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "タイトル" --body "本文" --draft
+  glab mr create --source-branch BRANCH_NAME --target-branch BASE_BRANCH --title "タイトル" --description "本文" --draft --yes
   ```
-- **ラベルを付与する場合**：`--label "ラベル名"` を追加する
-- **マイルストーンを指定する場合**：`--milestone "ミロストーン名"` を追加する
-- **レビュアーを指定する場合**：`--reviewer "ユーザー名"` を追加する
-- **プロジェクトを指定する場合**：`--project "プロジェクト名"` を追加する
+- **ラベルを付与する場合**：GitHub `--label "ラベル名"` / GitLab `--label "ラベル名"`
+- **マイルストーンを指定する場合**：GitHub `--milestone "マイルストーン名"` / GitLab `--milestone "マイルストーン名"`
+- **レビュアーを指定する場合**：GitHub `--reviewer "ユーザー名"` / GitLab `--reviewer "ユーザー名"`
+- **プロジェクトを指定する場合（GitHub のみ）**：`--project "プロジェクト名"`
 
 ---
 
@@ -227,26 +262,26 @@ gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --web
 
 - 作成した feature ブランチ名
 - ベースブランチ
-- PR の URL（`gh pr create` の出力から）
-- PR 番号（あれば）
+- PR/MR の URL（`gh pr create`/`glab mr create` の出力から）
+- PR/MR 番号（あれば）
 
 ---
 
 ## issue 連携モード（workflow-issue-mr-driven から呼ばれる場合）
 
-issue 番号・ブランチ名・PR タイトル・ベースブランチは呼び出し元で**承認済み**として渡される。手順 2・3・6 の対話的な確認は省略し、以下を機械的に実行する。
+issue 番号・ブランチ名・PR/MR タイトル・ベースブランチは呼び出し元で**承認済み**として渡される。手順 2・3・6 の対話的な確認は省略し、以下を機械的に実行する。
 
 | 入力 | 例 |
 |------|-----|
 | issue 番号 / タイトル | `#12` / 「空パスワードで送信できる」 |
 | ブランチ名 | `fix/12-login-empty-password`（`<prefix>/<N>-<slug>`） |
-| PR タイトル | `fix: 空パスワードで送信できる (#12)` |
-| ベースブランチ | デフォルトブランチ（`gh repo view --json defaultBranchRef` の結果） |
+| PR/MR タイトル | `fix: 空パスワードで送信できる (#12)` |
+| ベースブランチ | デフォルトブランチ（手順 1 の結果） |
 
 1. 手順 0 の前準備チェックを行う（未コミットの変更があれば呼び出し元に戻して確認する）
 2. 手順 1〜2 に従いベースブランチを最新化する（`git checkout BASE_BRANCH && git pull --ff-only origin BASE_BRANCH`）
 3. 手順 3 の衝突チェック（`git ls-remote --heads origin BRANCH_NAME`）を行い、衝突していれば別名（末尾に `-2` など）を提案して呼び出し元に戻す
-4. ブランチを作成し、**空コミットを作る**（この時点では差分が無く、差分ゼロでは `gh pr create` が失敗するため）:
+4. ブランチを作成し、**空コミットを作る**（この時点では差分が無く、差分ゼロでは PR/MR 作成が失敗するため）:
 
    ```bash
    git checkout -b BRANCH_NAME BASE_BRANCH
@@ -254,15 +289,29 @@ issue 番号・ブランチ名・PR タイトル・ベースブランチは呼�
    git push -u origin BRANCH_NAME
    ```
 
-5. `assets/pr.template.md` を Read し、「関連 Issue」に `- Closes #N` を書いた本文を Write で一時ファイル（リポジトリ外。例: `/tmp/gh-pr-body.md`）に作り、**draft** で PR を作成する:
+5. `assets/pr.template.md` を Read し、「関連 Issue」に `- Closes #N` を書いた本文を Write で一時ファイル（リポジトリ外。例: `/tmp/pr-body.md`）に作り、**draft** で PR/MR を作成する。`Closes #N` は GitHub・GitLab 双方が対応するクローズキーワード構文のため、そのまま使える:
 
    ```bash
-   gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "PRタイトル" --body-file /tmp/gh-pr-body.md --draft
+   # GitHub の場合
+   gh pr create --repo ORG/REPO --base BASE_BRANCH --head BRANCH_NAME --title "PRタイトル" --body-file /tmp/pr-body.md --draft
+
+   # GitLab の場合
+   glab mr create --source-branch BRANCH_NAME --target-branch BASE_BRANCH --title "MRタイトル" --description-file /tmp/pr-body.md --draft --yes
    ```
 
-6. 手順 7 のとおり、ブランチ名・ベース・PR の URL と番号を報告する（呼び出し元がこれを控える）
+6. 手順 7 のとおり、ブランチ名・ベース・PR/MR の URL と番号を報告する（呼び出し元がこれを控える）
 
-作業完了後の PR 本文更新は `gh pr edit N --body-file <path>`、レビュー依頼への切り替えは `gh pr ready N`（いずれも呼び出し元が承認を得てから実行する）。
+作業完了後の PR/MR 本文更新、レビュー依頼への切り替え（いずれも呼び出し元が承認を得てから実行する）：
+
+```bash
+# GitHub の場合
+gh pr edit N --body-file <path>
+gh pr ready N
+
+# GitLab の場合
+glab mr update N --description-file <path>
+glab mr update N --ready
+```
 
 ---
 
@@ -270,15 +319,15 @@ issue 番号・ブランチ名・PR タイトル・ベースブランチは呼�
 
 ### 1. デフォルトブランチが `main` ではない場合
 
-GitHub のリポジトリ設定により、デフォルトブランチは `main`、`master`、`develop`、`trunk`、`production` など様々です。`gh api` で正確に取得し、ユーザーに確認を求めてください。
+GitHub のリポジトリ・GitLab のプロジェクトの設定により、デフォルトブランチは `main`、`master`、`develop`、`trunk`、`production` など様々です。`gh api`/`glab api` で正確に取得し、ユーザーに確認を求めてください。
 
 ### 2. 複数のリモートがある場合
 
-`git remote -v` で複数のリモートが設定されている場合、`origin` が GitHub 用であることを確認してください。GitHub API のリポジトリ情報は `origin` に対して取得するのが一般的です。
+`git remote -v` で複数のリモートが設定されている場合、`origin` が対象のリポジトリ/プロジェクト用であることを確認してください。GitHub API/GitLab API のリポジトリ情報は `origin` に対して取得するのが一般的です。
 
-### 3. 保護されたブランチからの PR 作成
+### 3. 保護されたブランチからの PR/MR 作成
 
-一部のリポジトリでは、デフォルトブランチ（`main` 等）への直接プッシュが保護されています。feature ブランチからの PR であれば問題ありませんが、ベースブランチ自体をチェックアウトする際の権限に注意してください。
+一部のリポジトリ/プロジェクトでは、デフォルトブランチ（`main` 等）への直接プッシュが保護されています。feature ブランチからの PR/MR であれば問題ありませんが、ベースブランチ自体をチェックアウトする際の権限に注意してください。
 
 ### 4. 同名ブランチが既に存在する場合
 
@@ -296,16 +345,20 @@ GitHub のリポジトリ設定により、デフォルトブランチは `main`
 
 ユーザーがリベースを好む場合は、`git pull --rebase` や `git rebase origin/BASE_BRANCH` を使ってください。
 
-### 7. PR が自動マージされる設定の場合
+### 7. PR/MR が自動マージされる設定の場合
 
-自動マージが有効なリポジトリでは、PR 作成後に `gh pr merge --auto` で自動マージを有効にできる場合があります。
+自動マージが有効なリポジトリ/プロジェクトでは、作成後に自動マージを有効にできる場合があります（GitHub: `gh pr merge --auto`、GitLab: `glab mr merge --auto-merge`）。
 
 ### 8. CI が失敗している場合
 
-PR を作成した後、CI のステータスを確認したい場合は：
+PR/MR を作成した後、CI のステータスを確認したい場合は：
 
 ```bash
+# GitHub の場合
 gh pr checks PR_NUMBER
+
+# GitLab の場合
+glab ci status --branch=BRANCH_NAME
 ```
 
 で確認し、失敗があればユーザーに伝える。
@@ -314,6 +367,18 @@ gh pr checks PR_NUMBER
 
 ワークツリー内では、`git rev-parse --show-toplevel` でメインリポジトリのルートを確認してください。サブモジュールがある場合は、サブモジュール側でも `git pull` を確認する必要があります。
 
-### 10. `gh` のリポジトリ指定が不要な場合
+### 10. CLI のリポジトリ指定が不要な場合
 
-リポジトリのルートディレクトリで `gh` コマンドを実行すれば、`--repo` フラグを省略できる場合があります。ただし、明示的に指定した方が安全です。
+リポジトリ/プロジェクトのルートディレクトリで `gh`/`glab` コマンドを実行すれば、`--repo`（GitLab は `-R`/`--repo`）フラグを省略できる場合があります。ただし、明示的に指定した方が安全です。
+
+## エラーハンドリング
+
+| 状況 | 対処 |
+|------|------|
+| プラットフォーム判定不能（`origin` 無し、ホスト名から GitHub/GitLab のどちらか判定できない） | 推測で決め打ちせず、`AskUserQuestion` でユーザーに確認する |
+| `gh`/`glab` が未導入・未認証 | `task-gh-install` スキル（GitHub/GitLab 両対応）または `gh auth login`/`glab auth login` を案内して停止する |
+| 未コミットの変更がある | 手順 0「未コミットの変更がないことを確認」に従い、扱いをユーザーに確認する。勝手に stash / コミット / 破棄しない |
+| `gh pr create`/`glab mr create` が「差分なし」で失敗 | 空コミットを作って再試行 |
+| ブランチ名が衝突 | 手順 3「ブランチ名の衝突チェック」に従い別名を提案 |
+| `origin` が GitHub でも GitLab でもない | 対象外として報告する |
+| `gh pr create`/`glab mr create` が差分ゼロ以外の理由で失敗 | コマンドと出力を報告して停止する。別コマンドで代替しない |

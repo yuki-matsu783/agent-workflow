@@ -183,7 +183,7 @@ doing が空なので GitHub 操作ができる。
 | 状況 | 対処 |
 |------|------|
 | `gh` 未導入 / 未認証 | `task-gh-install` または `gh auth login` を案内して停止 |
-| `origin` が GitHub でない | 対象外として報告する（GitLab の MR は未対応） |
+| `origin` が GitHub でない | 対象外として報告する（`task-gh-feature` 自体は GitHub/GitLab 両対応だが、本ワークフローの issue 検索・作成・編集は `task-gh-issue` に依存しており、`task-gh-issue` が GitHub 専用の間は本ワークフロー全体として GitLab には未対応） |
 | 未コミットの変更がある | 手順 0「未コミットの変更があるとき」に従い、扱いをユーザーに確認する。勝手に stash / コミット / 破棄しない |
 | 検索が 0 件 | closed を含めて再検索。それでも 0 件なら 3B へ |
 | `gh pr create` が「差分なし」で失敗 | 空コミットを作って再試行 |
