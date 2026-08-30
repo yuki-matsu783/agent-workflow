@@ -1,22 +1,15 @@
 {
   "version": 1,
-  "ticket": "015-ai-asset-design-マージ前作業の仕様.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "017-ai-asset-implementation-workflow-issue-mr-driven完了処理改訂.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
   "local": false,
   "pr": 31,
-  "head_sha": "ba5d4f6cf2864e4563008ac8300a185563ee448f",
+  "head_sha": "955ea6653f831440a121eaeb9d8f4db4f7980c0c",
   "request": {
-    "comment_id": "5467620764",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/31#issuecomment-5467620764",
-    "at": "2026-08-30T08:24:22Z"
+    "comment_id": "5467808485",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/31#issuecomment-5467808485",
+    "at": "2026-08-30T09:09:43Z"
   },
-  "complete": {
-    "at": "2026-08-30T08:39:47Z",
-    "review_decision": "",
-    "comment_ids": [
-      "IC_kwDOUHO_g88AAAABReVFnA"
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
