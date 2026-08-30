@@ -19,8 +19,8 @@ description: >
 
 このスキルにおける「チケット」は、`.claude/docs/10_spec/スキル体系.md` が定義する3層構造（workflow/work/task）の「タスク」に相当する。本スキル自身は3層構造の `work-*` に分類される。**1つの作業タイプ（type）に属するチケット群が1つのワーク**であり、ワーク内は人間の明示的承認なしに進む。ワークが完了した時点（次のチケットの type が変わる、または todo が空になる＝**ワーク境界**）でワーク完了チェックポイントを設け、承認者は人間とする（`workflow-issue-mr-driven` 経由なら PR レビュー、単独なら `AskUserQuestion`。手順 5.5・6 参照）。
 
-- 要件: `.claude/docs/00_requirements/チケット駆動ワークフロー.md`
-- 仕様（許可マトリクス・エラーコードの正）: `.claude/docs/10_spec/チケット駆動ワークフロー.md`
+- 要件: `.claude/docs/00_requirements/skill-work-ticket-driven.md`
+- 仕様（許可マトリクス・エラーコードの正）: `.claude/docs/10_spec/skill-work-ticket-driven.md`
 - マトリクスの要約: `references/permission-matrix.md`
 - 作業を GitHub の issue / PR に紐づけて始めたい場合は、先に `workflow-issue-mr-driven` を使う（このスキルはその最終段階として呼ばれる）
 
@@ -116,7 +116,7 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 ### retrospective の実施
 
-結果報告の作成に続けて、`workflow-quick-request` 手順 5 と観点・文言を揃えた棚卸し・振り返り・合意を行う（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「retrospective の棚卸しと合意」）。
+結果報告の作成に続けて、`workflow-quick-request` 手順 5 と観点・文言を揃えた棚卸し・振り返り・合意を行う（仕様: `.claude/docs/10_spec/skill-work-ticket-driven.md`「retrospective の棚卸しと合意」）。
 
 1. **棚卸し**: 今回のワークフローで関わった AI アセットを列挙する（該当なしの種類は省く）
 
@@ -161,7 +161,7 @@ git add wip/10_tickets/ <許可パス内の変更ファイル>
 git commit -m "chore(ticket): done NNN-<slug>"
 ```
 
-`git add` の対象は `wip/10_tickets/`（末尾スラッシュ付き）と作業タイプの許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。`wip/` は許可パスの glob に一致せず未記載（WF009）の確認になり、Bash の承認はセッション記憶されないため毎回確認が出る（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「Bash コマンドの許可」の `git add` の対象パスの規約）。
+`git add` の対象は `wip/10_tickets/`（末尾スラッシュ付き）と作業タイプの許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。`wip/` は許可パスの glob に一致せず未記載（WF009）の確認になり、Bash の承認はセッション記憶されないため毎回確認が出る（仕様: `.claude/docs/10_spec/skill-work-ticket-driven.md`「Bash コマンドの許可」の `git add` の対象パスの規約）。
 
 done コミット直後は doing が空なのでフックは働かない。issue / PR に紐づけて進めている場合、同じワークの次のチケットが todo に残っていても、ここで `git push` してよい（PR に進捗が反映される。レビュー依頼はワーク境界でのみ行う）。
 
@@ -179,7 +179,7 @@ bash .claude/hooks/work-boundary.sh status
 | `true`（`todo_head` あり） | **ワーク完了**（次のチケットの type が変わる） | 手順 6 へ |
 | `true`（`todo_head` が null） | **最後のワーク完了** | 手順 6 へ |
 
-出力には `review_state`（`none` / `requested` / `completed`）も含まれる。境界で `completed` になっていない間は、次の type のチケットを doing へ移す操作をフックが WF011 で拒否する（`.claude/docs/10_spec/チケット駆動ワークフロー.md`「ワーク境界の判定とレビュー状態」）。
+出力には `review_state`（`none` / `requested` / `completed`）も含まれる。境界で `completed` になっていない間は、次の type のチケットを doing へ移す操作をフックが WF011 で拒否する（`.claude/docs/10_spec/skill-work-ticket-driven.md`「ワーク境界の判定とレビュー状態」）。
 
 連番は実施順であり type ごとではない。レビュー指摘対応で同じ type の追加チケットを作ると連番が飛ぶ（例: 011 implementation → 012 retrospective の後に 013 implementation）が、それで構わない。`status` の `todo_same_type` にそうした追加チケットが列挙される。
 

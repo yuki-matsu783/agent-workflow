@@ -37,8 +37,8 @@ keywords: [AIアセット設計実施, ai-asset-design, .claude/docs, 要件定�
 
 | 成果物 | 作成先 | テンプレート / 手順 |
 |--------|--------|-------------------|
-| 要件定義書 | `.claude/docs/00_requirements/<名前>.md` | `task-requirements`（`assets/requirements.template.md`。`type: requirements`） |
-| 仕様書 | `.claude/docs/10_spec/<名前>.md` | `task-spec`（`assets/spec.template.md`。`type: spec`。テストシナリオに TC 番号） |
+| 要件定義書 | `.claude/docs/00_requirements/skill-<skill名>.md`（対象スキルに1:1で紐づく場合。横断的なメタ文書は例外として従来のトピック名を使う） | `task-requirements`（`assets/requirements.template.md`。`type: requirements`） |
+| 仕様書 | `.claude/docs/10_spec/skill-<skill名>.md`（同上） | `task-spec`（`assets/spec.template.md`。`type: spec`。テストシナリオに TC 番号） |
 | 用語辞書 | `.claude/docs/90_glossary/*.md` | 既存の書式（一言説明 + 定義元）に追記 |
 | 横断文書の更新 | `.claude/docs/10_spec/スキル体系.md` 等 | 既存ファイルを Edit。レビュー記録に版を追記 |
 

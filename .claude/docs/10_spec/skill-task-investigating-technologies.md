@@ -10,7 +10,7 @@ keywords: [技術調査, 評価基準, 採用保留不採用, テンプレート
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/技術調査.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-investigating-technologies.md` を参照。
 - **スコープ**: `task-investigating-technologies` スキルの照合・ヒアリング・保存の入出力と処理フローを定義する。
 
 ---
@@ -129,15 +129,15 @@ keywords: [技術調査, 評価基準, 採用保留不採用, テンプレート
 
 ## 前提条件
 
-`.claude/docs/00_requirements/技術調査.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-investigating-technologies.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/技術調査.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-investigating-technologies.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/技術調査.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-investigating-technologies.md` の非機能要件を参照。
 
 ---
 
@@ -156,7 +156,7 @@ keywords: [技術調査, 評価基準, 採用保留不採用, テンプレート
 ## 関連するドキュメント
 
 - `.claude/skills/task-investigating-technologies/SKILL.md`
-- `.claude/docs/00_requirements/技術調査.md`
+- `.claude/docs/00_requirements/skill-task-investigating-technologies.md`
 - `.claude/skills/task-investigating-technologies/references/conventions.md`
 
 ## レビュー記録

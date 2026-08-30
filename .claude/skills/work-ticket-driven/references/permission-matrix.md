@@ -1,6 +1,6 @@
 # フェーズ×許可マトリクス（要約）
 
-正は `.claude/docs/10_spec/チケット駆動ワークフロー.md`。
+正は `.claude/docs/10_spec/skill-work-ticket-driven.md`。
 **作業タイプとパスの allow / deny / ask は `.claude/hooks/workflow-types.json` で定義**し、フックが呼び出しのたびに読み込む。
 タイプの追加・変更はこの JSON を編集する（コード変更不要）。
 

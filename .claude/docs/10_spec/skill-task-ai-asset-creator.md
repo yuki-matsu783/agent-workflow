@@ -10,7 +10,7 @@ keywords: [アセット種類判定, skill-creator, テンプレート, init-ass
 
 ## 概要
 
-- **背景・目的**: `.claude/docs/00_requirements/AIアセット作成.md` を参照。
+- **背景・目的**: `.claude/docs/00_requirements/skill-task-ai-asset-creator.md` を参照。
 - **スコープ**: `task-ai-asset-creator` スキルの種類判定・重複確認・作成・登録の入出力と処理フローを定義する。
 
 ---
@@ -136,15 +136,15 @@ keywords: [アセット種類判定, skill-creator, テンプレート, init-ass
 
 ## 前提条件
 
-`.claude/docs/00_requirements/AIアセット作成.md` の前提条件を参照。
+`.claude/docs/00_requirements/skill-task-ai-asset-creator.md` の前提条件を参照。
 
 ## 制約条件
 
-`.claude/docs/00_requirements/AIアセット作成.md` の制約条件を参照。
+`.claude/docs/00_requirements/skill-task-ai-asset-creator.md` の制約条件を参照。
 
 ## 非機能要件
 
-`.claude/docs/00_requirements/AIアセット作成.md` の非機能要件を参照。
+`.claude/docs/00_requirements/skill-task-ai-asset-creator.md` の非機能要件を参照。
 
 ---
 
@@ -164,7 +164,7 @@ keywords: [アセット種類判定, skill-creator, テンプレート, init-ass
 ## 関連するドキュメント
 
 - `.claude/skills/task-ai-asset-creator/SKILL.md`
-- `.claude/docs/00_requirements/AIアセット作成.md`
+- `.claude/docs/00_requirements/skill-task-ai-asset-creator.md`
 
 ## レビュー記録
 

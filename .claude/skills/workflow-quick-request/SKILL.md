@@ -18,8 +18,8 @@ issue / PR / チケットを作らずに進めてよい**軽作業**のための
 「本当に軽作業か」を最初に判定し、範囲を宣言してから作業し、範囲を超えたら止まる。
 判定に迷ったら重い側（`workflow-issue-mr-driven`）に倒す。
 
-- 要件: `.claude/docs/00_requirements/軽作業ワークフロー.md`
-- 仕様: `.claude/docs/10_spec/軽作業ワークフロー.md`
+- 要件: `.claude/docs/00_requirements/skill-workflow-quick-request.md`
+- 仕様: `.claude/docs/10_spec/skill-workflow-quick-request.md`
 - 振り分け実施済み判定の仕様（WF101 フックの正。`workflow-issue-mr-driven` と共有するメタ文書）: `.claude/docs/10_spec/ワークフロー振り分け実施済み判定.md`
 - 対になる振り分け: `workflow-issue-mr-driven`（issue と draft PR に紐づけてチケット駆動で進める）
 

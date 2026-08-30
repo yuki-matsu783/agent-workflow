@@ -4,7 +4,7 @@
 # ============================================================
 # 発火タイミング: PreToolUse
 # Matcher: Edit|Write|NotebookEdit|Bash
-# 仕様: .claude/docs/10_spec/チケット駆動ワークフロー.md「ワーク境界の判定とレビュー状態」
+# 仕様: .claude/docs/10_spec/skill-work-ticket-driven.md「ワーク境界の判定とレビュー状態」
 #   - workflow-guard.sh とは独立に登録し、doing が空でも動く
 #   - (a)(b) wip/10_tickets/review-state.json の直接書き換え（Edit/Write/NotebookEdit、
 #           Bash の rm / sed -i / リダイレクト / git checkout -- 等）は常に WF012

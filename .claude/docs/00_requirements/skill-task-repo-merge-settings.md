@@ -89,7 +89,7 @@ keywords: [squash merge, delete branch on merge, gh repo edit, glab api, 明示�
 ## 関連するドキュメント
 
 - `.claude/skills/task-repo-merge-settings/SKILL.md`
-- `.claude/docs/10_spec/マージ設定変更.md`
+- `.claude/docs/10_spec/skill-task-repo-merge-settings.md`
 
 ## レビュー記録
 

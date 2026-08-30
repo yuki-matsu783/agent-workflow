@@ -2,7 +2,7 @@
 # ============================================================
 # test-workflow-guard.sh — workflow-guard.sh の git add / git mv 判定のユニットテスト
 # ============================================================
-# .claude/docs/10_spec/チケット駆動ワークフロー.md の
+# .claude/docs/10_spec/skill-work-ticket-driven.md の
 # 「wip/10_tickets/** への git mv / git add は判定表を経由せず常に許可される」と、
 # 「git add の対象パスの規約」（対象は wip/10_tickets/ と許可パス内のファイルに限定し、
 # wip/ のような親ディレクトリ全体を指定しない。指定すると未記載 WF009 の確認になる。
@@ -166,7 +166,7 @@ run "$(edit_json Edit docs/spec.md)"
 check TC039 0 'WF009'
 
 # ============================================================
-# git add の対象パスの規約（.claude/docs/10_spec/チケット駆動ワークフロー.md 2.3 TC022b / TC022c、issue #47）
+# git add の対象パスの規約（.claude/docs/10_spec/skill-work-ticket-driven.md 2.3 TC022b / TC022c、issue #47）
 # wip/ のような親ディレクトリ全体は wip/10_tickets/* にも type の allow にも一致せず未記載（WF009）になる。
 # 規約どおり wip/10_tickets/ と許可パス内のファイルを明示すれば確認なしで許可される
 # ============================================================

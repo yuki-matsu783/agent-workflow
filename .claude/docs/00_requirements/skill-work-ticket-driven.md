@@ -97,7 +97,7 @@ Claude Code の作業を「計画 → チケット化 → 1枚ずつ実施 → �
 
 - Claude Code のフック機構（`.claude/settings.json` への登録）
 - Git（基準点コミット・差分検出に使用）
-- 仕様の詳細は `.claude/docs/10_spec/チケット駆動ワークフロー.md`（フェーズ×許可マトリクスを含む）で定義する
+- 仕様の詳細は `.claude/docs/10_spec/skill-work-ticket-driven.md`（フェーズ×許可マトリクスを含む）で定義する
 
 ---
 
@@ -114,9 +114,9 @@ Claude Code の作業を「計画 → チケット化 → 1枚ずつ実施 → �
 
 ## 関連するドキュメント
 
-- `.claude/docs/10_spec/チケット駆動ワークフロー.md`（仕様書・フェーズ×許可マトリクス）
-- `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`（本ワークフローの前段。issue / PR に紐づけてから本ワークフローを呼ぶ振り分け元）
-- `.claude/docs/00_requirements/軽作業ワークフロー.md`（対になる振り分け。振り返りの棚卸し・4観点・2区分は本ワークフローと観点・文言を揃える）
+- `.claude/docs/10_spec/skill-work-ticket-driven.md`（仕様書・フェーズ×許可マトリクス）
+- `.claude/docs/00_requirements/skill-workflow-issue-mr-driven.md`（本ワークフローの前段。issue / PR に紐づけてから本ワークフローを呼ぶ振り分け元）
+- `.claude/docs/00_requirements/skill-workflow-quick-request.md`（対になる振り分け。振り返りの棚卸し・4観点・2区分は本ワークフローと観点・文言を揃える）
 - `.claude/skills/task-ai-asset-creator/`（スキル作成の流儀・テンプレート）
 
 ## レビュー記録

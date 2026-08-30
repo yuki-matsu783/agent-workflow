@@ -103,7 +103,7 @@ keywords: [issue, 検索, 作成, 編集, gh, glab, テンプレート]
 ## 関連するドキュメント
 
 - `.claude/skills/task-gh-issue/SKILL.md`
-- `.claude/docs/10_spec/issue操作.md`
+- `.claude/docs/10_spec/skill-task-gh-issue.md`
 
 ## レビュー記録
 

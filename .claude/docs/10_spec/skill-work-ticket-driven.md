@@ -2,7 +2,7 @@
 
 ## 概要
 
-- **背景**: 要件定義書 `.claude/docs/00_requirements/チケット駆動ワークフロー.md` に基づき、スキル・フック・テンプレートの具体的な仕様を定義する。
+- **背景**: 要件定義書 `.claude/docs/00_requirements/skill-work-ticket-driven.md` に基づき、スキル・フック・テンプレートの具体的な仕様を定義する。
 - **目的**: フェーズ判定の状態ソース、フェーズ×許可マトリクス、フックの入出力、チケットの状態遷移とコミット運用を、実装可能なレベルで確定する。
 - **スコープ**:
   - 含む: ディレクトリ構成、チケットのスキーマ（フロントマター）、フェーズ×許可マトリクス、PreToolUse / PostToolUse フックの入出力仕様、ガード条件、ワーク境界の判定スクリプト（`work-boundary.sh`）とレビュー状態ファイル、ワーク境界フック（`workflow-boundary.sh`）のブロック条件、マージ前作業の判定スクリプト（`merge-prep.sh`）と状態ファイル、テストシナリオ
@@ -460,7 +460,7 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 
 ## マージ前作業の判定と状態
 
-全ワーク done・最後のワークのレビュー完了の後、draft PR を ready にする前に行う**マージ前作業**（wip のリセット → default ブランチとのコンフリクト確認 → 関連 issue へのコメント）を、ワーク境界と同じく LLM の判断に委ねず機械的に扱う（issue #30）。フロー上の位置づけと承認ポイントは `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`「完了処理」が正で、本節はスクリプトとフックの挙動を定める。
+全ワーク done・最後のワークのレビュー完了の後、draft PR を ready にする前に行う**マージ前作業**（wip のリセット → default ブランチとのコンフリクト確認 → 関連 issue へのコメント）を、ワーク境界と同じく LLM の判断に委ねず機械的に扱う（issue #30）。フロー上の位置づけと承認ポイントは `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`「完了処理」が正で、本節はスクリプトとフックの挙動を定める。
 
 | 構成要素 | 役割 |
 |---------|------|
@@ -580,7 +580,7 @@ none ──reset-wip──> reset ──check-conflicts（衝突なし）──>
 
 ## 振り返り（retrospective）の棚卸しと合意
 
-retrospective チケットの結果報告作成に、`.claude/docs/10_spec/軽作業ワークフロー.md`「振り返り候補の重さの区分」と観点・文言を揃えた棚卸し・合意フローを組み込む（issue #3）。フックや状態ファイルの変更は伴わない（`AskUserQuestion` による対話上の合意のみ）。
+retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill-workflow-quick-request.md`「振り返り候補の重さの区分」と観点・文言を揃えた棚卸し・合意フローを組み込む（issue #3）。フックや状態ファイルの変更は伴わない（`AskUserQuestion` による対話上の合意のみ）。
 
 ### 棚卸し対象（5種類）
 
@@ -605,7 +605,7 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/軽�
 
 ### 振り返り候補の重さの区分
 
-`.claude/docs/10_spec/軽作業ワークフロー.md`「振り返り候補の重さの区分」と同一の表。
+`.claude/docs/10_spec/skill-workflow-quick-request.md`「振り返り候補の重さの区分」と同一の表。
 
 | 重さ | 該当するもの | 合意の形 |
 |------|-------------|---------|
@@ -969,9 +969,9 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/軽�
 
 ## 関連するドキュメント
 
-- `.claude/docs/00_requirements/チケット駆動ワークフロー.md`（要件定義書）
-- `.claude/docs/10_spec/issue-PR駆動ワークフロー.md`（前段のワークフロー。GitHub 操作は doing が空のときにのみ行う、という制約の根拠として本仕様の Bash allowlist を参照する）
-- `.claude/docs/10_spec/軽作業ワークフロー.md`（対になる振り分け。「振り返り候補の重さの区分」は本仕様の retrospective 節と文言を揃える）
+- `.claude/docs/00_requirements/skill-work-ticket-driven.md`（要件定義書）
+- `.claude/docs/10_spec/skill-workflow-issue-mr-driven.md`（前段のワークフロー。GitHub 操作は doing が空のときにのみ行う、という制約の根拠として本仕様の Bash allowlist を参照する）
+- `.claude/docs/10_spec/skill-workflow-quick-request.md`（対になる振り分け。「振り返り候補の重さの区分」は本仕様の retrospective 節と文言を揃える）
 - `.claude/docs/10_spec/スキル体系.md`（本スキルは3層構造の `work-*` に分類される。チケット＝タスクの用語対応、ワーク完了チェックポイント、`wf_validate_mv` の `git mv` 許可拡張の正）
 - `.claude/docs/10_spec/フェーズ別ワークスキル.md`（`overall-plan` / `<phase>-plan` / `design` / `design-sync` の各 type を使うフェーズ別ワークスキルの仕様。TC032〜TC039）
 - Claude Code フック仕様（PreToolUse / PostToolUse）

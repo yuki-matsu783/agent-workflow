@@ -85,7 +85,7 @@ keywords: [要件定義書, ユーザーストーリー, 受け入れ基準, EAR
 ## 関連するドキュメント
 
 - `.claude/skills/task-requirements/SKILL.md`
-- `.claude/docs/10_spec/要件定義書作成.md`
+- `.claude/docs/10_spec/skill-task-requirements.md`
 
 ## レビュー記録
 
