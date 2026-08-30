@@ -5,8 +5,8 @@
 - **背景**: 要件定義書 `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md` に基づき、スキルの処理フロー・承認ポイント・既存スキルへの委譲方法・命名規約を確定する。
 - **目的**: 「依頼 → issue 照合 → 承認 → issue 確定 → ブランチ/PR → チケット駆動 → 完了処理」の各段階で、何を入力に何を出力するか、どこで人間が判断するかを実装可能なレベルで固定する。
 - **スコープ**:
-  - 含む: 処理フロー、承認ポイント、gh-issue / gh-feature / ticket-driven-workflow への委譲内容、issue / ブランチ / PR / コミットの命名規約、既存フックとの関係、例外処理、テストシナリオ
-  - 含まない: スキル本文（SKILL.md）の文言、gh-issue / gh-feature の内部手順（各スキルの SKILL.md が正）
+  - 含む: 処理フロー、承認ポイント、task-gh-issue / task-gh-feature / work-ticket-driven への委譲内容、issue / ブランチ / PR / コミットの命名規約、既存フックとの関係、例外処理、テストシナリオ
+  - 含まない: スキル本文（SKILL.md）の文言、task-gh-issue / task-gh-feature の内部手順（各スキルの SKILL.md が正）
 
 ---
 
@@ -64,7 +64,7 @@ out_of_scope:
 
 ### 出力フォーマット（PR 本文）
 
-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含める:
+task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含める:
 
 ```markdown
 ## 変更内容の概要
@@ -100,20 +100,20 @@ gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含め�
 
 1. **状態確認**: `gh auth status`、`git branch --show-current`、`git status --short`、`gh pr view`、`wip/10_tickets/` の一覧を取得する。再開条件（代替フロー 1）に該当しなければ次へ
 2. **依頼の整理**: 依頼から `summary` / `kind` / `keywords` / `acceptance` / `out_of_scope` を抽出する。曖昧なら 1 回だけまとめて質問する
-3. **既存 issue の検索**（gh-issue の検索モード）: `keywords` で open issue を検索し、0 件なら closed も含めて検索する。候補を `references/issue-triage.md` の基準で「類似 / 関連 / 無関係」に分類し、類似・関連を表で提示する
+3. **既存 issue の検索**（task-gh-issue の検索モード）: `keywords` で open issue を検索し、0 件なら closed も含めて検索する。候補を `references/issue-triage.md` の基準で「類似 / 関連 / 無関係」に分類し、類似・関連を表で提示する
 4. **承認①**: 類似ありなら「既存 #N で対応するか」、類似なしなら「新規 issue を作るか」を確認する
 5. **issue の確定**
-   - 既存 #N: `assets/issue-addendum.template.md` から追記案を作る → **承認②** → gh-issue の編集モードで**本文末尾に追記**する（既存の記述は変更しない）
-   - 新規: gh-issue の `assets/issue.template.md` から本文案を作る → **承認②** → gh-issue の作成モードで作成する
+   - 既存 #N: `assets/issue-addendum.template.md` から追記案を作る → **承認②** → task-gh-issue の編集モードで**本文末尾に追記**する（既存の記述は変更しない）
+   - 新規: task-gh-issue の `assets/issue.template.md` から本文案を作る → **承認②** → task-gh-issue の作成モードで作成する
    - 承認②では、ブランチ名と PR タイトルの案も同時に確認する（往復を減らす）
-6. **ブランチと draft PR の作成**（gh-feature の issue 連携モード）: デフォルトブランチを最新化 → `feature/<N>-<slug>` を作成 → 空コミット → push → `Closes #N` を含む draft PR を作成する
-7. **チケット駆動ワークフロー**: `ticket-driven-workflow` の手順 1 から実施する。全体計画の冒頭に issue / PR を記載し、issue の `acceptance` をチケットの DoD に反映する
+6. **ブランチと draft PR の作成**（task-gh-feature の issue 連携モード）: デフォルトブランチを最新化 → `feature/<N>-<slug>` を作成 → 空コミット → push → `Closes #N` を含む draft PR を作成する
+7. **チケット駆動ワークフロー**: `work-ticket-driven` の手順 1 から実施する。全体計画の冒頭に issue / PR を記載し、issue の `acceptance` をチケットの DoD に反映する
 8. **完了処理**（全チケット done 後。doing が空なので `gh` / `git push` が使える）: `git push` → `gh pr edit --body-file` で PR 本文を更新 → **承認③** → 承認されれば `gh pr ready`
 9. **報告**: issue / PR の URL、ブランチ、成果物一覧、振り返りの要約を報告する
 
 ### 代替フロー
 
-1. **再開**: 現在ブランチに open な PR があり、`wip/10_tickets/` に todo または doing のチケットがある → 手順 1〜6 を省略し、手順 7（ticket-driven-workflow の手順 0）に進む。PR 本文の `Closes #N` から issue 番号を復元する
+1. **再開**: 現在ブランチに open な PR があり、`wip/10_tickets/` に todo または doing のチケットがある → 手順 1〜6 を省略し、手順 7（work-ticket-driven の手順 0）に進む。PR 本文の `Closes #N` から issue 番号を復元する
 2. **issue 番号の指定あり**: `gh issue view N` で内容を取得し、手順 3 を省略して「既存 #N で対応」として承認①に進む
 3. **候補が closed のみ**: 承認①の選択肢に「#N を再オープンして対応」を加える。再オープンは `gh issue reopen N`（承認後）
 4. **依頼が複数の問題を含む**: 分割案（issue 1 件ずつ）を提示し、ユーザーが選んだ 1 件で本フローを進める。残りは新規 issue として起票だけ提案する
@@ -121,10 +121,10 @@ gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含め�
 
 ### 例外フロー
 
-1. **`gh` 未導入 / 未認証**: gh-install スキルまたは `gh auth login` を案内して停止する
+1. **`gh` 未導入 / 未認証**: task-gh-install スキルまたは `gh auth login` を案内して停止する
 2. **未コミットの変更あり**: 手順 1（状態確認）の時点で検知し、変更のファイル一覧を示した上で `AskUserQuestion` により扱いを確認する（選択肢: コミットしてから進む / stash に退避して進む / 破棄して進む / 中断）。スキルが自分の判断で stash・コミット・破棄をしてはならない。issue の検索・案の作成は未解消でも進められるが、手順 6（ブランチ作成）に入る前に必ず解消されていること
 3. **PR 作成失敗（差分なし）**: `git commit --allow-empty -m "chore: start #N <slug>"` を作って再試行する
-4. **ブランチ名の衝突**: gh-feature の手順（別名の提案）に従う
+4. **ブランチ名の衝突**: task-gh-feature の手順（別名の提案）に従う
 5. **`gh issue edit` / `gh pr create` の失敗**: コマンドと出力を報告して停止する。手動での作成を案内してよいが、別コマンドで代替しない
 6. **チケット作業中に GitHub 操作が必要になった**: フックが WF003 でブロックする。迂回せず、チケット完了後（doing が空）まで待つ
 
@@ -139,17 +139,17 @@ gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含め�
 | ブランチ | `<prefix>/<N>-<slug>`。prefix は種別から（バグ→`fix`、それ以外→`feature`）。slug は英小文字・数字・ハイフンで 2〜4 語 | `fix/12-login-empty-password` |
 | 空コミット | `chore: start #<N> <slug>` | `chore: start #12 login-empty-password` |
 | PR タイトル | `<prefix>: <issue タイトル> (#<N>)`。prefix は `feat` / `fix` / `chore` / `docs` / `refactor` | `fix: 空パスワードで送信できる (#12)` |
-| PR 本文 | gh-feature の `assets/pr.template.md` + `Closes #<N>` | |
+| PR 本文 | task-gh-feature の `assets/pr.template.md` + `Closes #<N>` | |
 | issue 追記見出し | `## 今回の依頼（YYYY-MM-DD）` | `## 今回の依頼（2026-08-30）` |
 | 全体計画の冒頭 | `- 対象 issue: #<N> <url>` / `- PR: #<M> <url>` | |
 
 ### データモデル（責務の分担）
 
 ```
-issue-pr-driven-workflow（オーケストレータ）
-├── gh-issue                 検索 / 作成 / 編集（gh issue list|view|create|edit）
-├── gh-feature               ブランチ作成 / push / draft PR（git checkout -b, gh pr create --draft）
-└── ticket-driven-workflow   wip/ 配下での実作業（フックによる統制下）
+workflow-issue-mr-driven（オーケストレータ）
+├── task-gh-issue                 検索 / 作成 / 編集（gh issue list|view|create|edit）
+├── task-gh-feature               ブランチ作成 / push / draft PR（git checkout -b, gh pr create --draft）
+└── work-ticket-driven   wip/ 配下での実作業（フックによる統制下）
         └── 完了後にオーケストレータへ戻る（push / PR 本文更新 / ready 確認）
 ```
 
@@ -157,7 +157,7 @@ issue-pr-driven-workflow（オーケストレータ）
 
 ```
 依頼 ──検索──> 候補提示 ──承認①──> issue 確定案 ──承認②──> issue 確定
-   ──gh-feature──> ブランチ + draft PR ──ticket-driven──> 全チケット done
+   ──task-gh-feature──> ブランチ + draft PR ──work-ticket-driven──> 全チケット done
    ──push + PR 本文更新──> 承認③ ──> ready for review（or draft のまま）
 ```
 
@@ -169,11 +169,11 @@ issue-pr-driven-workflow（オーケストレータ）
 
 | 委譲先 | モード | 渡す情報 | 受け取る情報 |
 |--------|--------|---------|-------------|
-| gh-issue | 検索 | keywords、state（open / all） | 候補 issue の number / title / state / url / body |
-| gh-issue | 作成 | title、本文（テンプレート記入済み） | issue number / url |
-| gh-issue | 編集 | issue number、追記セクション | 更新結果 |
-| gh-feature | issue 連携 | issue number / title、ブランチ名、PR タイトル、ベースブランチ | ブランチ名、PR number / url |
-| ticket-driven-workflow | 通常 | issue number / url、PR number / url、acceptance | 完了報告（成果物一覧・振り返り） |
+| task-gh-issue | 検索 | keywords、state（open / all） | 候補 issue の number / title / state / url / body |
+| task-gh-issue | 作成 | title、本文（テンプレート記入済み） | issue number / url |
+| task-gh-issue | 編集 | issue number、追記セクション | 更新結果 |
+| task-gh-feature | issue 連携 | issue number / title、ブランチ名、PR タイトル、ベースブランチ | ブランチ名、PR number / url |
+| work-ticket-driven | 通常 | issue number / url、PR number / url、acceptance | 完了報告（成果物一覧・振り返り） |
 
 ### 使用する `gh` コマンド（参考）
 
@@ -196,7 +196,7 @@ gh pr ready N
 
 | ケース | 検知方法 | 対処 |
 |--------|---------|------|
-| `gh` 未認証 | `gh auth status` が非 0 | gh-install / `gh auth login` を案内して停止 |
+| `gh` 未認証 | `gh auth status` が非 0 | task-gh-install / `gh auth login` を案内して停止 |
 | リモートが GitHub でない | `git remote get-url origin` が github.com を含まない | 対象外として報告（MR / GitLab は未対応） |
 | 未コミットの変更 | `git status --short` が非空 | `AskUserQuestion` で扱い（コミット / stash / 破棄 / 中断）を確認。自動で stash・破棄しない |
 | 検索 0 件 | 候補なし | closed も含めて再検索 → それでも 0 件なら新規 issue の案へ |
@@ -227,7 +227,7 @@ gh pr ready N
 
 - **技術的制約**: GitHub / `gh` CLI 前提。フックの Bash allowlist により、doing チケットがある間は `gh` と `git push` が使えない（仕様として許容し、フックは変更しない）
 - **ビジネス的制約**: 特になし
-- **外部的制約**: gh-issue / gh-feature / ticket-driven-workflow の手順に従う（本スキルは順序と承認を司るだけで、各操作の詳細を再定義しない）
+- **外部的制約**: task-gh-issue / task-gh-feature / work-ticket-driven の手順に従う（本スキルは順序と承認を司るだけで、各操作の詳細を再定義しない）
 
 ---
 
@@ -251,9 +251,9 @@ gh pr ready N
 | IP001 | 類似 issue あり → 既存で対応 | 依頼 + open issue #12（同じ機能領域・同じ問題） | 候補提示 → 承認① → 追記案 → 承認② → `gh issue edit 12` → `fix/12-*` ブランチ + draft PR → チケット駆動開始 | |
 | IP002 | 類似 issue なし → 新規作成 | 依頼 + 無関係な issue のみ | 「類似なし」と報告 → 承認① → 本文案 → 承認② → `gh issue create` → ブランチ + draft PR → チケット駆動開始 | |
 | IP003 | 承認①で却下 | 依頼 + 類似 issue、ユーザーが「別の候補」を選択 | issue / ブランチ / PR を作らず候補を再提示する | |
-| IP004 | 再開 | feature ブランチ + open PR + `wip/10_tickets/10_doing/` にチケット | 検索・承認をやり直さず ticket-driven-workflow の手順 0 に進む | |
+| IP004 | 再開 | feature ブランチ + open PR + `wip/10_tickets/10_doing/` にチケット | 検索・承認をやり直さず work-ticket-driven の手順 0 に進む | |
 | IP005 | issue 番号指定 | 「#12 をやって」 | 検索を省略し `gh issue view 12` → 承認①（既存で対応）へ | |
-| IP006 | `gh` 未認証 | `gh auth status` 失敗 | gh-install / `gh auth login` を案内して停止 | |
+| IP006 | `gh` 未認証 | `gh auth status` 失敗 | task-gh-install / `gh auth login` を案内して停止 | |
 | IP007 | 未コミットの変更あり | `git status --short` 非空 | ブランチ作成前にユーザーへ扱いを確認 | |
 | IP008 | チケット作業中の `gh` | doing 1 枚で `gh pr edit` | WF003 でブロック。迂回せず完了後に実行 | |
 | IP009 | 完了処理 | 全チケット done | `git push` → PR 本文更新 → 承認③ → 承認時のみ `gh pr ready` | |
@@ -273,7 +273,7 @@ gh pr ready N
 - `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`（要件定義書）
 - `.claude/docs/10_spec/チケット駆動ワークフロー.md`（後続の実作業の仕様。Bash allowlist の正）
 - `.claude/docs/10_spec/スキル体系.md`（本スキルは3層構造の `workflow-*` に分類される。命名規則・承認方式の正）
-- `.claude/skills/gh-issue/SKILL.md`、`.claude/skills/gh-feature/SKILL.md`（委譲先の手順）
+- `.claude/skills/task-gh-issue/SKILL.md`、`.claude/skills/task-gh-feature/SKILL.md`（委譲先の手順）
 
 ## レビュー記録
 
@@ -281,3 +281,4 @@ gh pr ready N
 |------|----------|---------|--------|
 | 2026-08-30 | 1.0 | 初版 | Hiro |
 | 2026-08-30 | 1.1 | スキル体系仕様書への相互参照を追加 | Hiro |
+| 2026-08-30 | 1.2 | スキル体系の3層再編（workflow/work/task）に伴い、言及するスキル名を新名称に更新 | Hiro |

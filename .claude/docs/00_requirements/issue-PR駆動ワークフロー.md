@@ -7,7 +7,7 @@
 - **背景**: チケット駆動ワークフローは作業ブランチ上での「調査 → 実装 → 振り返り」を統制するが、**その作業が何の issue に対するもので、どの PR に載るのか**は扱っていない。依頼のたびに Claude が独自の判断で作業を始めると、既存 issue と重複した対応や、issue に紐づかない PR が生まれる。作業の起点を issue に固定し、issue の確定には必ず人間の承認を挟みたい。
 - **目的**: 「依頼 → 既存 issue の照合 → 人間の承認 → issue の確定（作成 / 修正）→ feature ブランチと draft PR の作成 → チケット駆動ワークフロー」という順序を固定し、すべての作業が 1 つの issue と 1 つの PR に紐づいた状態を実現する。
 - **スコープ**:
-  - 含む: スキル本体（SKILL.md）、issue 追記用テンプレート、類似 issue の判定基準、既存スキル（gh-issue / gh-feature / ticket-driven-workflow）との連携仕様
+  - 含む: スキル本体（SKILL.md）、issue 追記用テンプレート、類似 issue の判定基準、既存スキル（task-gh-issue / task-gh-feature / work-ticket-driven）との連携仕様
   - 含まない: フックによる新たな強制（GitHub 操作の統制はスキルの手順と既存フックの Bash allowlist に委ねる）、PR のマージ、レビューの自動化、GitHub 以外のホスティング（GitLab の MR など）
 
 ---
@@ -28,9 +28,9 @@
 
 - When ユーザーから作業の依頼を受けたとき、Shall スキルは実作業を始める前に依頼を要約し、既存の issue（open を優先、必要に応じて closed も）を検索して類似候補を提示しなければならない。
 - When 類似する issue が見つかったとき、Shall スキルはその issue で対応するかどうかをユーザーに確認し、承認を得るまで issue の変更・ブランチ作成・実作業を行ってはならない。
-- When 既存 issue で対応することが承認されたとき、Shall スキルは今回の依頼内容と受け入れ条件を issue に追記する案を提示し、承認後に gh-issue スキルで issue を修正しなければならない。
-- When 類似する issue が見つからなかったとき、Shall スキルは新しい issue の案（タイトル・種別・概要・受け入れ条件）を提示し、承認後に gh-issue スキルで issue を作成しなければならない。
-- When issue が確定したとき、Shall スキルは gh-feature スキルで issue 番号を含む feature ブランチと、issue に紐づく（`Closes #N`）draft PR を作成しなければならない。
+- When 既存 issue で対応することが承認されたとき、Shall スキルは今回の依頼内容と受け入れ条件を issue に追記する案を提示し、承認後に task-gh-issue スキルで issue を修正しなければならない。
+- When 類似する issue が見つからなかったとき、Shall スキルは新しい issue の案（タイトル・種別・概要・受け入れ条件）を提示し、承認後に task-gh-issue スキルで issue を作成しなければならない。
+- When issue が確定したとき、Shall スキルは task-gh-feature スキルで issue 番号を含む feature ブランチと、issue に紐づく（`Closes #N`）draft PR を作成しなければならない。
 - When ブランチと PR が作成されたとき、Shall スキルは issue 番号・PR の URL・issue の受け入れ条件を引き継いでチケット駆動ワークフローを開始しなければならない。
 - When 全チケットが完了したとき、Shall スキルは作業ブランチを push し、PR の本文を成果（変更内容・動作確認・振り返りの要約）で更新しなければならない。
 
@@ -43,8 +43,8 @@
 
 ### 既存スキル・フックとの整合
 
-- When issue を検索・作成・修正するとき、Shall スキルは自前で `gh issue` を組み立てず gh-issue スキルの手順に従わなければならない。
-- When ブランチと PR を作成するとき、Shall スキルは gh-feature スキルの手順に従わなければならない。
+- When issue を検索・作成・修正するとき、Shall スキルは自前で `gh issue` を組み立てず task-gh-issue スキルの手順に従わなければならない。
+- When ブランチと PR を作成するとき、Shall スキルは task-gh-feature スキルの手順に従わなければならない。
 - When チケット駆動ワークフローの実施中（`wip/10_tickets/10_doing/` にチケットがある間）であるとき、Shall not スキルは `gh` コマンドや `git push` を実行してはならない（フックの Bash allowlist で WF003 としてブロックされる。GitHub 操作は doing が空のときにのみ行う）。
 - When 既存 issue の本文を修正するとき、Shall not スキルは既存の記述を削除・書き換えてはならない（末尾への追記のみ）。
 
@@ -57,8 +57,8 @@
 
 ### 例外フロー（エラーケース）
 
-- If `gh` が未インストール・未認証である場合、Then スキルは gh-install スキルまたは `gh auth login` を案内し、作業を開始してはならない。
-- If 作業ツリーに未コミットの変更がある場合、Then スキルはブランチ作成前にユーザーへ扱い（コミット / stash / 破棄）を確認しなければならない（gh-feature の前提条件）。
+- If `gh` が未インストール・未認証である場合、Then スキルは task-gh-install スキルまたは `gh auth login` を案内し、作業を開始してはならない。
+- If 作業ツリーに未コミットの変更がある場合、Then スキルはブランチ作成前にユーザーへ扱い（コミット / stash / 破棄）を確認しなければならない（task-gh-feature の前提条件）。
 - If PR 作成が「ベースブランチとの差分なし」で失敗した場合、Then スキルは空コミットを作成して再試行しなければならない。
 - If issue の修正・PR の作成に失敗した場合、Then スキルは失敗したコマンドと出力をユーザーに報告し、勝手に別の手段で代替してはならない。
 
@@ -82,10 +82,10 @@
 
 ## 依存関係
 
-- `.claude/skills/gh-issue/`（issue の検索・作成・修正）
-- `.claude/skills/gh-feature/`（feature ブランチ・PR の作成）
-- `.claude/skills/ticket-driven-workflow/`（実作業）
-- `.claude/skills/gh-install/`（`gh` 未導入時）
+- `.claude/skills/task-gh-issue/`（issue の検索・作成・修正）
+- `.claude/skills/task-gh-feature/`（feature ブランチ・PR の作成）
+- `.claude/skills/work-ticket-driven/`（実作業）
+- `.claude/skills/task-gh-install/`（`gh` 未導入時）
 - 仕様の詳細は `.claude/docs/10_spec/issue-PR駆動ワークフロー.md` で定義する
 
 ---
@@ -112,3 +112,4 @@
 | 日付 | バージョン | 変更内容 | 変更者 |
 |------|----------|---------|--------|
 | 2026-08-30 | 1.0 | 初版 | Hiro |
+| 2026-08-30 | 1.1 | スキル体系の3層再編（workflow/work/task）に伴い、言及するスキル名を新名称に更新 | Hiro |
