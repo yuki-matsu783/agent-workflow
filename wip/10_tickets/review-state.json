@@ -1,23 +1,15 @@
 {
   "version": 1,
-  "ticket": "017-ai-asset-implementation-workflow-issue-mr-driven完了処理改訂.md",
-  "work_type": "ai-asset-implementation",
-  "state": "completed",
+  "ticket": "018-retrospective-振り返り.md",
+  "work_type": "retrospective",
+  "state": "requested",
   "local": false,
   "pr": 31,
-  "head_sha": "955ea6653f831440a121eaeb9d8f4db4f7980c0c",
+  "head_sha": "73580d031667d1245653ef64ec556aa86c66612e",
   "request": {
-    "comment_id": "5467808485",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/31#issuecomment-5467808485",
-    "at": "2026-08-30T09:09:43Z"
+    "comment_id": "5467832475",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/31#issuecomment-5467832475",
+    "at": "2026-08-30T09:15:18Z"
   },
-  "complete": {
-    "at": "2026-08-30T09:11:29Z",
-    "review_decision": "",
-    "comment_ids": [
-      "IC_kwDOUHO_g88AAAABReVFnA",
-      "IC_kwDOUHO_g88AAAABRegi5Q"
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
