@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "ticket": "004-ai-asset-implementation-gh-api失敗時のstdout汚染対策.md",
-  "work_type": "ai-asset-implementation",
+  "ticket": "001-overall-plan-全体計画.md",
+  "work_type": "overall-plan",
   "state": "requested",
   "local": false,
   "via": "external",
   "pr": 52,
-  "head_sha": "50a715b7edc387386a8b8426a2f92af92c9f7213",
+  "head_sha": "acdcfa71887120671945694f141e5cb23f7581f1",
   "request": {
     "comment_id": "5471597480",
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471597480",
-    "at": "2026-08-30T22:17:11Z"
+    "at": "2026-08-30T22:51:00Z"
   },
   "complete": null
 }
