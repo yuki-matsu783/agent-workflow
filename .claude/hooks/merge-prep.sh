@@ -50,7 +50,7 @@ mp_git() { git -C "${MP_ROOT}" "$@"; }
 mp_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 mp_pr_number() {
-    gh pr view --json number -q .number 2>/dev/null | tr -d '\r'
+    gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null | tr -d '\r'
 }
 
 # default ブランチ名: --base の指定 > refs/remotes/origin/HEAD > main
@@ -304,7 +304,7 @@ mp_notify() {
     # 通知先: PR 本文の Closes/Fixes/Resolves #N と --issue の和集合
     local targets=""
     if [ -n "${PR}" ]; then
-        targets=$(gh pr view "${PR}" --json body -q .body 2>/dev/null | tr -d '\r' \
+        targets=$(gh api "repos/{owner}/{repo}/pulls/${PR}" --jq '.body // empty' 2>/dev/null | tr -d '\r' \
             | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+$' || true)
     fi
     local n
@@ -326,12 +326,12 @@ mp_notify() {
     } >"${tmp}"
     while IFS= read -r n; do
         [ -n "${n}" ] || continue
-        url=$(gh issue comment "${n}" --body-file "${tmp}" 2>&1 | tr -d '\r' | tail -1)
+        url=$(gh api "repos/{owner}/{repo}/issues/${n}/comments" -f body="@${tmp}" --jq '.html_url' 2>&1 | tr -d '\r' | tail -1)
         case "${url}" in
             http*issuecomment-*) posted+="${n}"$'\t'"${url}"$'\n' ;;
             *)
                 rm -f "${tmp}"
-                mp_die "gh issue comment ${n} に失敗しました" "${url}"$'\n'"投稿済み: $(printf '%s' "${posted}" | cut -f1 | paste -sd ',' -)" \
+                mp_die "issue ${n} へのコメント投稿に失敗しました" "${url}"$'\n'"投稿済み: $(printf '%s' "${posted}" | cut -f1 | paste -sd ',' -)" \
                     "gh の認証と issue 番号を確認してから再実行してください（投稿済みの issue を除くには --issue で未投稿分だけを指定します）。状態ファイルは変更していません。"
                 ;;
         esac

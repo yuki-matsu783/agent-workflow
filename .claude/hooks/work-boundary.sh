@@ -131,7 +131,7 @@ wb_git() { git -C "${WB_ROOT}" "$@"; }
 wb_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 wb_pr_number() {
-    gh pr view --json number -q .number 2>/dev/null | tr -d '\r'
+    gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null | tr -d '\r'
 }
 
 wb_commit_state() { # $1=commit message
@@ -179,11 +179,11 @@ wb_request() {
             printf '<!-- work-boundary: request ticket=%s -->\n\n' "${LAST_DONE}"
             [ -n "${body_file}" ] && [ -f "${body_file}" ] && cat "${body_file}"
         } >"${tmp}"
-        comment_url=$(gh pr comment "${pr}" --body-file "${tmp}" 2>&1 | tr -d '\r' | tail -1)
+        comment_url=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" -f body="@${tmp}" --jq '.html_url' 2>&1 | tr -d '\r' | tail -1)
         rm -f "${tmp}"
         case "${comment_url}" in
             http*issuecomment-*) comment_id="${comment_url##*issuecomment-}" ;;
-            *) wb_die WF013 "レビュー依頼の前提未充足: gh pr comment に失敗しました" "${comment_url}" "gh の認証・PR の状態を確認してから再実行してください。状態ファイルは変更していません。" ;;
+            *) wb_die WF013 "レビュー依頼の前提未充足: レビュー依頼コメントの投稿に失敗しました" "${comment_url}" "gh の認証・PR の状態を確認してから再実行してください。状態ファイルは変更していません。" ;;
         esac
     fi
 
@@ -226,24 +226,33 @@ wb_complete() {
 
     local decision="" comment_ids="[]" inline_ids="[]" new_comments="[]" new_reviews="[]" new_inline="[]"
     if [ "${local_mode}" = false ]; then
-        local prv inl
-        prv=$(gh pr view "${pr}" --json reviewDecision,reviews,comments 2>/dev/null | tr -d '\r')
-        [ -n "${prv}" ] || wb_die WF014 "レビュー完了の前提未充足: gh pr view に失敗しました" "PR #${pr} の情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        local reviews comments inl
+        reviews=$(gh api "repos/{owner}/{repo}/pulls/${pr}/reviews" 2>/dev/null | tr -d '\r')
+        [ -n "${reviews}" ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/reviews に失敗しました" "PR #${pr} のレビュー情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        comments=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" 2>/dev/null | tr -d '\r')
+        [ -n "${comments}" ] || comments="[]"
         inl=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" 2>/dev/null | tr -d '\r')
         [ -n "${inl}" ] || inl="[]"
-        decision=$(printf '%s' "${prv}" | wf_jq -r '.reviewDecision // ""')
+        # reviewDecision 相当: reviewer ごとの最新レビュー（COMMENTED/PENDING を除く）から算出する簡略版。
+        # ブランチ保護（必須レビュー人数・CODEOWNERS 等）は考慮しない。CHANGES_REQUESTED 判定にのみ使う
+        decision=$(printf '%s' "${reviews}" | wf_jq -r '
+            [.[] | select(.state != "COMMENTED" and .state != "PENDING")]
+            | group_by(.user.login) | map(max_by(.submitted_at))
+            | if any(.state == "CHANGES_REQUESTED") then "CHANGES_REQUESTED"
+              elif any(.state == "APPROVED") then "APPROVED"
+              else "" end')
         local unreplied
         unreplied=$(printf '%s' "${inl}" | wf_jq -r '. as $all | [.[] | select(.in_reply_to_id == null) | select(.id as $id | any($all[]; .in_reply_to_id == $id) | not)] | .[] | "\(.id) \(.path):\(.line // .original_line // "-")"')
         [ "${decision}" = "CHANGES_REQUESTED" ] && fails+="reviewDecision が CHANGES_REQUESTED です"$'\n'
         [ -n "${unreplied}" ] && fails+="返信の無いインラインスレッドがあります: $(printf '%s' "${unreplied}" | paste -sd ',' -)"$'\n'
         [ -n "${fails}" ] && wb_die WF014 "レビュー完了の前提未充足: complete を実行できません" "${fails%$'\n'}" \
             "CHANGES_REQUESTED なら指摘を同じ type の追加チケットで対応し、push 後に再度 request してください（または対応不要と合意できたらレビュアーに approve / dismiss を依頼してください）。未返信スレッドは bash .claude/hooks/work-boundary.sh reply <id> \"<対応内容>\" で返信してから再実行してください。"
-        comment_ids=$(printf '%s' "${prv}" | wf_jq -c '[.comments[]?.id]')
+        comment_ids=$(printf '%s' "${comments}" | wf_jq -c '[.[]?.id]')
         inline_ids=$(printf '%s' "${inl}" | wf_jq -c '[.[]?.id]')
-        new_comments=$(printf '%s' "${prv}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
-            '[.comments[]? | select((.body | startswith($p)) | not) | select(.createdAt >= $at) | {id, author: .author.login, createdAt, url, body}]')
-        new_reviews=$(printf '%s' "${prv}" | wf_jq -c --arg at "${req_at}" \
-            '[.reviews[]? | select(.submittedAt >= $at) | {author: .author.login, state, submittedAt, body}]')
+        new_comments=$(printf '%s' "${comments}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
+            '[.[]? | select((.body | startswith($p)) | not) | select(.created_at >= $at) | {id, author: .user.login, createdAt: .created_at, url: .html_url, body}]')
+        new_reviews=$(printf '%s' "${reviews}" | wf_jq -c --arg at "${req_at}" \
+            '[.[]? | select(.state != "PENDING") | select(.submitted_at >= $at) | {author: .user.login, state, submittedAt: .submitted_at, body}]')
         new_inline=$(printf '%s' "${inl}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
             '[.[]? | select((.body | startswith($p)) | not) | select(.created_at >= $at) | {id, path, line, in_reply_to_id, user: .user.login, url: .html_url, body}]')
     fi

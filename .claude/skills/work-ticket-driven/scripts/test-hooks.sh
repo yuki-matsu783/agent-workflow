@@ -420,18 +420,22 @@ BARE=$(mktemp -d)
 trap 'rm -rf "${TMP}" "${ERRF}" "${MOCK_BIN}" "${BARE}"' EXIT
 cat >"${MOCK_BIN}/gh" <<'EOF'
 #!/usr/bin/env bash
+# gh api の {owner}/{repo}/{branch} プレースホルダは実 gh がローカル解決するが、
+# このモックはそのまま文字列として受け取る（呼び出しパターンの区別には影響しない）。
 [ -n "${GH_MOCK_LOG:-}" ] && printf '%s\n' "$*" >>"${GH_MOCK_LOG}"
-[ -n "${GH_MOCK_NO_PR:-}" ] && case "$*" in *"pr view"*) exit 1 ;; esac
+[ -n "${GH_MOCK_NO_PR:-}" ] && case "$*" in *"pulls?head="*) exit 1 ;; esac
 case "$*" in
-    *"pr view --json number"*) echo "${GH_MOCK_PR:-13}" ;;
-    *"pr view"*"--json body"*) printf '%s' "${GH_MOCK_PRBODY:-## 関連 Issue
-- Closes #30}" ;;
-    *"pr view"*) printf '%s' "${GH_MOCK_PRVIEW:-{\"reviewDecision\":\"\",\"reviews\":[],\"comments\":[]}}" ;;
-    *"pr comment"*) echo "https://example.test/pull/13#issuecomment-4242" ;;
+    *"pulls?head="*) echo "${GH_MOCK_PR:-13}" ;;                                     # PR 番号解決
     *"pr ready"*) echo "✓ Pull request #13 is marked as ready for review" ;;
-    *"issue comment"*) echo "https://example.test/issues/$3#issuecomment-777$3" ;;   # $1=issue $2=comment $3=番号
-    *"/replies"*) echo "https://example.test/reply" ;;
-    *"/comments"*) printf '%s' "${GH_MOCK_INLINE:-[]}" ;;
+    *"/comments/"*"/replies"*) echo "https://example.test/reply" ;;                  # インラインスレッドへの返信
+    *"pulls/"*"/comments"*) printf '%s' "${GH_MOCK_INLINE:-[]}" ;;                   # インラインコメント一覧（GET）
+    *"pulls/"*"/reviews"*) printf '%s' "${GH_MOCK_REVIEWS:-[]}" ;;                   # レビュー一覧
+    *"issues/"*"/comments"*"-f body="*)                                             # 会話コメント投稿（PR/issue 共通）
+        n="$*"; n="${n#*issues/}"; n="${n%%/comments*}"                              # $* に直接 #/%% を使うと引数ごとに適用されるため一度変数へ代入する
+        echo "https://example.test/issues/${n}#issuecomment-777${n}" ;;
+    *"issues/"*"/comments"*) printf '%s' "${GH_MOCK_COMMENTS:-[]}" ;;                # 会話コメント一覧（GET）
+    *"pulls/"*) printf '%s' "${GH_MOCK_PRBODY:-## 関連 Issue
+- Closes #30}" ;;                                                                    # PR 本文取得
     *) echo "mock gh: unsupported: $*" >&2; exit 1 ;;
 esac
 EOF
@@ -631,16 +635,16 @@ git -C "${TMP}" remote add origin "${BARE}"
 git -C "${TMP}" push -qu origin "$(git -C "${TMP}" branch --show-current)" 2>/dev/null
 run_wb request
 check TC027d 0 '"review_state": "requested"'
-check TC027d-url 0 "issuecomment-4242"
+check TC027d-url 0 "issuecomment-77713"
 run_wb status
-check TC027d2 0 '"comment_id": "4242"'
+check TC027d2 0 '"comment_id": "77713"'
 check TC027d3 0 '"local": false'
 [ "$(git -C "${TMP}" rev-parse HEAD)" = "$(git -C "${TMP}" rev-parse '@{u}')" ] \
     && { echo "PASS TC027d-pushed"; PASS=$((PASS + 1)); } || { echo "FAIL TC027d-pushed"; FAIL=$((FAIL + 1)); }
-export GH_MOCK_PRVIEW='{"reviewDecision":"CHANGES_REQUESTED","reviews":[],"comments":[]}'
+export GH_MOCK_REVIEWS='[{"user":{"login":"r"},"state":"CHANGES_REQUESTED","submitted_at":"2099-01-01T00:00:00Z","body":""}]'
 run_wb complete
 check TC028c-cr 2 "CHANGES_REQUESTED"
-export GH_MOCK_PRVIEW='{"reviewDecision":"APPROVED","reviews":[],"comments":[]}'
+export GH_MOCK_REVIEWS='[{"user":{"login":"r"},"state":"APPROVED","submitted_at":"2099-01-01T00:00:00Z","body":"ok"}]'
 export GH_MOCK_INLINE='[{"id":1,"path":"a.md","line":3,"body":"fix","in_reply_to_id":null,"user":{"login":"r"},"html_url":"u","created_at":"2099-01-01T00:00:00Z"}]'
 run_wb complete
 check TC028c-unreplied 2 "返信の無い"
@@ -648,7 +652,8 @@ check TC028c-unreplied-id 2 "1 a.md:3"
 run_wb status
 check TC028c-still 0 '"review_state": "requested"'
 export GH_MOCK_INLINE='[{"id":1,"path":"a.md","line":3,"body":"fix","in_reply_to_id":null,"user":{"login":"r"},"html_url":"u","created_at":"2099-01-01T00:00:00Z"},{"id":2,"path":"a.md","line":3,"body":"Claude Code より: done","in_reply_to_id":1,"user":{"login":"me"},"html_url":"u2","created_at":"2099-01-02T00:00:00Z"}]'
-export GH_MOCK_PRVIEW='{"reviewDecision":"APPROVED","reviews":[{"author":{"login":"r"},"state":"APPROVED","body":"ok","submittedAt":"2099-01-01T00:00:00Z"}],"comments":[{"id":"c1","author":{"login":"r"},"createdAt":"2099-01-01T00:00:00Z","url":"u","body":"nice"},{"id":"c0","author":{"login":"me"},"createdAt":"2099-01-01T00:00:00Z","url":"u","body":"Claude Code より: 依頼"},{"id":"c9","author":{"login":"r"},"createdAt":"2000-01-01T00:00:00Z","url":"u","body":"old"}]}'
+export GH_MOCK_REVIEWS='[{"user":{"login":"r"},"state":"APPROVED","submitted_at":"2099-01-01T00:00:00Z","body":"ok"}]'
+export GH_MOCK_COMMENTS='[{"id":"c1","user":{"login":"r"},"created_at":"2099-01-01T00:00:00Z","html_url":"u","body":"nice"},{"id":"c0","user":{"login":"me"},"created_at":"2099-01-01T00:00:00Z","html_url":"u","body":"Claude Code より: 依頼"},{"id":"c9","user":{"login":"r"},"created_at":"2000-01-01T00:00:00Z","html_url":"u","body":"old"}]'
 run_wb complete
 check TC028c 0 '"review_state": "completed"'
 check TC028c-new 0 '"nice"'
@@ -657,7 +662,7 @@ check TC028c-old 0 "" '"old"'
 check TC028c-review 0 '"APPROVED"'
 run_wb status
 check TC028c-decision 0 '"review_decision": "APPROVED"'
-unset GH_MOCK_PRVIEW GH_MOCK_INLINE
+unset GH_MOCK_REVIEWS GH_MOCK_COMMENTS GH_MOCK_INLINE
 run_wb reply 1 "対応しました"
 check TC028-reply 0 "example.test/reply"
 
@@ -802,7 +807,7 @@ run_mp notify-issue --body-file "${BODY}" --issue 7
 check TC031d 0 '"merge_state": "notified"'
 check TC031d2 0 'issuecomment-77730'
 check TC031d3 0 'issuecomment-7777'
-pass_if TC031d-log "grep -q '^issue comment 30 ' '${MOCK_LOG}' && grep -q '^issue comment 7 ' '${MOCK_LOG}'"
+pass_if TC031d-log "grep -q 'issues/30/comments' '${MOCK_LOG}' && grep -q 'issues/7/comments' '${MOCK_LOG}'"
 pass_if TC031d-state "jq -e '.state == \"notified\" and (.notify.issues | map(.number)) == [7,30]' '${MP_STATE_FILE}' >/dev/null"
 run_mp notify-issue --body-file "${BODY}"   # 二重投稿は拒否
 check TC031e 2 "既に notified"
