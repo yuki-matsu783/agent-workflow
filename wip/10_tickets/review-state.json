@@ -1,20 +1,16 @@
 {
   "version": 1,
-  "ticket": "001-ai-asset-design-gh-CLI不在時のフォールバック仕様.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "002-ai-asset-implementation-gh-CLI不在時のフォールバック実装.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
   "local": true,
+  "via": "local",
   "pr": null,
-  "head_sha": "7c40764022692b01cce7977412a59eb2ee628d49",
+  "head_sha": "f69dcb95250ce2c8f3562ffe7cdc014b737714e0",
   "request": {
     "comment_id": null,
     "url": null,
-    "at": "2026-08-30T12:22:41Z"
+    "at": "2026-08-30T13:28:57Z"
   },
-  "complete": {
-    "at": "2026-08-30T12:23:49Z",
-    "review_decision": "",
-    "comment_ids": [],
-    "inline_ids": []
-  }
+  "complete": null
 }
