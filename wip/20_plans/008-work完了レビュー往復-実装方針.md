@@ -148,3 +148,12 @@ keywords: [ワーク境界, 人間レビュー, gh pr view, gh api, pulls commen
 - `gh pr comment` でのレビュー依頼投稿は、`gh` が人間アカウントで認証されているため投稿者が人間として表示される。本文冒頭に `Claude Code より:` を付けて区別する（参考実装と同じ扱い）
 - 同 type の追加チケットが増えると連番が飛ぶ（013 が implementation の追加、014 が retrospective…）。連番は実施順であり type ごとの連番ではないので問題ない、と SKILL.md に一言添える
 - ワークが1チケットのみの type（例: retrospective）でも境界が発生し、レビュー往復が type の数だけ起きる。粒度が細かすぎると感じたら type をまとめる（例: ai-asset-design と ai-asset-implementation を1 issue 内で連続させる）のではなく、レビュー依頼コメントで「軽微なので approve のみで可」と伝える運用にする
+
+## コマンド確認結果（008 done 直後、PR #13 で実施）
+
+| コマンド | 結果 |
+|---|---|
+| `gh pr view 13 --json reviewDecision,reviews,comments` | `{"comments":[],"reviewDecision":"","reviews":[]}`。`reviewDecision` は未レビューで空文字、レビュー後は `APPROVED` / `CHANGES_REQUESTED` / `REVIEW_REQUIRED`。`comments` は PR 全体（会話タブ）のコメント、`reviews` はレビュー本文（`state` / `body` / `author`） |
+| `gh api repos/<owner>/<repo>/pulls/13/comments --jq '.[] \| {id, path, line, body, in_reply_to_id, user: .user.login, url: .html_url}'` | 空（インラインコメント未投稿）。1件ごとに `path` / `line` / `in_reply_to_id`（返信なら親 id）が取れるため、「返信の無いスレッド」の抽出は `in_reply_to_id == null` かつ同 id を親に持つ要素が無いもの、で判定できる |
+
+どちらも doing が空の状態で問題なく実行できた（調査チケット中は WF003 でブロックされることも同日確認済み）。
