@@ -131,7 +131,11 @@ wb_git() { git -C "${WB_ROOT}" "$@"; }
 wb_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 wb_pr_number() {
-    gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null | tr -d '\r'
+    # gh api は失敗時にエラー JSON を stdout へ出すことがある（gh pr view の GraphQL 版は stderr のみ）。
+    # 終了コードを確認せずに使うと、そのエラー JSON を PR 番号として扱ってしまう
+    local out
+    out=$(gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null) || return 0
+    printf '%s' "${out}" | tr -d '\r'
 }
 
 wb_commit_state() { # $1=commit message
@@ -227,12 +231,18 @@ wb_complete() {
     local decision="" comment_ids="[]" inline_ids="[]" new_comments="[]" new_reviews="[]" new_inline="[]"
     if [ "${local_mode}" = false ]; then
         local reviews comments inl
-        reviews=$(gh api "repos/{owner}/{repo}/pulls/${pr}/reviews" 2>/dev/null | tr -d '\r')
-        [ -n "${reviews}" ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/reviews に失敗しました" "PR #${pr} のレビュー情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
-        comments=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" 2>/dev/null | tr -d '\r')
-        [ -n "${comments}" ] || comments="[]"
-        inl=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" 2>/dev/null | tr -d '\r')
-        [ -n "${inl}" ] || inl="[]"
+        # gh api は失敗時にエラー JSON を stdout へ出すことがある。終了コードを確認せずに
+        # 「非空なら成功」と判定すると、そのエラー JSON を正常なレビュー/コメント一覧として扱ってしまう
+        # （jq 処理でサイレントに空扱いになり、「取得できなかった」のに「指摘なし」と誤判定しかねない）
+        reviews=$(gh api "repos/{owner}/{repo}/pulls/${pr}/reviews" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/reviews に失敗しました" "PR #${pr} のレビュー情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        reviews=$(printf '%s' "${reviews}" | tr -d '\r')
+        comments=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api issues/comments に失敗しました" "PR #${pr} の会話コメントを取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        comments=$(printf '%s' "${comments:-[]}" | tr -d '\r')
+        inl=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/comments に失敗しました" "PR #${pr} のインラインコメントを取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        inl=$(printf '%s' "${inl:-[]}" | tr -d '\r')
         # reviewDecision 相当: reviewer ごとの最新レビュー（COMMENTED/PENDING を除く）から算出する簡略版。
         # ブランチ保護（必須レビュー人数・CODEOWNERS 等）は考慮しない。CHANGES_REQUESTED 判定にのみ使う
         decision=$(printf '%s' "${reviews}" | wf_jq -r '

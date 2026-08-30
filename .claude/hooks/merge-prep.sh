@@ -50,7 +50,11 @@ mp_git() { git -C "${MP_ROOT}" "$@"; }
 mp_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 mp_pr_number() {
-    gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null | tr -d '\r'
+    # gh api は失敗時にエラー JSON を stdout へ出すことがある（gh pr view の GraphQL 版は stderr のみ）。
+    # 終了コードを確認せずに使うと、そのエラー JSON を PR 番号として扱ってしまう
+    local out
+    out=$(gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null) || return 0
+    printf '%s' "${out}" | tr -d '\r'
 }
 
 # default ブランチ名: --base の指定 > refs/remotes/origin/HEAD > main
@@ -304,7 +308,10 @@ mp_notify() {
     # 通知先: PR 本文の Closes/Fixes/Resolves #N と --issue の和集合
     local targets=""
     if [ -n "${PR}" ]; then
-        targets=$(gh api "repos/{owner}/{repo}/pulls/${PR}" --jq '.body // empty' 2>/dev/null | tr -d '\r' \
+        local pr_body
+        # gh api 失敗時に stdout へ出るエラー JSON を本文として扱わないよう終了コードを確認する
+        pr_body=$(gh api "repos/{owner}/{repo}/pulls/${PR}" --jq '.body // empty' 2>/dev/null) || pr_body=""
+        targets=$(printf '%s' "${pr_body}" | tr -d '\r' \
             | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+$' || true)
     fi
     local n

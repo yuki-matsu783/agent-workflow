@@ -424,6 +424,11 @@ cat >"${MOCK_BIN}/gh" <<'EOF'
 # このモックはそのまま文字列として受け取る（呼び出しパターンの区別には影響しない）。
 [ -n "${GH_MOCK_LOG:-}" ] && printf '%s\n' "$*" >>"${GH_MOCK_LOG}"
 [ -n "${GH_MOCK_NO_PR:-}" ] && case "$*" in *"pulls?head="*) exit 1 ;; esac
+# 失敗時は gh api 実物と同じくエラー JSON を stdout に出して exit 1 する（stderr のみで失敗する
+# GraphQL 版との違いを再現し、呼び出し側が終了コードを見ているかをテストできるようにする）
+[ -n "${GH_MOCK_FAIL_REVIEWS:-}" ] && case "$*" in *"pulls/"*"/reviews"*) echo '{"message":"mock failure"}'; exit 1 ;; esac
+[ -n "${GH_MOCK_FAIL_COMMENTS:-}" ] && case "$*" in *"-f body="*) ;; *"issues/"*"/comments"*) echo '{"message":"mock failure"}'; exit 1 ;; esac
+[ -n "${GH_MOCK_FAIL_INLINE:-}" ] && case "$*" in *"/replies"*) ;; *"pulls/"*"/comments"*) echo '{"message":"mock failure"}'; exit 1 ;; esac
 case "$*" in
     *"pulls?head="*) echo "${GH_MOCK_PR:-13}" ;;                                     # PR 番号解決
     *"pr ready"*) echo "✓ Pull request #13 is marked as ready for review" ;;
@@ -663,6 +668,36 @@ check TC028c-review 0 '"APPROVED"'
 run_wb status
 check TC028c-decision 0 '"review_decision": "APPROVED"'
 unset GH_MOCK_REVIEWS GH_MOCK_COMMENTS GH_MOCK_INLINE
+
+# ---------- TC028d〜f: gh api 失敗（stdout に漏れたエラー JSON を成功として扱わない） ----------
+write_state 003-implementation-c.md requested false
+export GH_MOCK_FAIL_REVIEWS=1
+run_wb complete
+check TC028d 2 "WF014"
+check TC028d-msg 2 "レビュー情報を取得できません"
+unset GH_MOCK_FAIL_REVIEWS
+run_wb status
+check TC028d-still 0 '"review_state": "requested"'
+
+write_state 003-implementation-c.md requested false
+export GH_MOCK_FAIL_COMMENTS=1
+run_wb complete
+check TC028e 2 "WF014"
+check TC028e-msg 2 "会話コメントを取得できません"
+unset GH_MOCK_FAIL_COMMENTS
+
+write_state 003-implementation-c.md requested false
+export GH_MOCK_FAIL_INLINE=1
+run_wb complete
+check TC028f 2 "WF014"
+check TC028f-msg 2 "インラインコメントを取得できません"
+unset GH_MOCK_FAIL_INLINE
+
+# 後続（TC029〜）が前提とする completed 状態に戻す
+write_state 003-implementation-c.md requested false
+run_wb complete
+check TC028g 0 '"review_state": "completed"'
+
 run_wb reply 1 "対応しました"
 check TC028-reply 0 "example.test/reply"
 
