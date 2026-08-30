@@ -55,6 +55,21 @@ wf012() {
         "対処: レビュー状態は bash .claude/hooks/work-boundary.sh の request / complete でのみ遷移します。状態を進めたい場合はそのサブコマンドを実行し、前提条件（[WF013] / [WF014]）が満たせないならユーザーに報告してください。ファイルを編集・削除・復元して状態を作らないでください。"
 }
 
+# クォート内の値がレビュー状態ファイルのパスそのものかどうかを判定する。
+# 例: "wip/10_tickets/review-state.json" や 'review-state.json' は該当。
+# "review-state.json の扱い" のように他の文字列と混在する場合は非該当（パスとして使われていない）
+wf_quoted_targets_state() {
+    local seg="$1" q val
+    while IFS= read -r q; do
+        [ -z "${q}" ] && continue
+        val="${q:1:-1}"
+        case "${val}" in
+            review-state.json|*/review-state.json) return 0 ;;
+        esac
+    done < <(printf '%s' "${seg}" | grep -oE "'[^']*'|\"[^\"]*\"")
+    return 1
+}
+
 case "${TOOL}" in
     Edit|Write|NotebookEdit)
         REL=$(wf_to_rel "${FILE_PATH}")
@@ -64,10 +79,17 @@ case "${TOOL}" in
         while IFS= read -r seg; do
             seg=$(printf '%s' "${seg}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
             [ -z "${seg}" ] && continue
-            case "${seg}" in *review-state.json*) ;; *) continue ;; esac
-            printf '%s' "${seg}" | grep -Eq "${READONLY_RE}" && continue
-            printf '%s' "${seg}" | grep -Eq "${SCRIPT_RE}" && continue
-            wf012 "${COMMAND:0:200}"
+
+            # クォート内文字列は QUOTED に置換してから判定する（workflow-guard.sh の check_bash と同じ前処理）。
+            # 引用符内の文字列に review-state.json が含まれるだけの誤検知を防ぐ
+            sanitized=$(printf '%s' "${seg}" | sed -E "s/'[^']*'/QUOTED/g; s/\"[^\"]*\"/QUOTED/g")
+            printf '%s' "${sanitized}" | grep -Eq "${READONLY_RE}" && continue
+            printf '%s' "${sanitized}" | grep -Eq "${SCRIPT_RE}" && continue
+
+            # クォート外に review-state.json がそのまま書かれているケース
+            case "${sanitized}" in *review-state.json*) wf012 "${COMMAND:0:200}" ;; esac
+            # パスそのものをクォートしたケース（クォート除去では消えてしまうため別途検出する）
+            wf_quoted_targets_state "${seg}" && wf012 "${COMMAND:0:200}"
         done <<<"$(printf '%s' "${COMMAND}" | sed -E 's/\|\||&&|;|\|/\n/g')"
         ;;
 esac
