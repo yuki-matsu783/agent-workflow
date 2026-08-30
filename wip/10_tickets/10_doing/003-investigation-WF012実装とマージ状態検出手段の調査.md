@@ -12,9 +12,9 @@ depends_on: ["002-investigation-plan-調査計画.md"]
 
 ## 完了条件（DoD）
 
-- [ ] 調査観点「WF012実装」「MERGE_HEAD検出の信頼性」「検出範囲（MERGE_HEAD/CHERRY_PICK_HEAD等）」に対する答えが wip/20_plans/調査結果-conflict-wf012-exception.md の「調査サマリ」に書かれている
-- [ ] 根拠（ファイル・行・コマンド出力）が添えられている
-- [ ] 答えが出なかった問いは「リスク・未解決事項」に理由つきで残っている
+- [x] 調査観点「WF012実装」「MERGE_HEAD検出の信頼性」「検出範囲（MERGE_HEAD/CHERRY_PICK_HEAD等）」に対する答えが wip/20_plans/調査結果-conflict-wf012-exception.md の「調査サマリ」に書かれている
+- [x] 根拠（ファイル・行・コマンド出力）が添えられている
+- [x] 答えが出なかった問いは「リスク・未解決事項」に理由つきで残っている
 
 ## 作業内容
 
@@ -27,8 +27,8 @@ depends_on: ["002-investigation-plan-調査計画.md"]
 
 ### うまくいったこと
 
--
+- WF012の実装箇所（Edit/Write分岐・Bash分岐）を特定し、例外を入れる場所を明確にできた
 
 ### うまくいかなかったこと
 
--
+- 重大なリスクを発見した: MERGE_HEADの存在チェックのみでは、コンフリクト解消が起きるdoing空の状態がそのままworkflow-guard.shの制限が完全に外れる状態と一致するため、Claudeが`.git/MERGE_HEAD`を自作して条件を満たせてしまう可能性がある。調査結果の「リスク・未解決事項」に記載し、次チケット・設計フェーズへ引き継いだ
