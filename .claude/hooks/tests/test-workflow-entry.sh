@@ -206,6 +206,34 @@ run guard "$(tool_json Edit)"
 check TE014c 2 "WF101"
 rm -f "${TICKETS}/10_doing/.gitkeep"
 
+# ---------- TE015: review-state.json が requested かつ ticket が最後の done と一致 → 継続 ----------
+echo "---" >"${TICKETS}/20_done/003-retrospective-c.md"
+cat >"${TICKETS}/review-state.json" <<'EOF'
+{"version":1,"ticket":"003-retrospective-c.md","work_type":"retrospective","state":"requested"}
+EOF
+run guard "$(tool_json Edit)"
+check TE015 0 "" "WF101"
+run guard "$(tool_json Bash)"
+check TE015b 0 "" "WF101"
+run prompt "$(prompt_json "レビュー完了の連絡待ち")"
+check TE015c 0 "レビュー待ち"
+
+# ---------- TE016: review-state.json の state が completed → 継続しない ----------
+cat >"${TICKETS}/review-state.json" <<'EOF'
+{"version":1,"ticket":"003-retrospective-c.md","work_type":"retrospective","state":"completed"}
+EOF
+run guard "$(tool_json Edit)"
+check TE016 2 "WF101"
+
+# ---------- TE017: review-state.json の ticket が最後の done と不一致（失効） → 継続しない ----------
+cat >"${TICKETS}/review-state.json" <<'EOF'
+{"version":1,"ticket":"999-retrospective-old.md","work_type":"retrospective","state":"requested"}
+EOF
+run guard "$(tool_json Edit)"
+check TE017 2 "WF101"
+
+rm -f "${TICKETS}/review-state.json" "${TICKETS}/20_done/"*.md
+
 echo ""
 echo "結果: PASS=${PASS} FAIL=${FAIL}"
 [ "${FAIL}" -eq 0 ]

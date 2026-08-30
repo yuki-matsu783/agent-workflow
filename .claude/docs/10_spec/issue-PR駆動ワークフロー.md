@@ -27,6 +27,7 @@
 | 現在ブランチの PR | object | N | `gh pr view --json number,url,isDraft,state,body`（無ければ再開ではない） | なし |
 | `wip/10_tickets/` の状態 | string[] | N | todo / doing / done のチケット一覧。再開判定に使う | 空 |
 | デフォルトブランチ | string | Y | `gh repo view --json defaultBranchRef` | |
+| 振り返りからの引き継ぎ情報 | object | N | `workflow-quick-request` 手順 5-3 から切り替えて来た場合の summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）。渡された場合は手順 2（依頼の整理）の曖昧点の質問を省略してよい | なし |
 
 ### 入力フォーマット（依頼の整理結果）
 
@@ -144,8 +145,9 @@ task-gh-feature の `assets/pr.template.md` を土台にし、以下を必ず含
 5. **ワーク途中のチケット完了ごとの push**: 同じ作業タイプの次のチケットが todo に残っている（ワーク境界ではない）場合でも、done コミット直後（doing が空）に `git push` してよい。PR に進捗が反映される。この場合はレビュー依頼（承認④）を行わず、次のチケットの着手に進む
 6. **レビュー完了の連絡がないまま「続けて」と言われた**: 基本フロー 7-5（`work-boundary.sh complete`）を実行し、通れば次のワークへ進む。通らない（WF014）なら理由を報告して応答を終える。`complete` を経ずに次の type へ着手しようとしてもフックが WF011 で拒否する
 7. **ヘッドレス実行（`claude -p` 等）でワーク境界に達した**: レビュー依頼（7-4）を投稿した時点でそのセッションの応答を完了とする。レビュー結果の反映と次のワークは次回セッション（代替フロー 1 の再開）で行う。1セッションで全ワークを完走することは想定しない
-8. **完了処理の途中で default ブランチと衝突した**: 基本フロー 8-4 の承認⑤を経て `git merge origin/<default>` で取り込み、解消してコミット・push し、`check-conflicts` を再実行する。`ready` の再検証で衝突が見つかった場合（default ブランチが後から進んだ）も同じ手順で 8-4 からやり直す。承認⑤で「解消しない」が選ばれたら draft のまま停止する
-9. **完了処理の再開**: `merge-prep.sh status` の `merge_state`（`reset` / `checked` / `notified`）に応じて、次のサブコマンドから再開する。ただしリセット後は `wip/10_tickets/` が空になるため、入口ガードの継続判定は効かず、別プロンプトで再開する場合は振り分けの再宣言が必要（issue #28 と同種の課題。本仕様では対応しない）
+8. **`workflow-quick-request` の振り返り（手順 5-3）からの切り替え**: summary / acceptance / kind / チケット構成が既に引き継がれているため、手順 2（依頼の整理）の曖昧点の質問を省略し、そのまま手順 3（既存 issue の検索）へ進む。手順 1（状態確認）の未コミットの変更の確認は省略しない。チケット構成は引き継がれたとおり `ai-asset-design` → `ai-asset-implementation` を用いる
+9. **完了処理の途中で default ブランチと衝突した**: 基本フロー 8-4 の承認⑤を経て `git merge origin/<default>` で取り込み、解消してコミット・push し、`check-conflicts` を再実行する。`ready` の再検証で衝突が見つかった場合（default ブランチが後から進んだ）も同じ手順で 8-4 からやり直す。承認⑤で「解消しない」が選ばれたら draft のまま停止する。マージで default ブランチ側の wip 成果物（他 PR のチケット・計画・報告・`review-state.json`）が入ってくる場合は、リセット済みの状態を保つためマージの解消の一部としてそれらを削除する（`ready` の再検証は wip が空であることを要求する）
+10. **完了処理の再開**: `merge-prep.sh status` の `merge_state`（`reset` / `checked` / `notified`）に応じて、次のサブコマンドから再開する。ただしリセット後は `wip/10_tickets/` が空になるため、入口ガードの継続判定は効かず、別プロンプトで再開する場合は振り分けの再宣言が必要（issue #28 と同種の課題。本仕様では対応しない）
 
 ### 例外フロー
 
@@ -319,15 +321,16 @@ bash .claude/hooks/merge-prep.sh ready                           # 記録と再�
 | IP007 | 未コミットの変更あり | `git status --short` 非空 | ブランチ作成前にユーザーへ扱いを確認 | |
 | IP008 | チケット作業中の `gh` | doing 1 枚で `gh pr edit` | WF003 でブロック。迂回せず完了後に実行 | |
 | IP009 | 完了処理（衝突なし） | 最後のワーク done、レビュー完了（指摘なし） | PR 本文の最終整形 → 承認③ → `merge-prep.sh reset-wip --dry-run` → `reset-wip` → `check-conflicts`（衝突なし）→ 本文案の承認⑥ → `notify-issue` → `ready`（`gh pr ready` はスクリプト内でのみ実行）→ 報告して停止（マージしない） | |
-| IP015 | reset-wip の前提未充足 | todo にチケットが残っている、または最後のワークが `requested` のまま「仕上げて」 | `reset-wip` が WF016 で止まり、理由（todo 残り / レビュー未完了）を報告する。`wip/merge-prep.json` や `review-state.json` を編集しない。残りのチケット／`complete` に戻る | |
-| IP016 | 完了処理（衝突あり） | `reset-wip` 後の `check-conflicts` で main と衝突 | 衝突ファイルを提示して承認⑤ → `git merge origin/main`（rebase しない）→ 解消・コミット・push → `check-conflicts` 再実行で `checked` → 承認⑥ → `notify-issue` → `ready` | |
-| IP017 | 直接の `gh pr ready` | 完了処理で `gh pr ready 31` を Bash から実行 | WF015 で拒否される。`merge-prep.sh ready` に切り替え、前提未充足なら WF016 の内容を報告する | |
-| IP018 | 通知本文の却下 | 承認⑥で「投稿しない」 | `notify-issue` を実行せず、draft のまま停止して理由を報告する。`ready` は実行できない（`merge_state` が `checked` のため WF016） | |
 | IP010 | 既存 issue の本文保全 | 既存 #12 に追記 | 追記前の本文が変更されず、末尾に `## 今回の依頼（日付）` が追加される | |
 | IP011 | ワーク完了時のレビュー依頼 | investigation の最後のチケットが done、todo の先頭が ai-asset-design | `git push` → PR 本文に investigation の要約を追記 → `gh pr comment` でレビュー依頼 → 応答を終える（次のチケットに着手しない・`AskUserQuestion` で待たない） | |
 | IP012 | レビュー完了後のコメント取得（指摘なし） | 「レビュー完了」の発言、PR のコメントは自分の依頼のみ | `gh pr view` / `gh api .../comments` を実行 → 指摘 0 件と報告 → 次のワーク（todo 先頭のチケット）に着手 | |
 | IP013 | レビュー完了後のコメント取得（指摘あり） | 「レビュー完了」の発言、インラインコメント 1 件 | コメントを提示 → `AskUserQuestion` で対応要否を確認 → 対応する場合、同じ作業タイプの追加チケットを todo に作成して着手（done チケットを doing に戻さない） | |
 | IP014 | レビュー完了の合図なしで続行 | ワーク完了・レビュー依頼済みの状態で「続けて」 | コメント取得を実行し、未取得の指摘が無いことを確認してから次のワークへ進む | |
+| IP015 | quick-request の振り返りから切り替え | `workflow-quick-request` 手順 5-3 で合意した summary / acceptance / kind / チケット構成（`ai-asset-design` → `ai-asset-implementation`）を引き継いで開始 | 依頼の要約に関する曖昧点を質問せず、引き継がれた summary / keywords で既存 issue を検索して承認①に進む。未コミットの変更があれば省略せず確認する | |
+| IP016 | reset-wip の前提未充足 | todo にチケットが残っている、または最後のワークが `requested` のまま「仕上げて」 | `reset-wip` が WF016 で止まり、理由（todo 残り / レビュー未完了）を報告する。`wip/merge-prep.json` や `review-state.json` を編集しない。残りのチケット／`complete` に戻る | |
+| IP017 | 完了処理（衝突あり） | `reset-wip` 後の `check-conflicts` で main と衝突 | 衝突ファイルを提示して承認⑤ → `git merge origin/main`（rebase しない）→ 解消・コミット・push → `check-conflicts` 再実行で `checked` → 承認⑥ → `notify-issue` → `ready` | |
+| IP018 | 直接の `gh pr ready` | 完了処理で `gh pr ready 31` を Bash から実行 | WF015 で拒否される。`merge-prep.sh ready` に切り替え、前提未充足なら WF016 の内容を報告する | |
+| IP019 | 通知本文の却下 | 承認⑥で「投稿しない」 | `notify-issue` を実行せず、draft のまま停止して理由を報告する。`ready` は実行できない（`merge_state` が `checked` のため WF016） | |
 
 ### テスト実施例
 
@@ -354,4 +357,5 @@ bash .claude/hooks/merge-prep.sh ready                           # 記録と再�
 | 2026-08-30 | 1.2 | スキル体系の3層再編（workflow/work/task）に伴い、言及するスキル名を新名称に更新 | Hiro |
 | 2026-08-30 | 1.3 | ワーク（作業タイプ）完了ごとに push・レビュー依頼・コメント取得・追加チケットを行うワークループ（承認④）を追加。ブランチ命名規約を `<prefix>-<N>-<slug>`（ハイフン区切り）に変更。ヘッドレス実行時の扱い、IP011〜IP014 を追加（issue #12） | Hiro |
 | 2026-08-30 | 1.4 | ワークループのレビュー依頼・コメント取得を `work-boundary.sh`（`request` / `complete` / `reply`）に委ねる形に変更。状態ファイルの直接書き換え禁止（WF012）とレビュー未完了での着手拒否（WF011）を明記（issue #12、ユーザー指示） | Hiro |
-| 2026-08-30 | 1.5 | 完了処理（基本フロー 8）にマージ前作業（`merge-prep.sh reset-wip` → `check-conflicts` → `notify-issue` → `ready`）を追加。承認⑤（衝突の解消）・⑥（issue コメント本文）、代替フロー 8・9、例外フロー 7・8、IP015〜IP018 を追加。`gh pr ready` の直接実行は WF015 で拒否、AI はマージしない（issue #30） | Hiro |
+| 2026-08-30 | 1.5 | `workflow-quick-request` 手順 5-3 の振り返りからの切り替え時の入力・代替フロー・テストケース（IP015）を追加（issue #5） | Hiro |
+| 2026-08-30 | 1.6 | 完了処理（基本フロー 8）にマージ前作業（`merge-prep.sh reset-wip` → `check-conflicts` → `notify-issue` → `ready`）を追加。承認⑤（衝突の解消）・⑥（issue コメント本文）、代替フロー 9・10、例外フロー 7・8、IP016〜IP019 を追加。`gh pr ready` の直接実行は WF015 で拒否、AI はマージしない（issue #30。main 側の 1.5（issue #5）との衝突を解消して繰り下げ） | Hiro |
