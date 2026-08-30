@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ticket": "013-ai-asset-implementation-workflow-issue-mr-drivenワークループ化.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
+  "local": false,
+  "pr": 13,
+  "head_sha": "ed9cbb407e4ab8b83144a81a710aad4bcc0a4341",
+  "request": {
+    "comment_id": "5466238929",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/13#issuecomment-5466238929",
+    "at": "2026-08-30T02:28:37Z"
+  },
+  "complete": null
+}
