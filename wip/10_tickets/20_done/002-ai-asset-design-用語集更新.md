@@ -14,10 +14,10 @@ depends_on: ["001-ai-asset-implementation-gh-glab両対応.md"]
 
 ## 完了条件（DoD）
 
-- [ ] `.claude/docs/90_glossary/スキル名.md` の `task-gh-install` セクションの説明文が
+- [x] `.claude/docs/90_glossary/スキル名.md` の `task-gh-install` セクションの説明文が
       「`gh`（GitHub CLI）と `glab`（GitLab CLI）を、プロジェクトに応じてインストールするタスクスキル」
       に更新されている
-- [ ] 既存の frontmatter・他セクションの記載順・キーは変更しない
+- [x] 既存の frontmatter・他セクションの記載順・キーは変更しない
 
 ## 作業内容
 
@@ -30,8 +30,8 @@ depends_on: ["001-ai-asset-implementation-gh-glab両対応.md"]
 
 ### うまくいったこと
 
--
+- 対象箇所が1行のみで、既存の frontmatter・他セクションに影響を与えずピンポイントで更新できた
 
 ### うまくいかなかったこと
 
--
+- 特になし
