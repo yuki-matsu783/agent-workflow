@@ -2,6 +2,8 @@
 name: work-ticket-driven
 description: >
   作業ブランチでの作業を「計画 → チケット化 → 1枚ずつ実施 → 記録」のチケット駆動で進める。
+  チケット運用の仕組み（着手・完了・ワーク境界の判定・フックのブロック時の対処・振り返り）の正典で、
+  フェーズ別ワークスキル（work-overall-plan / work-<phase>-plan / work-<phase>-exec）から手順番号で参照される。
   workflow-issue-mr-driven（issue と draft PR を確定してから作業する振り分け）の最終段階としても呼ばれる。
   Use when the user mentions "チケット駆動で", "チケットで進めて", "チケット化して作業して",
   "ワークフローで作業", "ticket workflow", or wants work split into investigation /
@@ -10,8 +12,10 @@ description: >
 
 # work-ticket-driven — チケット駆動で作業を進める
 
-作業を「調査 → 実装 → 振り返り」のチケットに分割し、`wip/` 配下で 1 枚ずつ実施する。
+作業をフェーズ（調査 / 設計 / 実装・テスト / 設計反映 / AI アセット設計 / AI アセット実装 / 振り返り）のチケットに分割し、`wip/` 配下で 1 枚ずつ実施する。
 フェーズごとのツール利用制限は PreToolUse / PostToolUse フック（`.claude/hooks/workflow-*.sh`）が機械的に強制する。
+
+各フェーズで「何を入力に・何を成果物として・何をレビューするか」は**フェーズ別ワークスキル**（`work-overall-plan`、`work-<phase>-plan`、`work-<phase>-exec`。仕様: `.claude/docs/10_spec/フェーズ別ワークスキル.md`）が定義し、本スキルはチケット運用の仕組み（手順 3・5・5.5・6 とエラーハンドリング）と振り返り（手順 4 の retrospective）を担う。
 
 このスキルにおける「チケット」は、`.claude/docs/10_spec/スキル体系.md` が定義する3層構造（workflow/work/task）の「タスク」に相当する。本スキル自身は3層構造の `work-*` に分類される。**1つの作業タイプ（type）に属するチケット群が1つのワーク**であり、ワーク内は人間の明示的承認なしに進む。ワークが完了した時点（次のチケットの type が変わる、または todo が空になる＝**ワーク境界**）でワーク完了チェックポイントを設け、承認者は人間とする（`workflow-issue-mr-driven` 経由なら PR レビュー、単独なら `AskUserQuestion`。手順 5.5・6 参照）。
 
@@ -50,10 +54,11 @@ doing に 2 枚以上ある場合は異常状態。ユーザーに報告し、1 
 
 ## 手順 1: 全体計画の合意と作業領域の初期化
 
-**新しいワークフローを開始するときだけ**、プランモードで「どう進めるか」の全体計画（チケットの分割案・進め方）を立て、ユーザーの承認を得る。承認された計画は `wip/00_overall_plan/`（settings.json の `plansDirectory`）に保存される。
+**新しいワークフローを開始するときだけ**、全体計画（使うフェーズ列・進め方）を立てる。標準の入口は **`work-overall-plan`**（`overall-plan` type のチケットとして全体計画を `wip/00_overall_plan/` に Write し、最初の計画チケットを起こす。完了時にワーク境界＝人間レビューが入る）。
 
-- プランモードを使うのはこの段階のみ。**チケット作業中（doing にチケットがある間）はプランモードは使えない**（フックが WF006 でブロックする）
-- 途中で計画の見直しが必要になったら、プランモードではなく investigation チケットとして `wip/20_plans/` に成果物を作る
+- 代替経路: doing が空のときに限り、プランモードで全体計画を作ってもよい（`wip/00_overall_plan/`＝settings.json の `plansDirectory` に保存される）。その場合も続けて `work-overall-plan` を実施し、既存の全体計画を入力として最初の計画チケットを起こす（同スキル手順 7「既存の全体計画があるとき」）
+- **チケット作業中（doing にチケットがある間）はプランモードは使えない**（フックが WF006 でブロックする）
+- 途中で計画の見直しが必要になったら、プランモードではなく計画 type（`<phase>-plan`）または investigation チケットとして `wip/20_plans/` に成果物を作る
 
 承認後、作業領域を初期化する:
 
@@ -67,10 +72,10 @@ mkdir -p wip/10_tickets/00_todo wip/10_tickets/10_doing wip/10_tickets/20_done w
 
 ## 手順 2: チケット作成
 
-合意した全体計画に基づき、`assets/ticket.template.md` を Read→Write でコピーして各チケットを `wip/10_tickets/00_todo/` に作成する。
+チケットは `assets/ticket.template.md` を Read→Write でコピーして `wip/10_tickets/00_todo/` に作成する。**フェーズ別ワークスキルでは全件を最初に作らない**: `work-overall-plan` が最初の計画チケットだけを起こし、各計画ワーク（`work-<phase>-plan`）が「同フェーズの実施チケット群 + 次の計画チケット（最後なら振り返りチケット）」を連鎖的に起こす。レビュー指摘の追加チケットも本手順の要領で起こす。
 
-- ファイル名: `NNN-<type>-<slug>.md`（NNN は実施順の連番。例: `001-investigation-現状調査.md`）
-- type は **`.claude/hooks/workflow-types.json` に定義された作業タイプ**から選ぶ。標準は `investigation` / `implementation` / `retrospective`（原則この順）。AI アセット（フック・スキル等）を扱う作業では `ai-asset-design`（設計: `.claude/docs/` のみ）→ `ai-asset-implementation`（実装: フック・ルール・スキル・settings.json）を使う
+- ファイル名: `NNN-<type>-<slug>.md`（NNN は実施順の連番。例: `002-investigation-plan-調査計画.md`、`003-investigation-現状調査.md`）。連番は todo / done の最大値の次から振る
+- type は **`.claude/hooks/workflow-types.json` に定義された作業タイプ**から選ぶ。全体計画 `overall-plan`、各フェーズの計画 `<phase>-plan`、実施 `investigation` / `design` / `implementation` / `design-sync` / `ai-asset-design` / `ai-asset-implementation`、振り返り `retrospective`。一覧は `references/permission-matrix.md` と `.claude/docs/90_glossary/チケットtype.md`。フェーズ別ワークスキルを使わない単独実行では、従来どおり `investigation` → `implementation` → `retrospective`（AI アセットは `ai-asset-design` → `ai-asset-implementation`）を一括で作ってもよい
 - 必要な作業タイプが定義に無い場合は、勝手に既存タイプで代用せず、定義への追加をユーザーに提案する
 - 後続チケットの `depends_on` に先行チケットのファイル名を設定する
 - 作業タイプの定義外で確認なしに触りたいパスがあれば `allowed_paths` に書く（例: `allowed_paths: ["lib/**"]`）。type 定義への追加であり、deny（`.claude/**` 等）を貫通したり ask を省略したりはできない
@@ -100,9 +105,12 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 チケットに書かれた内容を実施する。フェーズごとの制約は `references/permission-matrix.md` を参照。
 
-- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして計画書を `wip/20_plans/` に作成する
-- **implementation**: `wip/20_plans/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する
-- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/30_reports/` に作成する。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
+- **overall-plan / `<phase>-plan`**: 対応するフェーズ別ワークスキル（`work-overall-plan` / `work-<phase>-plan`）の手順 4 に従い、全体計画または計画書を書いて次のチケットを起こす
+- **investigation**: Read/Glob/Grep と読み取りコマンドで調査し、`assets/plan.template.md` をコピーして調査結果（計画書）を `wip/20_plans/` に作成する（`work-investigation-exec`）
+- **design / design-sync**: `docs/**` に要件定義書・仕様書を作成 / 実装に合わせて更新する（`work-design-exec` / `work-design-sync-exec`）
+- **implementation**: `wip/20_plans/` の計画に従い、`allowed_paths` の範囲でコードを変更する。テスト・ビルドで動作を確認する（`work-implementation-exec`）
+- **ai-asset-design / ai-asset-implementation**: `.claude/docs/` の要件・仕様 / フック・ルール・スキル・settings.json を作成・変更する（`work-ai-asset-design-exec` / `work-ai-asset-implementation-exec`）
+- **retrospective**: 全チケットの作業ログを読み、`assets/report.template.md` をコピーして結果報告を `wip/30_reports/` に作成する。「レビュー結果」欄に各ワーク（計画 / 実施）のチェックポイント結果を書く。恒久的な教訓があれば CLAUDE.md やスキルの改訂候補としてユーザーに提示する
 
 作業中は、うまくいったこと・うまくいかなかったことを**その都度**チケットの作業ログ欄に Edit で追記する。
 

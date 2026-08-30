@@ -4,7 +4,7 @@
     {
       "id": 0,
       "prompt": "チケット駆動で README の目次生成機能を追加する作業を進めて",
-      "expected_output": "wip/ 配下が初期化され、調査・実装・振り返りのチケットが wip/10_tickets/00_todo/ に連番（NNN-<type>-<slug>.md）で作成・コミットされる。その後 001 のチケットが doing に移動され、chore(ticket): start のコミットが作成される",
+      "expected_output": "wip/ 配下が初期化され、標準の入口として work-overall-plan が読み込まれる。001-overall-plan-全体計画.md が作成・着手され、フェーズ列を書いた全体計画と最初の計画チケット（002-<phase>-plan-….md）だけが todo に起こされる。後続フェーズのチケットは各計画ワークが連鎖的に起こす。単独実行なので全体計画の完了時に AskUserQuestion で承認 / 差し戻しを確認する",
       "files": []
     },
     {
@@ -36,6 +36,12 @@
       "prompt": "（単独実行で、002-implementation が done、todo の先頭が 003-retrospective の状態で）続けて",
       "expected_output": "ワーク境界と判定し、AskUserQuestion で implementation ワークの承認 / 差し戻しを確認する。差し戻しが選ばれた場合は 002 を doing に戻さず、同じ type の追加チケット（004-implementation-…）を todo に作成して着手する。承認なら 003 に着手する",
       "files": ["wip/10_tickets/20_done/001-investigation-調査.md", "wip/10_tickets/20_done/002-implementation-実装.md", "wip/10_tickets/00_todo/003-retrospective-振り返り.md"]
+    },
+    {
+      "id": 6,
+      "prompt": "（単独実行で 001-overall-plan が done、todo の先頭が 002-investigation-plan の状態で）続けて",
+      "expected_output": "work-boundary.sh status で at_boundary: true を確認し、単独実行なので AskUserQuestion で全体計画の承認 / 差し戻しを確認する。承認なら request --local → complete --local を実行し、todo_head_type が investigation-plan なので work-investigation-plan を読み込んで手順 3 から着手する",
+      "files": ["wip/00_overall_plan/plan.md", "wip/10_tickets/20_done/001-overall-plan-全体計画.md", "wip/10_tickets/00_todo/002-investigation-plan-調査計画.md"]
     }
   ]
 }
