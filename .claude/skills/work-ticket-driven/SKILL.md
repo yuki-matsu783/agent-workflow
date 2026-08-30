@@ -85,7 +85,7 @@ mkdir -p wip/10_tickets/00_todo wip/10_tickets/10_doing wip/10_tickets/20_done w
 作成したら一式をコミットする:
 
 ```bash
-git add wip/
+git add wip/10_tickets/
 git commit -m "chore(ticket): create tickets for <作業名>"
 ```
 
@@ -157,9 +157,11 @@ git commit -m "chore(ticket): start NNN-<slug>"
 
 ```bash
 git mv wip/10_tickets/10_doing/NNN-<type>-<slug>.md wip/10_tickets/20_done/
-git add wip/ <allowed_paths内の変更ファイル>
+git add wip/10_tickets/ <許可パス内の変更ファイル>
 git commit -m "chore(ticket): done NNN-<slug>"
 ```
+
+`git add` の対象は `wip/10_tickets/`（末尾スラッシュ付き）と作業タイプの許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。`wip/` は許可パスの glob に一致せず未記載（WF009）の確認になり、Bash の承認はセッション記憶されないため毎回確認が出る（仕様: `.claude/docs/10_spec/チケット駆動ワークフロー.md`「Bash コマンドの許可」の `git add` の対象パスの規約）。
 
 done コミット直後は doing が空なのでフックは働かない。issue / PR に紐づけて進めている場合、同じワークの次のチケットが todo に残っていても、ここで `git push` してよい（PR に進捗が反映される。レビュー依頼はワーク境界でのみ行う）。
 

@@ -72,7 +72,7 @@ git branch --show-current
 コミットして着手する（`work-ticket-driven` 手順 2・3）:
 
 ```bash
-git add wip/
+git add wip/10_tickets/
 git commit -m "chore(ticket): create tickets for <作業名>"
 git mv wip/10_tickets/00_todo/001-overall-plan-全体計画.md wip/10_tickets/10_doing/
 git commit -m "chore(ticket): start 001-全体計画"
@@ -119,7 +119,7 @@ DoD を確認して作業ログを書き、`work-ticket-driven` 手順 5 のと�
 
 ```bash
 git mv wip/10_tickets/10_doing/001-overall-plan-全体計画.md wip/10_tickets/20_done/
-git add wip/
+git add wip/10_tickets/ wip/00_overall_plan/
 git commit -m "chore(ticket): done 001-全体計画"
 bash .claude/hooks/work-boundary.sh status
 ```
