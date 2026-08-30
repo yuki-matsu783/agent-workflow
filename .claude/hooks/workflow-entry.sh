@@ -18,6 +18,8 @@
 # 継続条件: wip/10_tickets/00_todo/ または 10_doing/ にチケット（*.md）がある間は
 # workflow-issue-mr-driven の作業が進行中とみなし、宣言の有無にかかわらず許可する
 # （その間は workflow-guard.sh がチケットの type に基づいて統制している）。
+# todo / doing が両方空でも、review-state.json が requested（かつ ticket が 20_done の最終チケット
+# と一致）なら最後のワークのレビュー待ちとみなし、同様に許可する（work-boundary.sh の判定規則と揃える）。
 #
 # 状態ファイル: .claude/hooks/.state/<session_id>.entry（Git 管理外）
 #   prompt_seq=<プロンプト連番>
@@ -34,6 +36,10 @@ set -uo pipefail
 WF_ENTRY_SKILLS=("workflow-issue-mr-driven" "workflow-quick-request")
 # 未完了チケットの置き場。ここに *.md があれば workflow-issue-mr-driven の継続中とみなす
 WF_TICKET_ACTIVE_DIRS=("wip/10_tickets/00_todo" "wip/10_tickets/10_doing")
+# 完了チケットの置き場（最後のワークのレビュー待ち判定で最終チケットを特定するために使う）
+WF_TICKET_DONE_DIR="wip/10_tickets/20_done"
+# レビュー状態ファイル。requested かつ ticket が 20_done の最終チケットと一致する間は継続中とみなす
+WF_REVIEW_STATE_REL="wip/10_tickets/review-state.json"
 WF_STATE_DIR_REL=".claude/hooks/.state"
 WF_RS=$'\x1e'
 
@@ -81,6 +87,36 @@ wf_tickets_active() {
         done
     done
     return 1
+}
+
+# 20_done のうちファイル名先頭の連番が最大のチケット名を返す（work-boundary.sh の wb_ticket_num /
+# wb_compute の LAST_DONE 算出と同じ規則）
+wf_last_done_ticket() {
+    local f n max=-1 last=""
+    for f in "${WF_ROOT}/${WF_TICKET_DONE_DIR}"/*.md; do
+        [ -e "${f}" ] || continue
+        n="${f##*/}"
+        n="${n%%-*}"
+        [[ "${n}" =~ ^[0-9]+$ ]] || continue
+        if [ "$((10#${n}))" -gt "${max}" ]; then
+            max=$((10#${n}))
+            last="${f##*/}"
+        fi
+    done
+    printf '%s' "${last}"
+}
+
+# review-state.json が requested、かつその ticket が 20_done の最終チケットと一致すれば 0（継続中）。
+# work-boundary.sh の wb_compute（REVIEW_STATE は st_ticket == LAST_DONE のときだけ有効）と同じ規則
+wf_review_pending() {
+    local state_file="${WF_ROOT}/${WF_REVIEW_STATE_REL}"
+    [ -f "${state_file}" ] || return 1
+    local state ticket
+    state=$(wf_jq -r '.state // ""' "${state_file}" 2>/dev/null)
+    [ "${state}" = "requested" ] || return 1
+    ticket=$(wf_jq -r '.ticket // ""' "${state_file}" 2>/dev/null)
+    [ -n "${ticket}" ] || return 1
+    [ "${ticket}" = "$(wf_last_done_ticket)" ]
 }
 
 # 状態ファイルの読み込み。無ければ「プロンプト 0、未宣言」
@@ -149,6 +185,10 @@ case "${MODE}" in
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} continue(ticket) session=${WF_SESSION_ID}"
             ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: wip/10_tickets/ に未完了チケットがあるため workflow-issue-mr-driven の継続中とみなす（振り分けの宣言は不要）。work-ticket-driven の手順に従い doing チケットの作業を続けること。別の依頼を始める場合は、チケットを完了（20_done）するか 00_todo に戻してから振り分けを宣言し直す。"
+        elif wf_review_pending; then
+            wf_save_state
+            wf_log "PROMPT #${PROMPT_SEQ} continue(review) session=${WF_SESSION_ID}"
+            ctx="[WF-ENTRY] プロンプト #${PROMPT_SEQ}: 最後のワークのレビュー待ち（review-state.json が requested）のため workflow-issue-mr-driven の継続中とみなす（振り分けの宣言は不要）。レビュー完了の連絡を受けたら work-boundary.sh complete を実行すること。別の依頼を始める場合は、レビューを完了させるかチケットを 00_todo に戻してから振り分けを宣言し直す。"
         else
             wf_save_state
             wf_log "PROMPT #${PROMPT_SEQ} session=${WF_SESSION_ID}"
@@ -179,12 +219,16 @@ case "${MODE}" in
             wf_log "CONTINUE(ticket) #${PROMPT_SEQ} tool=${TOOL} session=${WF_SESSION_ID}"
             exit 0
         fi
+        if wf_review_pending; then
+            wf_log "CONTINUE(review) #${PROMPT_SEQ} tool=${TOOL} session=${WF_SESSION_ID}"
+            exit 0
+        fi
         wf_log "BLOCK WF101 #${PROMPT_SEQ} tool=${TOOL} last=${WORKFLOW:-none}@${DECLARED_SEQ} session=${WF_SESSION_ID}"
         {
             echo "[WF101] ワークフロー未宣言: このプロンプト（#${PROMPT_SEQ}）では、作業の振り分けとなるスキルがまだ読み込まれていません"
             echo "対象ツール: ${TOOL}"
             if [ -n "${WORKFLOW}" ]; then
-                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間を除く）"
+                echo "前回の宣言: ${WORKFLOW}（プロンプト #${DECLARED_SEQ}）。宣言はプロンプトごとに必要で、前回の宣言は引き継がれません（wip/10_tickets/ に未完了チケットがある間、または最後のワークのレビュー待ちの間を除く）"
             fi
             echo "対処: 作業を始める前に Skill ツールで次のいずれかを呼び、その手順に従ってください: workflow-issue-mr-driven（機能追加・バグ修正など、issue と PR に紐づけて進める開発作業）/ workflow-quick-request（質問・説明・調査、typo やドキュメントの修正など、issue 化しない軽作業）。判断基準は CLAUDE.md「作業の振り分け」と workflow-quick-request の手順 0 を参照。ブロックを迂回しないでください。"
         } >&2
