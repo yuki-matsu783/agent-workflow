@@ -14,15 +14,15 @@ depends_on: []
 
 ## 完了条件（DoD）
 
-- [ ] `workflow-entry.sh` に `wf_last_done_ticket` / `wf_review_pending` を追加し、`prompt` / `guard`
+- [x] `workflow-entry.sh` に `wf_last_done_ticket` / `wf_review_pending` を追加し、`prompt` / `guard`
       両モードで `wf_tickets_active` に加えて `wf_review_pending` を継続条件として扱う
-- [ ] `review-state.json` が無い / `state` が `requested` 以外 / `ticket` が最後の done と不一致
+- [x] `review-state.json` が無い / `state` が `requested` 以外 / `ticket` が最後の done と不一致
       のいずれかなら継続とみなさない
-- [ ] `.claude/hooks/tests/test-workflow-entry.sh` に以下のケースを追加し、既存分を含め全件 PASS する
+- [x] `.claude/hooks/tests/test-workflow-entry.sh` に以下のケースを追加し、既存分を含め全件 PASS する
   - `requested` かつ `ticket` が一致 → guard 許可、prompt の案内がレビュー待ちである旨を示す
   - `state` が `completed` → WF101
   - `ticket` が最後の done と不一致（失効） → WF101
-- [ ] `bash .claude/hooks/tests/test-workflow-entry.sh` を実行し、結果を作業ログに記録する
+- [x] `bash .claude/hooks/tests/test-workflow-entry.sh` を実行し、結果を作業ログに記録する
 
 ## 作業内容
 
@@ -38,8 +38,10 @@ depends_on: []
 
 ### うまくいったこと
 
--
+- `work-boundary.sh` の `wb_compute`（`st_ticket == LAST_DONE` のときだけ `review_state` を有効にする規則）をそのまま流用でき、判定ロジックの新規設計は不要だった
+- `wf_tickets_active` と同じ「`-e` チェックで無ければ continue」のグロブ書式に揃えたため、コードの読み味が既存部分と一貫している
+- `bash .claude/hooks/tests/test-workflow-entry.sh` は PASS=45 FAIL=0（新規 TE015〜TE017 を含め全件 PASS）。既存の `test-workflow-guard.sh` も PASS=4 FAIL=0 で影響なしを確認した
 
 ### うまくいかなかったこと
 
--
+- 特になし
