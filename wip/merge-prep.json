@@ -1,48 +1,51 @@
 {
   "version": 1,
-  "pr": 40,
-  "branch": "feature-39-work-phase-skills",
-  "state": "notified",
+  "pr": 48,
+  "branch": "feature-47-skill-git-add-paths",
+  "state": "ready",
   "review": {
-    "ticket": "009-retrospective-振り返り.md",
+    "ticket": "007-retrospective-振り返り.md",
     "work_type": "retrospective",
     "review_decision": "",
-    "completed_at": "2026-08-30T12:03:42Z"
+    "completed_at": "2026-08-30T21:53:31Z"
   },
   "reset": {
-    "at": "2026-08-30T12:06:11Z",
-    "head_sha": "500a19dd935efc17306fa5929fe0fd6fc78cf0c0",
+    "at": "2026-08-30T21:54:38Z",
+    "head_sha": "d599e8902be7e8066af6ddb7b21adfb7c9f64d75",
     "deleted": [
-      "wip/00_overall_plan/sparkling-purring-eagle.md",
-      "wip/10_tickets/20_done/001-ai-asset-design-要件定義書.md",
-      "wip/10_tickets/20_done/002-ai-asset-design-仕様書と既存仕様の更新.md",
-      "wip/10_tickets/20_done/003-ai-asset-implementation-type定義とフックのテスト.md",
-      "wip/10_tickets/20_done/004-ai-asset-implementation-work-overall-plan.md",
-      "wip/10_tickets/20_done/005-ai-asset-implementation-調査と設計の4スキル.md",
-      "wip/10_tickets/20_done/006-ai-asset-implementation-実装テストと設計反映の4スキル.md",
-      "wip/10_tickets/20_done/007-ai-asset-implementation-AIアセット設計と実装の4スキル.md",
-      "wip/10_tickets/20_done/008-ai-asset-implementation-呼び出し元とevalsの更新.md",
-      "wip/10_tickets/20_done/009-retrospective-振り返り.md",
-      "wip/30_reports/結果報告-フェーズ別ワークスキル.md",
+      "wip/00_overall_plan/skill-git-add-paths.md",
+      "wip/10_tickets/20_done/001-overall-plan-全体計画.md",
+      "wip/10_tickets/20_done/002-ai-asset-design-plan-AIアセット設計計画.md",
+      "wip/10_tickets/20_done/003-ai-asset-design-チケット駆動ワークフロー仕様書の更新.md",
+      "wip/10_tickets/20_done/004-ai-asset-implementation-plan-AIアセット実装計画.md",
+      "wip/10_tickets/20_done/005-ai-asset-implementation-テストTC022bとTC022c.md",
+      "wip/10_tickets/20_done/006-ai-asset-implementation-スキル手順のgit-add修正.md",
+      "wip/10_tickets/20_done/007-retrospective-振り返り.md",
+      "wip/20_plans/AIアセット実装計画-skill-git-add-paths.md",
+      "wip/20_plans/AIアセット設計計画-skill-git-add-paths.md",
+      "wip/30_reports/結果報告-skill-git-add-paths.md",
       "wip/10_tickets/review-state.json"
     ]
   },
   "conflicts": {
-    "at": "2026-08-30T12:14:34Z",
+    "at": "2026-08-30T21:57:23Z",
     "base": "main",
-    "base_sha": "973c053a651a513d9ad9d5b0b8ebf26a2db758b3",
-    "head_sha": "2fbb42fd9a5664eb9e28d013fa2307c615299553",
+    "base_sha": "f0dd20c10d0d95fe71330ba26677d6cb0191e003",
+    "head_sha": "5c87b79ef9b0d0e4b41b29b187425a6ed2a0a472",
     "files": [],
     "has_conflict": false
   },
   "notify": {
-    "at": "2026-08-30T12:10:46Z",
+    "at": "2026-08-30T21:58:37Z",
     "issues": [
       {
-        "number": 39,
-        "comment_url": "https://github.com/yuki-matsu783/agent-workflow/issues/39#issuecomment-5468600141"
+        "number": 47,
+        "comment_url": "https://github.com/yuki-matsu783/agent-workflow/issues/47#issuecomment-5471507788"
       }
     ]
   },
-  "ready": null
+  "ready": {
+    "at": "2026-08-30T21:58:51Z",
+    "head_sha": "a2311c6fd8b978901729ed2dba8bc9ac393aa8bd"
+  }
 }

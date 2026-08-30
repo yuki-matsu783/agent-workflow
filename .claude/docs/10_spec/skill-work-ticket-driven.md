@@ -89,14 +89,15 @@ global の標準: `deny_paths = [".claude/**", "wip/00_overall_plan/**"]`、`ses
 | `work_type` | string | Y | そのチケットの `type`（＝完了したワーク） |
 | `state` | string | Y | `requested` / `completed` |
 | `local` | bool | Y | `true` なら PR を使わない単独実行（`--local`）。`request` / `complete` の証跡欄が空になる |
-| `pr` | int | N | PR 番号（`local: false` のとき必須） |
+| `via` | string | Y | 証跡の取得経路。`"gh"`（スクリプトが gh を自ら実行）/ `"local"`（`--local`。PR を扱わない）/ `"external"`（`--external`。gh 不在時、呼び出し元が MCP ツール等で取得した値を使用） |
+| `pr` | int | N | PR 番号（`local: false` のとき必須。`via == "external"` のときは `--pr` の値） |
 | `head_sha` | string | Y | `request` 時点の HEAD |
-| `request.comment_id` / `request.url` / `request.at` | string | N | `request` が投稿したレビュー依頼コメントの id / URL / 時刻（`local: false` のとき必須） |
+| `request.comment_id` / `request.url` / `request.at` | string | N | レビュー依頼コメントの id / URL / 時刻（`local: false` のとき必須。`via == "external"` のときは `--comment-url` から得た値） |
 | `complete.at` | string | N | `complete` の時刻 |
-| `complete.review_decision` | string | N | `complete` が取得した `reviewDecision`（`""` / `APPROVED` / `REVIEW_REQUIRED` / `CHANGES_REQUESTED`） |
-| `complete.comment_ids` / `complete.inline_ids` | string[] | N | `complete` が取得した会話コメント id / インラインコメント id の一覧（証跡） |
+| `complete.review_decision` | string | N | `complete` が算出した reviewDecision 相当（`""` / `APPROVED` / `CHANGES_REQUESTED`。reviewer ごとの最新レビュー状態から自前で計算する簡略版で、ブランチ保護ルールは考慮しない。詳細は後述） |
+| `complete.comment_ids` / `complete.inline_ids` | number[] | N | `complete` が取得した会話コメント id / インラインコメント id の一覧（証跡。REST の数値 id） |
 
-信頼境界: このファイルも「Claude 自身が書く」側に見えるが、**書き込み経路をスクリプトに限定し、`request` / `complete` が GitHub の実操作（コメント投稿・取得）を自ら行って証跡を記録する**ことで、LLM の主張だけでは状態が進まないようにする。
+信頼境界: このファイルも「Claude 自身が書く」側に見えるが、**書き込み経路をスクリプトに限定し、`request` / `complete` が GitHub の実操作（コメント投稿・取得）を自ら行って証跡を記録する**ことで、LLM の主張だけでは状態が進まないようにする。`via == "external"`（gh CLI 不在時のフォールバック。後述「`--external`」）はこの保証を維持できず、渡された値の正しさは呼び出し元に依存する。既存の `via == "gh"` 経路の挙動・信頼性は変わらない。
 
 ### 入力データ（マージ前作業の状態：`wip/merge-prep.json`）
 
@@ -105,16 +106,16 @@ global の標準: `deny_paths = [".claude/**", "wip/00_overall_plan/**"]`、`ses
 | 項目名 | 型 | 必須 | 説明 |
 |--------|----|------|------|
 | `version` | int | Y | スキーマ版。現在 `1` |
-| `pr` | int | Y | 対象 PR 番号。現在ブランチの open な PR（`gh pr view --json number`）と一致しないとき失効 |
+| `pr` | int | Y | 対象 PR 番号。現在ブランチの open な PR（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`）と一致しないとき失効 |
 | `branch` | string | Y | `reset-wip` 実行時のブランチ名（参考情報） |
 | `state` | string | Y | `reset` / `checked` / `notified` / `ready`。この順にしか進まない |
 | `review` | object | Y | `reset-wip` 時点の最後のワークのレビュー完了の証跡（`ticket` / `work_type` / `review_decision` / `completed_at`）。`review-state.json` はリセットで削除されるため、ここへ写す |
 | `reset.at` / `reset.head_sha` / `reset.deleted` | string / string / string[] | Y | 削除の時刻・削除前の HEAD・削除したリポジトリ相対パスの一覧 |
-| `conflicts` | object | N | `check-conflicts` の結果: `at` / `base` / `base_sha` / `head_sha` / `files`（衝突ファイル） / `has_conflict`。未実行なら null。衝突ありの結果も記録する（`state` は進まない） |
-| `notify` | object | N | `notify-issue` の結果: `at` / `issues`（`number` / `comment_url` の配列）。未実行なら null |
-| `ready` | object | N | `ready` の結果: `at` / `head_sha`。未実行なら null |
+| `conflicts` | object | N | `check-conflicts` の結果: `at` / `base` / `base_sha` / `head_sha` / `files`（衝突ファイル） / `has_conflict`。未実行なら null。衝突ありの結果も記録する（`state` は進まない）。`gh` を使わないため `via` は無い |
+| `notify` | object | N | `notify-issue` の結果: `at` / `issues`（`number` / `comment_url` の配列）/ `via`（`"gh"` または `"external"`）。未実行なら null |
+| `ready` | object | N | `ready` の結果: `at` / `head_sha` / `via`（`"gh"` または `"external"`）。未実行なら null |
 
-信頼境界は `review-state.json` と同じ。`merge-prep.sh` が削除・`git merge-tree`・`gh issue comment`・`gh pr ready` を自ら実行して証跡を残すため、LLM が「リセットした」「衝突は無い」「通知した」と主張するだけでは `ready` に到達しない。
+信頼境界は `review-state.json` と同じ。`merge-prep.sh` が削除・`git merge-tree`・`gh api .../issues/<N>/comments`（issue コメント投稿）・`gh pr ready` を自ら実行して証跡を残すため、LLM が「リセットした」「衝突は無い」「通知した」と主張するだけでは `ready` に到達しない。
 
 ### 入力フォーマット（チケットファイル）
 
@@ -264,6 +265,7 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 - **読み取り系 allowlist（全フェーズ共通）**: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `rg`, `find`, `git status`, `git log`, `git diff`, `git show`, `git branch`
 - **チケット運用コマンド（全フェーズ共通）**: `mv` / `git mv`（`wip/10_tickets/` 配下同士の移動に限る）, `git add`（`wip/10_tickets/` 配下同士は無条件、それ以外は許可パス内に限る）, `git commit`
   - チケットの todo→doing 移動時は doing が空のためフックはガード条件で素通しになる。doing→done 移動時はこの allowlist が適用される。
+  - **`git add` の対象パスの規約**: チケット運用のコミットでは `git add` の対象を `wip/10_tickets/` と作業タイプの許可パス内のファイル（またはディレクトリ）に限定し、`wip/` のようにそれらの親ディレクトリ全体を指定しない（例: `git add wip/10_tickets/ wip/20_plans/調査結果-foo.md`）。`git add` の対象パスは引数ごとに判定され、`wip/` は `wip/10_tickets/*` にも作業タイプの allow glob にも一致しないため未記載（WF009）の確認になる。Bash コマンドの承認はセッション記憶の対象外（PostToolUse は `file_path` を持つ Edit / Write / NotebookEdit のみ記憶する）のため、指定するたびに確認が発生する。ヘッドレス実行（確認できない環境）では `ask` が拒否として扱われるため、親ディレクトリ全体を指定した `git add` は失敗する。スキルの手順書（`work-ticket-driven` / `work-overall-plan` 等）に書くコミット例もこの規約に従う（issue #47）。
 - リダイレクト（`>`, `>>`）、`sed -i`, `tee`, `curl`, `Invoke-WebRequest` を含むコマンドは allowlist 該当でも拒否する（コマンド文字列への部分一致で判定）。
 
 ### 読み取り専用ツール（Read / Glob / Grep / WebFetch 等）
@@ -278,10 +280,10 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 
 1. スキル起動。`wip/` 配下の状態を確認する（冪等性チェック。doing があれば手順 4 から再開）
 2. 計画（plan）を行い、調査 → 実装 → 振り返りのタスクチケットを `wip/10_tickets/00_todo/` に連番で作成する
-3. チケット群を `git add` + `git commit` する
+3. チケット群を `git add wip/10_tickets/` + `git commit` する
 4. 先頭のチケットを `wip/10_tickets/10_doing/` に移動し、コミットする（**このコミットが差分チェックの基準点**）
 5. チケットの内容を実施する。作業中のうまくいったこと・いかなかったことをチケットの作業ログ欄に随時記録する
-6. 完了条件（DoD）を満たしたら、基準点からの差分が許可パス内であることを確認し、チケットを `wip/10_tickets/20_done/` に移動してコミットする
+6. 完了条件（DoD）を満たしたら、基準点からの差分が許可パス内であることを確認し、チケットを `wip/10_tickets/20_done/` に移動して `git add wip/10_tickets/ <許可パス内の変更ファイル>` でステージし、コミットする（`wip/` のように親ディレクトリ全体を指定しない。前述「Bash コマンドの許可」の `git add` の対象パスの規約）
 7. `bash .claude/hooks/work-boundary.sh status` を実行し、`at_boundary` を読む。`false` なら 4〜6 を繰り返す。`true` なら**ワーク境界**（1つの作業タイプ＝1ワークの完了。`.claude/docs/10_spec/スキル体系.md`「ワーク完了チェックポイント」）。判定は目視の type 比較ではなくスクリプトの出力に従う
 8. ワーク境界では、ワーク完了報告（完了した作業タイプ・チケット一覧・ワーク開始コミットからの差分要約・次の作業タイプ）を行い、呼び出し元（`workflow-issue-mr-driven`）があれば制御を返す。呼び出し元は `work-boundary.sh request` → 人間のレビュー → `work-boundary.sh complete` を経てから次のワークの 4 へ進む。単独実行なら `AskUserQuestion` で承認 / 差し戻しを確認し、`work-boundary.sh request --local` → `complete --local` で状態を進める。差し戻しなら同じ作業タイプの追加チケットを 2〜3 の要領で作って 4 へ（同じ type の追加チケットは境界でも着手できる）
 9. 全チケット done になったら、成果物（`wip/20_plans/`、`wip/30_reports/`、コード変更）の一覧をユーザーに報告する
@@ -353,6 +355,8 @@ PreToolUse フックが doing チケットの `type` に応じて適用するル
 none ──request──> requested ──complete──> completed ──(次の done で ticket が変わる)──> none
 ```
 
+**GitHub 操作は REST（`gh api`）で行い、`gh` の GraphQL 自動解決（`gh pr view` / `gh pr comment` / `gh issue comment`）には依存しない。** GraphQL クエリを個別に許可制にしているプロキシ環境（agent proxy が「pinned set の PR-review operations のみ許可」を返す環境）では GraphQL 経由の呼び出しが `HTTP 403` になるため（issue #44）。`gh api` の URL 中の `{owner}` / `{repo}` / `{branch}` プレースホルダはローカルの git remote・現在ブランチから解決され、ネットワークに出る前に完了する。
+
 **`request [--body-file <path>] [--local]`**（ワーク完了のレビュー依頼）
 
 | 前提条件（満たさなければ exit 2 + `[WF013]`） | 動作 |
@@ -360,30 +364,60 @@ none ──request──> requested ──complete──> completed ──(次�
 | `at_boundary == true` | |
 | `review_state == none`（`requested` / `completed` で二重に依頼しない） | |
 | `git status --porcelain` が空（未コミットの変更が無い） | |
-| `--local` でないとき: HEAD が `@{u}`（push 済み）、現在ブランチに open な PR がある（`gh pr view --json number`） | |
-| | 1. `--local` でなければ `gh pr comment <PR> --body-file` でレビュー依頼を投稿する。本文は `--body-file` の内容（無ければ標準の定型文）の先頭に `Claude Code より:` と機械判定用の目印 `<!-- work-boundary: request ticket=<last_done> -->` を付ける |
+| `--local` でないとき: HEAD が `@{u}`（push 済み）、現在ブランチに open な PR がある（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`） | |
+| | 1. `--local` でなければ `gh api "repos/<owner>/<repo>/issues/<PR>/comments" -f body="@<tmp>"` でレビュー依頼を投稿する。本文は `--body-file` の内容（無ければ標準の定型文）の先頭に `Claude Code より:` と機械判定用の目印 `<!-- work-boundary: request ticket=<last_done> -->` を付ける |
 | | 2. 状態ファイルに `state: requested` と証跡（PR 番号、コメント id / URL、HEAD）を書き、`chore(review): request <last_done>` でコミットする。`--local` でなければ push する |
 | | 3. 結果（`review_state`、コメント URL）を JSON で stdout に出力する |
 
-**`complete [--local]`**（レビュー完了の確認）
+`via` の値: `--local` なら `"local"`、`--external` なら `"external"`、どちらでもなければ `"gh"`。
+
+**`complete [--local] [--external --report-file <path>]`**（レビュー完了の確認）
 
 | 前提条件（満たさなければ exit 2 + `[WF014]`） | 動作 |
 |------|------|
 | `review_state == requested`（`ticket` が現在の `last_done` と一致すること） | |
 | `--local` は `local: true` で `request` した場合のみ可。逆も同じ | |
-| `--local` でないとき: `gh pr view <PR> --json reviewDecision,reviews,comments` と `gh api repos/<owner>/<repo>/pulls/<PR>/comments` を**スクリプト自身が実行**し、次を機械的に検査する | |
-| ・`reviewDecision != CHANGES_REQUESTED`（差し戻し中は完了にできない。対応後にレビュアーが approve / dismiss するか、追加チケットで対応して再度 `request` する） | |
+| `--local` でないとき: `gh api repos/<owner>/<repo>/pulls/<PR>/reviews`、`gh api repos/<owner>/<repo>/issues/<PR>/comments`、`gh api repos/<owner>/<repo>/pulls/<PR>/comments` を**スクリプト自身が実行**し、次を機械的に検査する | |
+| ・`reviewDecision` 相当（後述の自前計算） `!= CHANGES_REQUESTED`（差し戻し中は完了にできない。対応後にレビュアーが approve / dismiss するか、追加チケットで対応して再度 `request` する） | |
 | ・返信の無いインラインスレッド（`in_reply_to_id == null` で、その id を `in_reply_to_id` に持つコメントが無いもの）が 0 件（`reply` で返信してから再実行する） | |
-| | 1. 状態ファイルに `state: completed` と証跡（`reviewDecision`、取得した会話コメント id / インラインコメント id の一覧）を書き、`chore(review): complete <last_done>` でコミットする |
+| | 1. 状態ファイルに `state: completed` と証跡（reviewDecision 相当、取得した会話コメント id / インラインコメント id の一覧）を書き、`chore(review): complete <last_done>` でコミットする |
 | | 2. `request.at` 以降に投稿された会話コメント・インラインコメント（`Claude Code より:` で始まる自分の投稿を除く）を JSON で stdout に出力する。**指摘への対応要否の判断は人間（`AskUserQuestion`）に残す**。スクリプトは「指摘が無い」ことを保証せず、「取得した」ことを保証する |
+
+REST には GraphQL の `reviewDecision`（ブランチ保護ルール込みの集約判定）に相当するフィールドが無いため、`complete` は `pulls/<PR>/reviews` の一覧から reviewer ごとの最新レビュー（`COMMENTED` / `PENDING` を除く）を取り、`CHANGES_REQUESTED` が1件でもあれば `CHANGES_REQUESTED`、無く `APPROVED` が1件でもあれば `APPROVED`、どちらも無ければ `""` とする簡略版を自前で計算する。ブランチ保護（必須レビュー人数・CODEOWNERS 等）は考慮しない。`complete` が実際に使うのは `CHANGES_REQUESTED` の検知のみのため、この簡略化で判定結果は変わらない。
 
 **`reply <inline_comment_id> <text>`**: `gh api repos/<owner>/<repo>/pulls/<PR>/comments/<id>/replies -f body=...` で返信する。本文の先頭に `Claude Code より:` を付ける。状態ファイルは変更しない。
 
-いずれのサブコマンドも `gh` の失敗（未認証・PR 無し・API エラー）は exit 2 で理由を出力し、状態ファイルを書き換えない。
+```json
+{
+  "review_decision": "APPROVED",
+  "unresolved_threads": [{"id": "...", "url": "..."}],
+  "comment_ids": ["..."],
+  "inline_ids": ["..."],
+  "new_comments": [{"id": "...", "author": "...", "createdAt": "...", "url": "...", "body": "..."}],
+  "new_reviews": [{"author": "...", "state": "...", "submittedAt": "...", "body": "..."}],
+  "new_inline": [{"id": "...", "path": "...", "line": 0, "in_reply_to_id": null, "user": "...", "url": "...", "body": "..."}]
+}
+```
+
+呼び出し元（Claude）が `mcp__github__pull_request_read`（`get_reviews`/`get_comments`/`get_review_comments`）等で取得した値をこの形に整形して渡す。`unresolved_threads` は `get_review_comments` の `isResolved: false` かつ未返信のスレッドを指す。
+
+**`reply <inline_comment_id> <text>`**: `gh` が使える環境では `gh api repos/<owner>/<repo>/pulls/<PR>/comments/<id>/replies -f body=...` で返信する。本文の先頭に `Claude Code より:` を付ける。状態ファイルは変更しない。**`gh` が使えない環境では、このサブコマンドは使わず、呼び出し元が MCP ツール（例: `mcp__github__add_reply_to_pull_request_comment`）で直接返信する**（状態を変更しないコマンドのため、フォールバック用の引数は用意しない）。
+
+いずれのサブコマンドも `gh` の失敗（未認証・PR 無し・API エラー）は exit 2 で理由を出力し、状態ファイルを書き換えない。`--external` 使用時に呼び出し元が渡した値が事実と異なっていても、スクリプトはそれを検証する手段を持たない（後述「証跡強度のトレードオフ」）。
 
 ### `--local`（PR を使わない単独実行）
 
 `work-ticket-driven` を `workflow-*` 経由でなく単独で使う場合、`AskUserQuestion` で承認を得た後に `request --local` → `complete --local` を続けて実行する。証跡は残らない（`local: true`）ため、**この経路の信頼性は会話上の承認に依存する**。`local: false` で `request` した境界を `complete --local` で閉じることはできない（逆も同じ）。
+
+### `--external`（gh CLI 不在時のフォールバック）
+
+`gh` CLI が使えない実行環境（GitHub 操作が MCP サーバー経由に限定される環境）向けの経路。`--local` との違いは、**実際に PR が存在し、そこへのコメント投稿・レビュー取得を呼び出し元が MCP ツール等で行っている**点（`--local` は PR そのものを扱わない）。
+
+- `request --external --pr <N> --comment-url <url>`: 呼び出し元が `mcp__github__add_issue_comment`（PR 番号を issue 番号として指定）等でレビュー依頼コメントを投稿した後、その結果（PR 番号・コメント URL）をスクリプトに渡す
+- `complete --external --report-file <path>`: 呼び出し元が MCP ツールでレビュー状態・コメントを取得し、上記スキーマに整形して渡す
+- `wb_pr_number` に相当する PR 番号取得は、`--pr <N>` が指定されていればそれを使い、`gh pr view` は呼ばない（`gh` の有無に関わらず `--pr` が優先される）
+
+**証跡強度のトレードオフ**: `via == "gh"` の設計は「スクリプト自身が GitHub に問い合わせて真偽を確認するため、LLM の自己申告だけでは状態が進まない」ことを保証する（`.claude/docs/10_spec/スキル体系.md`参照）。`via == "external"` はこの保証を維持できない。渡された PR 番号・URL・レビュー判定が実際の GitHub の状態と一致するかはスクリプトには検証できず、`--local`（PR を扱わない）と同様に**呼び出し元（Claude）の申告の正しさに依存する**。ただし `--local` と異なり、実在する PR 番号・コメント URL が記録に残る点、および `CHANGES_REQUESTED`/未解決スレッドの業務ロジック（何が完了を妨げるか）は `via` に関わらず同一である点で、`--local` より高い監査可能性を持つ（後から人間が記録された URL を実際に開いて確認できる）。既存の gh CLI が使える環境の挙動（デフォルトの `via: "gh"` 経路）はこの変更で一切変わらない。
 
 ### ワーク境界フック（`workflow-boundary.sh`）のブロック条件
 
@@ -474,6 +508,7 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 - `--local` は無い（マージ前作業は PR の存在が前提）。`permissionDecision: ask` は使わず exit 2 のみ（ヘッドレス実行で「確認できないため拒否」にならない）
 - default ブランチは `--base <branch>` で指定でき、省略時は `refs/remotes/origin/HEAD` の指す名前、それも無ければ `main`
 - `gh` の失敗（未認証・PR 無し・API エラー）は exit 2 で理由を出力し、状態ファイルを書き換えない
+- 全サブコマンドが `--pr <N>` を受け付ける。指定時は PR 番号取得に `gh pr view` を呼ばず、その値を使う（`gh` の有無に関わらず優先。詳細は後述「gh CLI 不在時のフォールバック」）
 
 ### `status`
 
@@ -505,7 +540,7 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 |------|
 | `work-boundary.sh status` で `doing_count == 0`、`todo_head == null`、`last_done != null`、`review_state == completed`（最後のワークのレビューが完了している） |
 | `git status --porcelain` が空 |
-| 現在ブランチに open な PR がある（`gh pr view --json number`） |
+| 現在ブランチに open な PR がある（`gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open"`） |
 
 動作:
 
@@ -532,33 +567,53 @@ todo ──(着手: mv + commit ※基準点)──> doing ──(DoD充足: 差
 4. `chore(merge-prep): check conflicts` でコミット・push
 5. 衝突なしなら `{merge_state, has_conflict: false, base, base_sha, head_sha}` を出力する。衝突ありなら exit 2 + `[WF016]` で対象ファイルと対処（`git merge origin/<base>` で取り込み → 解消 → コミット → push → 再実行。**`git rebase` は使わない**。レビューコメントが紐づくコミットを書き換えないため）を返す
 
-### `notify-issue --body-file <path> [--issue N ...]`
+### `notify-issue --body-file <path> [--issue N ...]` / `notify-issue --external --body-file <path> --pr-body-file <path> --posted "N:url" [--posted "N:url" ...] [--issue N ...]`
+
+gh が使える場合（前者の形）:
 
 | 前提条件（満たさなければ exit 2 + `[WF016]`） |
 |------|
 | `merge_state == checked`（衝突なしの記録がある。`notified` なら二重投稿になるため拒否） |
 | `--body-file` が存在し空でない |
-| 通知先が 1 件以上ある: PR 本文（`gh pr view --json body`）の `Closes #N` / `Fixes #N` / `Resolves #N`（大文字小文字不問）と `--issue` の和集合（重複除去） |
+| 通知先が 1 件以上ある: PR 本文（`gh api "repos/{owner}/{repo}/pulls/<PR>" --jq '.body'`）の `Closes #N` / `Fixes #N` / `Resolves #N`（大文字小文字不問）と `--issue` の和集合（重複除去） |
 
 動作:
 
 1. 本文の先頭に `Claude Code より: PR #<M> のマージ前の完了報告です。` と機械判定用の目印 `<!-- merge-prep: notify pr=<M> -->` を付けた一時ファイルを作る
-2. 通知先ごとに `gh issue comment <N> --body-file <tmp>` を実行し URL を控える（1 件でも失敗したら exit 2。それまでに投稿した分は stderr に列挙し、状態ファイルは書き換えない）
+2. 通知先ごとに `gh api "repos/{owner}/{repo}/issues/<N>/comments" -f body="@<tmp>"` を実行し URL を控える（1 件でも失敗したら exit 2。それまでに投稿した分は stderr に列挙し、状態ファイルは書き換えない）
 3. `notify` に記録し `state: notified`、`chore(merge-prep): notify issues` でコミット・push
 4. `{merge_state: "notified", issues: [{number, comment_url}]}` を出力する
 
-投稿前の本文の承認（承認⑥）はスキル側（`AskUserQuestion`）の責務であり、スクリプトは承認を検証しない。他人の issue への投稿は取り消せない外部への副作用のため、スキルは本文そのものを提示して承認を得る。
+`--external`（gh 不在時。後者の形）:
 
-### `ready [--base <branch>]`
+| 前提条件（満たさなければ exit 2 + `[WF016]`） |
+|------|
+| `merge_state == checked` |
+| `--pr <N>` が指定されている（`gh pr view` を呼ばないため PR 番号は必須） |
+| `--pr-body-file <path>` が存在し空でない（PR 本文。呼び出し元が MCP ツールで取得した内容を渡す） |
+| 通知先が 1 件以上ある: `--pr-body-file` の内容から `Closes #N` 等を抽出したものと `--issue` の和集合（`gh pr view` を呼ばず、同じ正規表現でスクリプトが自ら抽出する） |
+| 通知先の集合と `--posted` で渡された issue 番号の集合が完全に一致する（過不足があれば列挙して拒否） |
 
-| 前提条件（すべて満たすときだけ `gh pr ready` を実行する。未充足は 1 行ずつ列挙して exit 2 + `[WF016]`） |
+動作:
+
+1. 通知先ごとに `--posted "N:url"` の URL をそのまま証跡として使う（`gh issue comment` は呼ばない。コメント本文は呼び出し元が既に投稿済みという前提）
+2. `notify` に `via: "external"` として記録し `state: notified`、`chore(merge-prep): notify issues` でコミット・push
+3. `{merge_state: "notified", issues: [{number, comment_url}]}` を出力する（gh 版と同じ形）
+
+投稿前の本文の承認（承認⑥）はスキル側（`AskUserQuestion`）の責務であり、スクリプトは承認を検証しない。他人の issue への投稿は取り消せない外部への副作用のため、スキルは本文そのものを提示して承認を得る（`--external` でも同様。MCP ツールで投稿する前に本文の承認を得ること）。
+
+### `ready [--base <branch>] [--external]`
+
+| 前提条件（すべて満たすときだけ draft を解除する。未充足は 1 行ずつ列挙して exit 2 + `[WF016]`） |
 |------|
 | `merge_state == notified`（reset-wip / check-conflicts（衝突なし）/ notify-issue がこの順で記録されている） |
 | 再検証: 作業ツリーにリセット対象が残っていない（`wip_clean`） |
 | 再検証: `git status --porcelain` が空、HEAD が `@{u}` と一致（push 済み） |
 | 再検証: `git fetch origin <base>` → `merge-tree` で衝突なし（default ブランチが進んで衝突した場合は `conflicts` の記録だけ更新し、`check-conflicts` の対処に従って解消してから再実行する） |
 
-動作: `gh pr ready <M>` → `ready` に記録し `state: ready` → `chore(merge-prep): ready` でコミット・push → `{merge_state: "ready", pr}` を出力する。以後 AI エージェントは止まり、マージは人間が行う（`gh pr merge` はスキルの手順に含めない）。
+動作: `--external` が無ければ `gh pr ready <M>` を実行する（gh が使えない場合はここで exit 2 になるので `--external` を使う）。`--external` があれば `gh pr ready` を呼ばず、**呼び出し元が事前に MCP ツール（`mcp__github__update_pull_request` の `draft: false`）で draft を解除済みという前提**で次に進む。いずれの経路でも `ready` に `at`/`head_sha`/`via`（`"gh"` または `"external"`）を記録し `state: ready` → `chore(merge-prep): ready` でコミット・push → `{merge_state: "ready", pr}` を出力する。以後 AI エージェントは止まり、マージは人間が行う（`gh pr merge` はスキルの手順に含めない）。
+
+`--external` はドラフト解除という外部への副作用がスクリプトの制御外で行われたことを意味する。前提条件（reset-wip/check-conflicts/notify-issue の順序、wip_clean、push済み、衝突なし）はすべて `--external` でも同じ厳密さで検証される。スクリプトが検証できないのは「実際に draft が解除されたか」だけであり、これは MCP ツールの呼び出し元（Claude）が保証する。
 
 ### 状態遷移
 
@@ -574,6 +629,18 @@ none ──reset-wip──> reset ──check-conflicts（衝突なし）──>
 - `gh pr ready` の直接実行は、doing の有無・レビュー状態を問わず常に WF015（前掲の条件 (e)）。draft 解除の経路を `merge-prep.sh ready` に一本化することで、「マージ前作業を実施したか」の判定をスクリプトの前提条件に集約する
 - `wip/merge-prep.json` の保護は `review-state.json` と同じ WF012（条件 (f)）
 - `reset-wip` は `review_state == completed` を前提にするため、レビューを経ずに wip を消して ready へ進む経路は無い
+
+### gh CLI 不在時のフォールバック
+
+`gh` CLI が使えない実行環境向けの経路（issue #41）。全サブコマンドが `--pr <N>` を受け付け、`gh pr view` の代わりに使う（`reset-wip`/`check-conflicts` は実際の処理が `git`/`git merge-tree` だけで完結するため、`--pr` さえ渡せば gh 不在でも完全に動作する）。`notify-issue`/`ready` は実際の GitHub 側の副作用（コメント投稿・draft 解除）を伴うため、`--external` を付けて呼び出し元が MCP ツール等で行った結果を渡す（前述の各サブコマンド節を参照）。
+
+| サブコマンド | gh 不在時に必要な追加フラグ | 呼び出し元が事前に行うこと |
+|-------------|--------------------------|--------------------------|
+| `status` / `reset-wip` / `check-conflicts` | `--pr <N>` | PR 番号を把握しておく（例: `mcp__github__list_pull_requests` 等） |
+| `notify-issue` | `--external --pr <N> --pr-body-file <path> --posted "N:url" ...` | PR 本文の取得、通知先ごとの issue コメント投稿（`mcp__github__add_issue_comment`） |
+| `ready` | `--external --pr <N>` | `mcp__github__update_pull_request(draft: false)` で draft 解除 |
+
+**証跡強度のトレードオフ**は `work-boundary.sh` の「`--external`」節と同じ考え方に従う。`notify.via`/`ready.via` が `"external"` の記録は、実際に GitHub へ投稿・反映されたことをスクリプト自身が確認したものではなく、呼び出し元の申告に依存する。既存の gh CLI が使える環境（`--pr`/`--external` を使わない経路）の挙動はこの変更で一切変わらない。
 
 ---
 
@@ -912,6 +979,8 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | TC021 | ask_paths は毎回確認 | `global.ask_paths: ["config/**"]` で承認後に再度 Edit | 毎回 ask（WF010） | |
 | TC021c | file_level はファイル単位で記憶 | `package.json` 承認後に `package.json` ／ `README.md` | allow ／ ask | |
 | TC022 | 未記載パスの git add | Bash / `git add src/main.ts` | ask（WF009） | |
+| TC022b | 親ディレクトリ全体の git add は未記載扱い | Bash / `git add wip/`（`investigation`）／ `git add wip/`（`overall-plan`） | どちらも ask（WF009。`wip/` は `wip/10_tickets/*` にも type の allow にも一致しない） | `test-workflow-guard.sh`（issue #47） |
+| TC022c | 規約どおりの git add は確認なし | Bash / `git mv …10_doing/001-….md …20_done/ && git add wip/10_tickets/ wip/20_plans/調査結果.md && git commit -m x`（`investigation`）／ `git add wip/10_tickets/ wip/00_overall_plan/`（`overall-plan`） | どちらも exit 0（ask なし） | `test-workflow-guard.sh`（issue #47） |
 | TC011d | 承認済みパスの差分は違反にしない | PostToolUse / 承認済み `src/main.ts` に diff | additionalContext なし | |
 | TC013 | チケット作業中のプランモード | EnterPlanMode（doing 1 枚） | exit 2 + WF006 | |
 | TC013b | 全体計画時のプランモード | EnterPlanMode（doing 0 枚） | exit 0 | |
@@ -990,4 +1059,6 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | 2026-08-30 | 1.9 | ワーク境界の判定とレビュー状態を機械化: `work-boundary.sh`（`status` / `request` / `complete` / `reply`）、レビュー状態ファイル `wip/10_tickets/review-state.json`、ワーク境界フック `workflow-boundary.sh`（WF011 / WF012）、スクリプトのエラー WF013 / WF014、TC024〜TC028 を追加。1.8 の「フックは関与しない」を撤回（issue #12、ユーザー指示） | Hiro |
 | 2026-08-30 | 2.0 | マージ前作業（wip リセット → コンフリクト確認 → 関連 issue コメント → draft 解除）を機械化: `merge-prep.sh`（`status` / `reset-wip` / `check-conflicts` / `notify-issue` / `ready`）、状態ファイル `wip/merge-prep.json`、フック条件 (e)(f)（直接の `gh pr ready` を WF015 で常時拒否、`merge-prep.json` を WF012 で保護）、WF016、TC029〜TC031 を追加。(d) を (e) に統合し TC026g の期待値を WF015 に変更（issue #30） | Hiro |
 | 2026-08-30 | 2.1 | 「retrospective の棚卸しと合意」節を追加: AI アセットの棚卸し（5種類）・4観点の振り返り・軽微/振る舞いが変わるの2区分・issue化ルートの処理フローを、`workflow-quick-request` 側と文言を揃えて定義。フック・許可マトリクスの変更なし（issue #3） | Hiro |
+| 2026-08-30 | 2.2 | gh CLI 不在時のフォールバックを追加: `work-boundary.sh`/`merge-prep.sh` の全サブコマンドに `--pr <N>` を追加し、`request`/`complete`/`notify-issue`/`ready` に `--external`（＋ `--comment-url`/`--report-file`/`--pr-body-file`/`--posted`）を追加。状態ファイルに `via: "gh" \| "local" \| "external"` を追加し、証跡強度のトレードオフを明記。既存の gh 前提の挙動は変更なし（issue #41） | Hiro |
 | 2026-08-30 | 2.2 | フェーズ別ワークスキル用の 9 type（`overall-plan` / 計画 6 種 / `design` / `design-sync`）を標準の定義に追加。`overall-plan` の global deny 貫通と、全体計画の標準の入口が `work-overall-plan` になることを追記。フック・判定順序の変更なし（issue #39。main 側の 2.1（issue #3）との衝突を解消して繰り下げ） | Hiro |
+| 2026-08-30 | 2.3 | 「Bash コマンドの許可」に `git add` の対象パスの規約（`wip/10_tickets/` と許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。Bash の承認はセッション記憶されず、ヘッドレスでは拒否になる）を追加し、基本フロー 3・6 のコマンド表記を規約に揃えた。TC022b / TC022c を追加。フック・判定順序の変更なし（issue #47） | Hiro |

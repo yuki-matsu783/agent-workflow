@@ -88,7 +88,7 @@
 | 分類 | コマンド | 対象 |
 |------|---------|------|
 | 読み取り系 | `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `pwd`, `git status/log/diff/show/branch` | 全タイプ |
-| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（`wip/10_tickets/` 配下同士は無条件許可。それ以外は対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認）, `git commit` | 全タイプ |
+| チケット運用 | `mv` / `git mv`（`wip/10_tickets/` 配下同士のみ）, `git add`（`wip/10_tickets/` 配下同士は無条件許可。それ以外は対象パスに上の判定を適用。deny → WF003、ask/未記載 → 確認。対象は `wip/10_tickets/` と許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない — glob に一致せず未記載の確認になる）, `git commit` | 全タイプ |
 | ビルド/テスト | `npm` `npx` `node` `python` `pytest` `go` `cargo` `make` | `bash_groups` に `build` を含むタイプ |
 | フックテスト | `bash .claude/hooks/tests/<name>.sh`, `bash .claude/skills/<skill>/scripts/<name>.sh`（先頭の `VAR=value` は可。それ以外の `bash <script>` は拒否） | `bash_groups` に `test` を含むタイプ |
 

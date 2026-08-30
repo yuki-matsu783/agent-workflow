@@ -130,8 +130,14 @@ wb_status_json() {
 wb_git() { git -C "${WB_ROOT}" "$@"; }
 wb_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
+wb_gh_available() { command -v gh >/dev/null 2>&1; }
+
 wb_pr_number() {
-    gh pr view --json number -q .number 2>/dev/null | tr -d '\r'
+    # gh api は失敗時にエラー JSON を stdout へ出すことがある（gh pr view の GraphQL 版は stderr のみ）。
+    # 終了コードを確認せずに使うと、そのエラー JSON を PR 番号として扱ってしまう
+    local out
+    out=$(gh api "repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" --jq '.[0].number // empty' 2>/dev/null) || return 0
+    printf '%s' "${out}" | tr -d '\r'
 }
 
 wb_commit_state() { # $1=commit message
@@ -141,14 +147,24 @@ wb_commit_state() { # $1=commit message
 
 # ---------- request ----------
 wb_request() {
-    local body_file="" local_mode=false
+    local body_file="" local_mode=false external_mode=false pr_opt="" comment_url_opt=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --body-file) body_file="${2:-}"; shift 2 ;;
             --local) local_mode=true; shift ;;
-            *) wb_die WF013 "レビュー依頼の前提未充足: 不明な引数 $1" "" "request [--body-file <path>] [--local] の形式で実行してください。" ;;
+            --external) external_mode=true; shift ;;
+            --pr) pr_opt="${2:-}"; shift 2 ;;
+            --comment-url) comment_url_opt="${2:-}"; shift 2 ;;
+            *) wb_die WF013 "レビュー依頼の前提未充足: 不明な引数 $1" "" "request [--body-file <path>] [--local] [--pr <N>] [--external --comment-url <url>] の形式で実行してください。" ;;
         esac
     done
+    if [ "${local_mode}" = true ] && [ "${external_mode}" = true ]; then
+        wb_die WF013 "レビュー依頼の前提未充足: --local と --external は同時に指定できません" "" "どちらか一方を指定してください。"
+    fi
+    if [ "${external_mode}" = true ] && { [ -z "${pr_opt}" ] || [ -z "${comment_url_opt}" ]; }; then
+        wb_die WF013 "レビュー依頼の前提未充足: --external には --pr <N> と --comment-url <url> が必須です" "" \
+            "gh CLI が使えない環境では、MCP ツール等で実際にレビュー依頼コメントを投稿した上で、その PR 番号と URL を渡してください。"
+    fi
     wb_compute
     local fails=""
     if [ "${AT_BOUNDARY}" != "true" ]; then
@@ -163,15 +179,29 @@ wb_request() {
         local head up
         head=$(wb_git rev-parse HEAD 2>/dev/null); up=$(wb_git rev-parse '@{u}' 2>/dev/null || true)
         [ -n "${up}" ] && [ "${head}" = "${up}" ] || fails+="HEAD が push されていません（git push してください）"$'\n'
-        pr=$(wb_pr_number)
-        [ -n "${pr}" ] || fails+="現在のブランチに open な PR がありません"$'\n'
+        if [ -n "${pr_opt}" ]; then
+            pr="${pr_opt}"
+        else
+            pr=$(wb_pr_number)
+        fi
+        [ -n "${pr}" ] || fails+="現在のブランチに open な PR がありません（gh が使えない場合は --pr <N> を指定してください）"$'\n'
     fi
     [ -n "${fails}" ] && wb_die WF013 "レビュー依頼の前提未充足: request を実行できません" "${fails%$'\n'}" \
         "未充足の条件を解消してから再実行してください。境界でない場合は次のチケットに着手してください。既に requested の場合はレビュー完了の連絡を待って complete を実行してください。"
 
-    local comment_id="" comment_url="" head_sha
+    local comment_id="" comment_url="" head_sha via
     head_sha=$(wb_git rev-parse HEAD)
-    if [ "${local_mode}" = false ]; then
+    if [ "${local_mode}" = true ]; then
+        via="local"
+    elif [ "${external_mode}" = true ]; then
+        via="external"
+        comment_url="${comment_url_opt}"
+        case "${comment_url}" in
+            http*issuecomment-*) comment_id="${comment_url##*issuecomment-}" ;;
+            *) comment_id="" ;;
+        esac
+    else
+        via="gh"
         local tmp
         tmp=$(mktemp)
         {
@@ -179,17 +209,17 @@ wb_request() {
             printf '<!-- work-boundary: request ticket=%s -->\n\n' "${LAST_DONE}"
             [ -n "${body_file}" ] && [ -f "${body_file}" ] && cat "${body_file}"
         } >"${tmp}"
-        comment_url=$(gh pr comment "${pr}" --body-file "${tmp}" 2>&1 | tr -d '\r' | tail -1)
+        comment_url=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" -f body="@${tmp}" --jq '.html_url' 2>&1 | tr -d '\r' | tail -1)
         rm -f "${tmp}"
         case "${comment_url}" in
             http*issuecomment-*) comment_id="${comment_url##*issuecomment-}" ;;
-            *) wb_die WF013 "レビュー依頼の前提未充足: gh pr comment に失敗しました" "${comment_url}" "gh の認証・PR の状態を確認してから再実行してください。状態ファイルは変更していません。" ;;
+            *) wb_die WF013 "レビュー依頼の前提未充足: レビュー依頼コメントの投稿に失敗しました" "${comment_url}" "gh の認証・PR の状態を確認してから再実行してください。状態ファイルは変更していません。" ;;
         esac
     fi
 
-    wf_jq -n --arg t "${LAST_DONE}" --arg wt "${LAST_DONE_TYPE}" --argjson local "${local_mode}" \
+    wf_jq -n --arg t "${LAST_DONE}" --arg wt "${LAST_DONE_TYPE}" --argjson local "${local_mode}" --arg via "${via}" \
         --arg pr "${pr}" --arg sha "${head_sha}" --arg cid "${comment_id}" --arg curl "${comment_url}" --arg at "$(wb_now)" \
-        '{version: 1, ticket: $t, work_type: $wt, state: "requested", local: $local,
+        '{version: 1, ticket: $t, work_type: $wt, state: "requested", local: $local, via: $via,
           pr: (if $pr == "" then null else ($pr | tonumber) end), head_sha: $sha,
           request: {comment_id: (if $cid == "" then null else $cid end), url: (if $curl == "" then null else $curl end), at: $at},
           complete: null}' >"${WB_STATE}"
@@ -204,48 +234,89 @@ wb_request() {
 
 # ---------- complete ----------
 wb_complete() {
-    local local_mode=false
+    local local_mode=false external_mode=false report_file=""
     while [ $# -gt 0 ]; do
         case "$1" in
             --local) local_mode=true; shift ;;
-            *) wb_die WF014 "レビュー完了の前提未充足: 不明な引数 $1" "" "complete [--local] の形式で実行してください。" ;;
+            --external) external_mode=true; shift ;;
+            --report-file) report_file="${2:-}"; shift 2 ;;
+            *) wb_die WF014 "レビュー完了の前提未充足: 不明な引数 $1" "" "complete [--local] [--external --report-file <path>] の形式で実行してください。" ;;
         esac
     done
+    if [ "${local_mode}" = true ] && [ "${external_mode}" = true ]; then
+        wb_die WF014 "レビュー完了の前提未充足: --local と --external は同時に指定できません" "" "どちらか一方を指定してください。"
+    fi
+    if [ "${external_mode}" = true ] && { [ -z "${report_file}" ] || [ ! -s "${report_file}" ]; }; then
+        wb_die WF014 "レビュー完了の前提未充足: --external には --report-file <path>（存在し空でない）が必須です" "" \
+            "MCP ツール等で取得したレビュー結果を仕様書のスキーマに整形したファイルを渡してください。"
+    fi
     wb_compute
     local fails=""
     [ "${REVIEW_STATE}" = "requested" ] || fails+="review_state が requested ではありません（${REVIEW_STATE}）"$'\n'
-    local st_local="false" pr="" req_at=""
+    local st_via="gh" pr="" req_at=""
     if [ "${REVIEW_STATE}" != "none" ]; then
-        st_local=$(printf '%s' "${STATE_JSON}" | wf_jq -r '.local // false')
+        st_via=$(printf '%s' "${STATE_JSON}" | wf_jq -r 'if has("via") then .via elif .local then "local" else "gh" end')
         pr=$(printf '%s' "${STATE_JSON}" | wf_jq -r '.pr // ""')
         req_at=$(printf '%s' "${STATE_JSON}" | wf_jq -r '.request.at // ""')
-        [ "${st_local}" = "${local_mode}" ] || fails+="--local の指定が request と一致しません（request は local=${st_local}）"$'\n'
+        local want_via="gh"
+        [ "${local_mode}" = true ] && want_via="local"
+        [ "${external_mode}" = true ] && want_via="external"
+        [ "${st_via}" = "${want_via}" ] || fails+="--local/--external の指定が request と一致しません（request は via=${st_via}）"$'\n'
     fi
     [ -n "${fails}" ] && wb_die WF014 "レビュー完了の前提未充足: complete を実行できません" "${fails%$'\n'}" \
-        "requested でない場合は、境界なら request から始めてください。--local の指定は request と揃えてください。"
+        "requested でない場合は、境界なら request から始めてください。--local/--external の指定は request と揃えてください。"
 
     local decision="" comment_ids="[]" inline_ids="[]" new_comments="[]" new_reviews="[]" new_inline="[]"
     if [ "${local_mode}" = false ]; then
-        local prv inl
-        prv=$(gh pr view "${pr}" --json reviewDecision,reviews,comments 2>/dev/null | tr -d '\r')
-        [ -n "${prv}" ] || wb_die WF014 "レビュー完了の前提未充足: gh pr view に失敗しました" "PR #${pr} の情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
-        inl=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" 2>/dev/null | tr -d '\r')
-        [ -n "${inl}" ] || inl="[]"
-        decision=$(printf '%s' "${prv}" | wf_jq -r '.reviewDecision // ""')
+        local reviews comments inl
+        # gh api は失敗時にエラー JSON を stdout へ出すことがある。終了コードを確認せずに
+        # 「非空なら成功」と判定すると、そのエラー JSON を正常なレビュー/コメント一覧として扱ってしまう
+        # （jq 処理でサイレントに空扱いになり、「取得できなかった」のに「指摘なし」と誤判定しかねない）
+        reviews=$(gh api "repos/{owner}/{repo}/pulls/${pr}/reviews" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/reviews に失敗しました" "PR #${pr} のレビュー情報を取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        reviews=$(printf '%s' "${reviews}" | tr -d '\r')
+        comments=$(gh api "repos/{owner}/{repo}/issues/${pr}/comments" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api issues/comments に失敗しました" "PR #${pr} の会話コメントを取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        comments=$(printf '%s' "${comments:-[]}" | tr -d '\r')
+        inl=$(gh api "repos/{owner}/{repo}/pulls/${pr}/comments" 2>/dev/null)
+        [ $? -eq 0 ] || wb_die WF014 "レビュー完了の前提未充足: gh api pulls/comments に失敗しました" "PR #${pr} のインラインコメントを取得できません" "gh の認証・PR の状態を確認してから再実行してください。"
+        inl=$(printf '%s' "${inl:-[]}" | tr -d '\r')
+        # reviewDecision 相当: reviewer ごとの最新レビュー（COMMENTED/PENDING を除く）から算出する簡略版。
+        # ブランチ保護（必須レビュー人数・CODEOWNERS 等）は考慮しない。CHANGES_REQUESTED 判定にのみ使う
+        decision=$(printf '%s' "${reviews}" | wf_jq -r '
+            [.[] | select(.state != "COMMENTED" and .state != "PENDING")]
+            | group_by(.user.login) | map(max_by(.submitted_at))
+            | if any(.state == "CHANGES_REQUESTED") then "CHANGES_REQUESTED"
+              elif any(.state == "APPROVED") then "APPROVED"
+              else "" end')
         local unreplied
         unreplied=$(printf '%s' "${inl}" | wf_jq -r '. as $all | [.[] | select(.in_reply_to_id == null) | select(.id as $id | any($all[]; .in_reply_to_id == $id) | not)] | .[] | "\(.id) \(.path):\(.line // .original_line // "-")"')
         [ "${decision}" = "CHANGES_REQUESTED" ] && fails+="reviewDecision が CHANGES_REQUESTED です"$'\n'
         [ -n "${unreplied}" ] && fails+="返信の無いインラインスレッドがあります: $(printf '%s' "${unreplied}" | paste -sd ',' -)"$'\n'
         [ -n "${fails}" ] && wb_die WF014 "レビュー完了の前提未充足: complete を実行できません" "${fails%$'\n'}" \
             "CHANGES_REQUESTED なら指摘を同じ type の追加チケットで対応し、push 後に再度 request してください（または対応不要と合意できたらレビュアーに approve / dismiss を依頼してください）。未返信スレッドは bash .claude/hooks/work-boundary.sh reply <id> \"<対応内容>\" で返信してから再実行してください。"
-        comment_ids=$(printf '%s' "${prv}" | wf_jq -c '[.comments[]?.id]')
+        comment_ids=$(printf '%s' "${comments}" | wf_jq -c '[.[]?.id]')
         inline_ids=$(printf '%s' "${inl}" | wf_jq -c '[.[]?.id]')
-        new_comments=$(printf '%s' "${prv}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
-            '[.comments[]? | select((.body | startswith($p)) | not) | select(.createdAt >= $at) | {id, author: .author.login, createdAt, url, body}]')
-        new_reviews=$(printf '%s' "${prv}" | wf_jq -c --arg at "${req_at}" \
-            '[.reviews[]? | select(.submittedAt >= $at) | {author: .author.login, state, submittedAt, body}]')
+        new_comments=$(printf '%s' "${comments}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
+            '[.[]? | select((.body | startswith($p)) | not) | select(.created_at >= $at) | {id, author: .user.login, createdAt: .created_at, url: .html_url, body}]')
+        new_reviews=$(printf '%s' "${reviews}" | wf_jq -c --arg at "${req_at}" \
+            '[.[]? | select(.state != "PENDING") | select(.submitted_at >= $at) | {author: .user.login, state, submittedAt: .submitted_at, body}]')
         new_inline=$(printf '%s' "${inl}" | wf_jq -c --arg p "${WB_PREFIX}" --arg at "${req_at}" \
             '[.[]? | select((.body | startswith($p)) | not) | select(.created_at >= $at) | {id, path, line, in_reply_to_id, user: .user.login, url: .html_url, body}]')
+    elif [ "${st_via}" = "external" ]; then
+        local report unresolved_count
+        report=$(tr -d '\r' <"${report_file}")
+        decision=$(printf '%s' "${report}" | wf_jq -r '.review_decision // ""')
+        comment_ids=$(printf '%s' "${report}" | wf_jq -c '.comment_ids // []')
+        inline_ids=$(printf '%s' "${report}" | wf_jq -c '.inline_ids // []')
+        new_comments=$(printf '%s' "${report}" | wf_jq -c '.new_comments // []')
+        new_reviews=$(printf '%s' "${report}" | wf_jq -c '.new_reviews // []')
+        new_inline=$(printf '%s' "${report}" | wf_jq -c '.new_inline // []')
+        unresolved_count=$(printf '%s' "${report}" | wf_jq '(.unresolved_threads // []) | length')
+        [ "${decision}" = "CHANGES_REQUESTED" ] && fails+="review_decision が CHANGES_REQUESTED です"$'\n'
+        [ "${unresolved_count}" -gt 0 ] && fails+="未解決のスレッドがあります（${unresolved_count} 件）"$'\n'
+        [ -n "${fails}" ] && wb_die WF014 "レビュー完了の前提未充足: complete を実行できません" "${fails%$'\n'}" \
+            "CHANGES_REQUESTED なら指摘を同じ type の追加チケットで対応し、push 後に再度 request --external してください。未解決スレッドは MCP ツールで返信してから --report-file を作り直して再実行してください。"
     fi
 
     printf '%s' "${STATE_JSON}" | wf_jq --arg at "$(wb_now)" --arg d "${decision}" --argjson cids "${comment_ids}" --argjson iids "${inline_ids}" \
@@ -258,6 +329,8 @@ wb_complete() {
 
 # ---------- reply ----------
 wb_reply() {
+    wb_gh_available || wb_die WF014 "レビュー完了の前提未充足: gh CLI が使えません" "" \
+        "gh が使えない環境では reply は使わず、呼び出し元が MCP ツール（例: mcp__github__add_reply_to_pull_request_comment）で直接返信してください。reply は状態を変更しないコマンドのため、フォールバック用の引数は用意していません。"
     local id="${1:-}" text="${2:-}"
     [ -n "${id}" ] && [ -n "${text}" ] || wb_die WF014 "レビュー完了の前提未充足: reply の引数が不足しています" "" "reply <inline_comment_id> <text> の形式で実行してください。"
     local pr
@@ -273,7 +346,7 @@ case "${1:-}" in
     complete) shift; wb_complete "$@" ;;
     reply) shift; wb_reply "$@" ;;
     *)
-        printf 'usage: work-boundary.sh status | request [--body-file <path>] [--local] | complete [--local] | reply <id> <text>\n' >&2
+        printf 'usage: work-boundary.sh status | request [--body-file <path>] [--local] [--pr <N>] [--external --comment-url <url>] | complete [--local] [--external --report-file <path>] | reply <id> <text>\n' >&2
         exit 2
         ;;
 esac
