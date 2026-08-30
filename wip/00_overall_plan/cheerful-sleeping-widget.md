@@ -53,6 +53,8 @@ keywords: [WF012, review-state.json, クォート, QUOTED, workflow-boundary.sh,
 
 依存関係: 016 は 015 に依存、017 は 016 に依存。
 
+**追記（main マージ時）**: 015〜017 は main へのマージ時に、並行して進んでいた別 issue（#5, PR #33）の 015〜017 と add/add コンフリクトになったため、018〜020 に再度振り直した。実ファイルは `wip/10_tickets/20_done/018-`〜`020-` を参照。詳細は `wip/30_reports/020-結果報告-WF012修正.md` の「うまくいかなかったこと」を参照。
+
 ## 検証方法
 
 - `bash .claude/skills/work-ticket-driven/scripts/test-hooks.sh` を実行し、`結果: PASS=N FAIL=0` になることを確認する

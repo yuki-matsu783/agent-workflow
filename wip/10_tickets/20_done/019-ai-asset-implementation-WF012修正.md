@@ -1,7 +1,7 @@
 ---
 type: ai-asset-implementation
 status: todo
-depends_on: ["001-investigation-WF012原因調査.md"]
+depends_on: ["018-investigation-WF012原因調査.md"]
 ---
 
 # WF012 判定の修正とテストケース追加
