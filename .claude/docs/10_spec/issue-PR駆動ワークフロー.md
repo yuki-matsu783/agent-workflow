@@ -272,6 +272,7 @@ gh pr ready N
 
 - `.claude/docs/00_requirements/issue-PR駆動ワークフロー.md`（要件定義書）
 - `.claude/docs/10_spec/チケット駆動ワークフロー.md`（後続の実作業の仕様。Bash allowlist の正）
+- `.claude/docs/10_spec/スキル体系.md`（本スキルは3層構造の `workflow-*` に分類される。命名規則・承認方式の正）
 - `.claude/skills/gh-issue/SKILL.md`、`.claude/skills/gh-feature/SKILL.md`（委譲先の手順）
 
 ## レビュー記録
@@ -279,3 +280,4 @@ gh pr ready N
 | 日付 | バージョン | 変更内容 | 変更者 |
 |------|----------|---------|--------|
 | 2026-08-30 | 1.0 | 初版 | Hiro |
+| 2026-08-30 | 1.1 | スキル体系仕様書への相互参照を追加 | Hiro |
