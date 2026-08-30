@@ -1,20 +1,15 @@
 {
   "version": 1,
-  "ticket": "030-ai-asset-design-振り返り棚卸しと合意の要件仕様.md",
-  "work_type": "ai-asset-design",
-  "state": "completed",
+  "ticket": "031-ai-asset-implementation-振り返り棚卸しの実装.md",
+  "work_type": "ai-asset-implementation",
+  "state": "requested",
   "local": true,
   "pr": null,
-  "head_sha": "b19e6e3defe23bc254e7ca125858d379b10b3fd0",
+  "head_sha": "404e7119aee488ce81bf17075c8beba1fc08d140",
   "request": {
     "comment_id": null,
     "url": null,
-    "at": "2026-08-30T11:55:54Z"
+    "at": "2026-08-30T11:59:35Z"
   },
-  "complete": {
-    "at": "2026-08-30T11:57:08Z",
-    "review_decision": "",
-    "comment_ids": [],
-    "inline_ids": []
-  }
+  "complete": null
 }
