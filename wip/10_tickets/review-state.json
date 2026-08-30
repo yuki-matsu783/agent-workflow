@@ -1,20 +1,15 @@
 {
   "version": 1,
-  "ticket": "016-ai-asset-implementation-WF012修正.md",
-  "work_type": "ai-asset-implementation",
-  "state": "completed",
+  "ticket": "017-retrospective-振り返り.md",
+  "work_type": "retrospective",
+  "state": "requested",
   "local": true,
   "pr": null,
-  "head_sha": "9742c82635aabf017a59e3451a80fd8efc1b7556",
+  "head_sha": "cf89681a32ee6b062257f43188e9bbf75841992e",
   "request": {
     "comment_id": null,
     "url": null,
-    "at": "2026-08-30T09:10:32Z"
+    "at": "2026-08-30T09:14:36Z"
   },
-  "complete": {
-    "at": "2026-08-30T09:11:28Z",
-    "review_decision": "",
-    "comment_ids": [],
-    "inline_ids": []
-  }
+  "complete": null
 }
