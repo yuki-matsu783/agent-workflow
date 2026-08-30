@@ -27,7 +27,16 @@
       "wip/10_tickets/review-state.json"
     ]
   },
-  "conflicts": null,
+  "conflicts": {
+    "at": "2026-08-30T21:54:53Z",
+    "base": "main",
+    "base_sha": "f0dd20c10d0d95fe71330ba26677d6cb0191e003",
+    "head_sha": "c0827e246a6bfd6820ebcd29b4834ce8bdde9493",
+    "files": [
+      ".claude/hooks/tests/test-workflow-guard.sh"
+    ],
+    "has_conflict": true
+  },
   "notify": null,
   "ready": null
 }
