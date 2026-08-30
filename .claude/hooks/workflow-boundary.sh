@@ -8,8 +8,11 @@
 #   - workflow-guard.sh とは独立に登録し、doing が空でも動く
 #   - (a)(b) wip/10_tickets/review-state.json の直接書き換え（Edit/Write/NotebookEdit、
 #           Bash の rm / sed -i / リダイレクト / git checkout -- 等）は常に WF012
-#   - (c)(d) doing が空で、ワーク境界かつレビュー未完了（review_state != completed）のとき、
-#           次のワークのチケットを doing へ移す操作と gh pr ready は WF011。
+#   - (f)    wip/merge-prep.json も同じく常に WF012（merge-prep.sh だけが書く）
+#   - (e)    Bash の gh pr ready は doing・境界・レビュー状態を問わず常に WF015
+#           （draft の解除は merge-prep.sh ready 経由のみ。同「マージ前作業の判定と状態」）
+#   - (c)    doing が空で、ワーク境界かつレビュー未完了（review_state != completed）のとき、
+#           次のワークのチケットを doing へ移す操作は WF011。
 #           ただし直前の done と同じ type のチケット（差し戻し対応の追加チケット）は許可
 #   - ask は使わず exit 2 のみ（ヘッドレス実行で「確認できないため拒否」にならない）
 # ============================================================
@@ -26,6 +29,7 @@ WF_ROOT="${WF_ROOT//\\//}"
 WF_LOG_FILE="${WF_ROOT}/.claude/hooks/workflow.log"
 WB_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/work-boundary.sh"
 STATE_REL="wip/10_tickets/review-state.json"
+MP_STATE_REL="wip/merge-prep.json"
 DOING_REL="wip/10_tickets/10_doing"
 
 INPUT=$(cat)
@@ -44,35 +48,56 @@ block() {
     exit 2
 }
 
-# ---------- (a)(b) レビュー状態ファイルの保護 ----------
+# ---------- (a)(b)(e)(f) 状態ファイルの保護と gh pr ready の拒否（常に適用） ----------
 READONLY_RE='^(cat|head|tail|grep|rg|wc)([[:space:]]|$)|^git[[:space:]]+(status|log|diff|show)([[:space:]]|$)'
-SCRIPT_RE='^bash[[:space:]]+\.claude/hooks/work-boundary\.sh([[:space:]]|$)'
+SCRIPT_RE='^bash[[:space:]]+\.claude/hooks/(work-boundary|merge-prep)\.sh([[:space:]]|$)'
+PR_READY_RE='^gh[[:space:]]+pr[[:space:]]+ready([[:space:]]|$)'
 
-wf012() {
+wf012() { # $1=対象 $2=状態ファイル（review|merge）
+    local file script subs
+    if [ "$2" = "merge" ]; then
+        file="${MP_STATE_REL}"; script="merge-prep.sh"; subs="reset-wip / check-conflicts / notify-issue / ready"
+    else
+        file="${STATE_REL}"; script="work-boundary.sh"; subs="request / complete"
+    fi
     block WF012 \
-        "[WF012] レビュー状態の直接書き換え: ${STATE_REL} は work-boundary.sh 以外から書き換えできません" \
+        "[WF012] 状態ファイルの直接書き換え: ${file} は ${script} 以外から書き換えできません" \
         "対象: $1" \
-        "対処: レビュー状態は bash .claude/hooks/work-boundary.sh の request / complete でのみ遷移します。状態を進めたい場合はそのサブコマンドを実行し、前提条件（[WF013] / [WF014]）が満たせないならユーザーに報告してください。ファイルを編集・削除・復元して状態を作らないでください。"
+        "対処: 状態は bash .claude/hooks/${script} のサブコマンド（${subs}）でのみ遷移します。状態を進めたい場合はそのサブコマンドを実行し、前提条件（[WF013] / [WF014] / [WF016]）が満たせないならユーザーに報告してください。ファイルを編集・削除・復元して状態を作らないでください。"
+}
+
+wf015() {
+    block WF015 \
+        "[WF015] マージ依頼の統制違反: gh pr ready は直接実行できません（draft の解除は merge-prep.sh ready 経由のみ）" \
+        "対象: $1" \
+        "対処: bash .claude/hooks/merge-prep.sh ready を実行してください。前提（reset-wip / check-conflicts / notify-issue の記録と再検証）が満たせず [WF016] で止まる場合は、未充足の条件を解消するか、ユーザーに報告してください。迂回して ready にしないでください。"
 }
 
 case "${TOOL}" in
     Edit|Write|NotebookEdit)
         REL=$(wf_to_rel "${FILE_PATH}")
-        [ "${REL}" = "${STATE_REL}" ] && wf012 "${REL}"
+        [ "${REL}" = "${STATE_REL}" ] && wf012 "${REL}" review
+        [ "${REL}" = "${MP_STATE_REL}" ] && wf012 "${REL}" merge
         ;;
     Bash)
         while IFS= read -r seg; do
             seg=$(printf '%s' "${seg}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
             [ -z "${seg}" ] && continue
-            case "${seg}" in *review-state.json*) ;; *) continue ;; esac
+            printf '%s' "${seg}" | grep -Eq "${PR_READY_RE}" && wf015 "${COMMAND:0:200}"
+            kind=""
+            case "${seg}" in
+                *review-state.json*) kind="review" ;;
+                *merge-prep.json*) kind="merge" ;;
+                *) continue ;;
+            esac
             printf '%s' "${seg}" | grep -Eq "${READONLY_RE}" && continue
             printf '%s' "${seg}" | grep -Eq "${SCRIPT_RE}" && continue
-            wf012 "${COMMAND:0:200}"
+            wf012 "${COMMAND:0:200}" "${kind}"
         done <<<"$(printf '%s' "${COMMAND}" | sed -E 's/\|\||&&|;|\|/\n/g')"
         ;;
 esac
 
-# ---------- (c)(d) ワーク境界の統制（doing が空のときだけ） ----------
+# ---------- (c) ワーク境界の統制（doing が空のときだけ） ----------
 STATUS=$(CLAUDE_PROJECT_DIR="${WF_ROOT}" bash "${WB_SCRIPT}" status 2>/dev/null) || exit 0
 IFS="${WF_RS}" read -r -d '' DOING_COUNT AT_BOUNDARY REVIEW_STATE LAST_DONE LAST_DONE_TYPE TODO_HEAD TODO_HEAD_TYPE < <(
     wf_jq -r '[(.doing_count|tostring), (.at_boundary|tostring), .review_state, (.last_done // ""), (.last_done_type // ""), (.todo_head // ""), (.todo_head_type // "")] | join("")' <<<"${STATUS}"
@@ -121,9 +146,6 @@ case "${TOOL}" in
         while IFS= read -r seg; do
             seg=$(printf '%s' "${seg}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
             [ -z "${seg}" ] && continue
-            if printf '%s' "${seg}" | grep -Eq '^gh[[:space:]]+pr[[:space:]]+ready([[:space:]]|$)'; then
-                wf011
-            fi
             if printf '%s' "${seg}" | grep -Eq '^(git[[:space:]]+)?mv([[:space:]]|$)'; then
                 # shellcheck disable=SC2206
                 toks=(${seg})
