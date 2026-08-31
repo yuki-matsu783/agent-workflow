@@ -434,6 +434,29 @@ PreToolUse（Matcher: `Edit|Write|NotebookEdit|Bash`）。`WORKFLOW_ENFORCE=0` �
 
 (a)(b)(e)(f) は doing の有無・境界の有無にかかわらず常に適用する。(c) は doing が空のときだけ評価する（doing があれば `workflow-guard.sh` が GitHub 操作と 2 枚目の doing を既に拒否している）。
 
+### (a)(b)(f) の例外: マージコンフリクト解消中の直接編集（issue #51）
+
+`reset-wip` 後の `check-conflicts` でコンフリクトが検知された場合（前掲「マージ前作業の判定と状態」）、対処は `git merge origin/<base>` で default ブランチを取り込み、衝突を解消してコミットすることである。このとき `review-state.json` / `merge-prep.json` 自身がコンフリクトの対象になることがあり、WF012 は例外なく拒否するため、Claude はマーカーを除去してコミットする手段を持たない（ユーザーに手動解消を委ねるしかなかった。issue #51 の発端）。
+
+次の**両方**を満たすときに限り、(a)(b)(f) の拒否を解除し、対象ファイルへの Edit / Write / NotebookEdit / Bash 直接書き換えを許可する。
+
+| 条件 | 確認方法 | 理由 |
+|------|---------|------|
+| 1. `git` が実際にマージ進行中である | `git rev-parse -q --verify MERGE_HEAD` が成功する（exit 0） | `MERGE_HEAD` は `git merge` が衝突等で自動コミットまで進めなかったときにのみ git 自身が作成する。`git commit` でのマージ完了や `git merge --abort` で削除される |
+| 2. 対象ファイル自身が実際にunmerged状態にある | `git diff --name-only --diff-filter=U` の一覧に `review-state.json`（または `merge-prep.json`）が含まれる | 条件1のみだと、コンフリクト解消は必ず doing が空の状態（`workflow-guard.sh` の制限が完全に外れる状態。後述「残るトレードオフ」）で起きるため、`echo <SHA> > .git/MERGE_HEAD` のような単純な偽装で条件を満たせてしまう。対象ファイルが実際にunmerged状態にあることまで確認することで、この単純な偽装を防ぐ |
+
+両方を満たさない場合（`MERGE_HEAD` が無い、または存在するが対象ファイルがunmerged状態でない）は、従来どおり例外なくWF012で拒否する。
+
+**内容検証（PostToolUse、警告のみ）**: この例外はPreToolUse側の判定であり、編集後の内容までは検証できない。`workflow-diff-check.sh`（PostToolUse）が、例外が適用された編集の直後に次を確認し、いずれか満たさなければ既存のWF-DIFFと同じ形式（`additionalContext`、ブロックしない）で警告する。**自動revertは行わない**（他のPostToolUse検知と同じ「破壊的操作の禁止」方針）。
+
+- 編集後のファイルが有効なJSONである（`jq empty`相当）
+- コンフリクトマーカー（`<<<<<<<`/`=======`/`>>>>>>>`で始まる行）が残っていない
+- 対象ファイルが `git diff --name-only --diff-filter=U` から外れている（そのファイルについてはマージが解消済み）
+
+**見送った選択肢**: 機微キー（`state`/`review_decision`等）の値がマージ前から恣意的に書き換えられていないかの検証（調査結果の選択肢D）は、実装コストと保守負担（キーの一覧を都度更新する必要がある）に対して、上記の2条件（MERGE_HEAD かつ unmerged）が既に強い制約であることから、今回は見送る。将来、内容の悪用が実際に問題になった場合の拡張候補として残す。
+
+**残るトレードオフ**: `workflow-guard.sh` は `wip/10_tickets/10_doing/` が空のとき `wf_init` のガード2で即 exit 0 し、Bash コマンドへの制限が完全に外れる（`.claude/hooks/workflow-lib.sh` のガード1・2）。`merge-prep.sh` のマージ前作業（コンフリクト解消が実際に発生する場面）は「実行は doing が空のときに限る」ため、**コンフリクト解消は必ずこの無制限状態と一致する**。上記2条件（MERGE_HEAD かつ 対象ファイルがunmerged）は単純な偽装（条件1のみを満たす偽装）を防ぐが、`git update-index --index-info` 等のgitプラミングコマンドを使えば、doing が空の無制限状態では対象ファイルのunmerged状態そのものを人工的に作り出すことが理論上可能であり、この構造的な限界は本変更（フック単体でのロジック追加）では解消しきれない。doing が空の状態でBashを再制限することは、コンフリクト解消作業自体を妨げるため採らない。この限界を許容した上で、単純な偽装を防ぐという実利を優先する。
+
 `review_state` ごとの「対処:」は次のとおり。
 
 | `review_state` | 対処 |
@@ -890,6 +913,8 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 対処: 状態は bash .claude/hooks/{script} のサブコマンド（{subcommands}）でのみ遷移します。状態を進めたい場合はそのサブコマンドを実行し、前提条件（[WF013] / [WF014] / [WF016]）が満たせないならユーザーに報告してください。ファイルを編集・削除・復元して状態を作らないでください。
 ```
 
+この拒否は、`git` が実際にマージ進行中（`MERGE_HEAD` が存在する）**かつ**対象ファイル自身がunmerged状態（`git diff --name-only --diff-filter=U` に含まれる）の両方を満たすときだけ解除される（前掲「(a)(b)(f) の例外」）。それ以外は常にこのメッセージで拒否する。
+
 **WF013（レビュー依頼の前提未充足）** — `work-boundary.sh request` が返す（満たさない条件を 1 行ずつ列挙する）:
 
 ```
@@ -1021,6 +1046,9 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | TC029 | `merge-prep.json` の保護と `gh pr ready` の常時拒否 | Edit / Write / `rm` / `sed -i` / リダイレクト / `git checkout --` で `wip/merge-prep.json` ／ `gh pr ready 13`（doing 0 枚・1 枚、`review_state` が `completed` / `requested` / `none` の各状態） | 前者 exit 2 + WF012、後者は常に exit 2 + WF015。`cat` / `bash .claude/hooks/merge-prep.sh status` は exit 0。`WORKFLOW_ENFORCE=0` は exit 0 | `workflow-boundary.sh` |
 | TC030 | `reset-wip` | todo あり ／ `review_state: none` ／ 未コミットあり ／ PR なし → 前提未充足。`--dry-run` → 一覧のみ。本実行 → 削除・状態ファイル・コミット・push。再実行 | 前提未充足は exit 2 + WF016（状態ファイル不変・成果物不変）。`--dry-run` は成果物不変。本実行後は成果物が消え `.gitkeep` が残り、`merge_state: reset`、`chore(merge-prep): reset wip` が push 済み。再実行は WF016 | `gh` はモック |
 | TC031 | `check-conflicts` / `notify-issue` / `ready` | bare リモートの `main` と衝突する／しないコミット ／ 本文なし・通知先なし・二重通知 ／ notify 前の `ready`・全記録後の `ready` | 衝突ありは exit 2 + WF016 + ファイル名（`conflicts.has_conflict: true` を記録）、解消後は `checked`。`notify-issue` は `notified` とコメント URL を記録、二重は WF016。`ready` は未充足を列挙して exit 2、全記録後は `gh pr ready` を実行して `ready` | `gh` はモック、`merge-tree` は実物 |
+| TC032 | WF012例外: MERGE_HEAD かつ 対象ファイルがunmerged | 実際に `git merge` でコンフリクトを起こした状態（`MERGE_HEAD` 存在・`review-state.json`/`merge-prep.json` が `--diff-filter=U` に含まれる）で Edit / Write / `sed -i` | exit 0（WF012を拒否しない） | `workflow-boundary.sh` |
+| TC033 | WF012例外が適用されない場合 | (a) `MERGE_HEAD` が無い通常時、(b) `MERGE_HEAD` はあるが対象ファイルはunmergedでない（他ファイルの衝突）の2パターンで Edit | いずれも exit 2 + WF012（従来どおり） | `workflow-boundary.sh` |
+| TC034 | 例外適用後の内容検証（PostToolUse警告） | TC032の例外でファイルを編集した直後、(a) 不正なJSON、(b) コンフリクトマーカー残存、(c) 正常に解消（マーカー除去・有効なJSON） | (a)(b) は exit 0 + additionalContext で警告（ブロックしない）、(c) は警告なし | `workflow-diff-check.sh` |
 
 `gh` を伴うケース（TC027 / TC028 の非 `--local`、TC030 / TC031）は、`PATH` の先頭にモックの `gh` を置いて固定の JSON を返す方式でテストする（ネットワークに出ない）。default ブランチとの衝突判定（TC031）はモックせず、bare リモートに `main` を push して実物の `git merge-tree` で検証する。
 
@@ -1062,3 +1090,4 @@ retrospective チケットの結果報告作成に、`.claude/docs/10_spec/skill
 | 2026-08-30 | 2.2 | gh CLI 不在時のフォールバックを追加: `work-boundary.sh`/`merge-prep.sh` の全サブコマンドに `--pr <N>` を追加し、`request`/`complete`/`notify-issue`/`ready` に `--external`（＋ `--comment-url`/`--report-file`/`--pr-body-file`/`--posted`）を追加。状態ファイルに `via: "gh" \| "local" \| "external"` を追加し、証跡強度のトレードオフを明記。既存の gh 前提の挙動は変更なし（issue #41） | Hiro |
 | 2026-08-30 | 2.2 | フェーズ別ワークスキル用の 9 type（`overall-plan` / 計画 6 種 / `design` / `design-sync`）を標準の定義に追加。`overall-plan` の global deny 貫通と、全体計画の標準の入口が `work-overall-plan` になることを追記。フック・判定順序の変更なし（issue #39。main 側の 2.1（issue #3）との衝突を解消して繰り下げ） | Hiro |
 | 2026-08-30 | 2.3 | 「Bash コマンドの許可」に `git add` の対象パスの規約（`wip/10_tickets/` と許可パス内のファイルに限定し、`wip/` のような親ディレクトリ全体を指定しない。Bash の承認はセッション記憶されず、ヘッドレスでは拒否になる）を追加し、基本フロー 3・6 のコマンド表記を規約に揃えた。TC022b / TC022c を追加。フック・判定順序の変更なし（issue #47） | Hiro |
+| 2026-08-31 | 2.4 | WF012（(a)(b)(f)）に、マージ進行中（`MERGE_HEAD` 存在 かつ 対象ファイルがunmerged）に限る例外を追加: 例外を満たさない場合は従来どおり常時拒否。例外適用後の内容検証（有効なJSON・マーカー残存なし・unmerged解消済み）は`workflow-diff-check.sh`（PostToolUse）の警告のみとし、機微キー不変チェックは見送り。doing空でBashが無制限であることに起因する残存リスクをトレードオフとして明記。TC032〜TC034を追加（issue #51） | Hiro |
