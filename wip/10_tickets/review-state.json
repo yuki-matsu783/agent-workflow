@@ -1,25 +1,16 @@
 {
   "version": 1,
-  "ticket": "004-investigation-内容検証方法の選択肢調査.md",
-  "work_type": "investigation",
-  "state": "completed",
+  "ticket": "005-ai-asset-design-plan-設計計画.md",
+  "work_type": "ai-asset-design-plan",
+  "state": "requested",
   "local": false,
   "via": "external",
   "pr": 52,
-  "head_sha": "edf1f29633e77432a49e31e25cbadbbfb4505d9c",
+  "head_sha": "f1a72668b2efd7ab20aa40828d37b346ccd2d379",
   "request": {
-    "comment_id": "5471864290",
-    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5471864290",
-    "at": "2026-08-30T23:14:52Z"
+    "comment_id": "5472150706",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5472150706",
+    "at": "2026-08-31T00:13:52Z"
   },
-  "complete": {
-    "at": "2026-08-30T23:31:12Z",
-    "review_decision": "",
-    "comment_ids": [
-      5471597480,
-      5471822993,
-      5471864290
-    ],
-    "inline_ids": []
-  }
+  "complete": null
 }
