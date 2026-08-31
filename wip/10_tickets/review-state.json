@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "ticket": "007-ai-asset-design-要件定義書と用語辞書の更新.md",
+  "work_type": "ai-asset-design",
+  "state": "completed",
+  "local": false,
+  "via": "external",
+  "pr": 52,
+  "head_sha": "11564be7c4524c444bd921ebc6066f78119a4163",
+  "request": {
+    "comment_id": "5474136910",
+    "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5474136910",
+    "at": "2026-08-31T05:27:43Z"
+  },
+  "complete": {
+    "at": "2026-08-31T11:23:42Z",
+    "review_decision": "",
+    "comment_ids": [
+      "5471597480",
+      "5471822993",
+      "5471864290",
+      "5472150706",
+      "5474136910"
+    ],
+    "inline_ids": []
+  }
+}
