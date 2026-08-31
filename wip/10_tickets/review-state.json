@@ -2,7 +2,7 @@
   "version": 1,
   "ticket": "005-ai-asset-design-plan-設計計画.md",
   "work_type": "ai-asset-design-plan",
-  "state": "requested",
+  "state": "completed",
   "local": false,
   "via": "external",
   "pr": 52,
@@ -12,5 +12,15 @@
     "url": "https://github.com/yuki-matsu783/agent-workflow/pull/52#issuecomment-5472150706",
     "at": "2026-08-31T00:13:52Z"
   },
-  "complete": null
+  "complete": {
+    "at": "2026-08-31T00:19:45Z",
+    "review_decision": "",
+    "comment_ids": [
+      5471597480,
+      5471822993,
+      5471864290,
+      5472150706
+    ],
+    "inline_ids": []
+  }
 }
